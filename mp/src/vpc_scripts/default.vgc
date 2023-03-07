@@ -12,6 +12,8 @@ $Games
 {
 	"SDK2013CE"
 	"HL2MP"
+	"HL1"
+	"CUSTOM"
 }
 
 // Makes the VPC scripts work in the SDK's context
