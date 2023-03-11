@@ -14,6 +14,7 @@
 #include "hl1/hl1_player_shared.h"
 #include "hl1_player.h"
 #include "takedamageinfo.h"
+#include "ilagcompensationmanager.h"
 
 
 class CHL1MP_Player;
@@ -35,6 +36,9 @@ public:
 	void PackDeadPlayerItems( void ) override;
     virtual void Spawn( void );
     virtual void PostThink( void );
+
+	void FireBullets(const FireBulletsInfo_t & info);
+
     virtual void SetAnimation( PLAYER_ANIM playerAnim );
     void GiveDefaultItems( void );
     void CreateRagdollEntity( void );
@@ -44,16 +48,10 @@ public:
 
 	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
 
-	virtual void ChangeTeam( int iTeamNum ); //{};
-
-	void SetPlayerTeamModel( void );
+	void SetPlayerModel( void );
 
 	float GetNextModelChangeTime( void ) { return m_flNextModelChangeTime; }
 	float GetNextTeamChangeTime( void ) { return m_flNextTeamChangeTime; }
-
-    void SetPlayerModel( void );
-
-	void PickDefaultSpawnTeam( void );
 
 	void DoAnimationEvent( PlayerAnimEvent_t event, int nData = 0 );
 
@@ -61,10 +59,7 @@ public:
 
 	void DetonateSatchelCharges( void );
 
-	void ImpulseCommands( void );
-
 	CNetworkVar( int, m_iRealSequence );
-	CNetworkVar( bool, bShouldDoSomething );
 
 private:
     CNetworkHandle( CBaseEntity, m_hRagdoll );

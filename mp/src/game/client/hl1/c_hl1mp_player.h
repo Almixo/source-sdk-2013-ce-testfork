@@ -83,8 +83,6 @@ private:
     int m_iSpawnInterpCounterCache;
 
 	float m_fLastPredFreeze;
-
-	bool bShouldDoSomething;
 };
 
 

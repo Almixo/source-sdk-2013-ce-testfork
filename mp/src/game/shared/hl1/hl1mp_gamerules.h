@@ -58,16 +58,17 @@ public:
 	virtual float FlItemRespawnTime( CItem *pItem );
 
 	//virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer );
-	virtual void InitHUD( CBasePlayer *pPlayer );
-	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, bool bKill, bool bGib );
+	virtual void InitHUD(CBasePlayer *pPlayer) { BaseClass::InitHUD(pPlayer); };
+	/*virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, bool bKill, bool bGib );*/
 	virtual void ClientSettingsChanged( CBasePlayer *pPlayer );
 
 	virtual int GetTeamIndex( const char * pName );
+
+	virtual const char *SetDefaultPlayerTeam(CBasePlayer *pPlayer);
+	virtual const char* TeamWithFewestPlayers();
 #endif
 
 private:
-
-	const char *TeamWithFewestPlayers( void );
 
 	CNetworkVar( bool, m_bTeamPlayEnabled );
 };

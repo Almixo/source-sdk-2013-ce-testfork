@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,18 +6,20 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Senses.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"ai_senses.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -60,7 +62,7 @@ public:
 	virtual void Precache(void);
 	void EXPORT TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	
-	virtual void TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 
 	virtual int OnTakeDamage( const CTakeDamageInfo &info );
 	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
@@ -123,7 +125,7 @@ public:
 
 	// movement
 	float	m_flStartYaw;
-	Vector	m_vecCurAngles;
+	QAngle	m_vecCurAngles;
 	Vector	m_vecGoalAngles;
 
 
@@ -139,8 +141,6 @@ public:
 
 	//DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
-
-	typedef CAI_BaseNPC BaseClass;
 };
 
 BEGIN_DATADESC( CNPC_BaseTurret )
@@ -246,7 +246,7 @@ void CNPC_BaseTurret::Spawn()
 
 void CNPC_BaseTurret::Precache()
 {
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");	
+	m_iAmmoType = GetAmmoDef()->Index("12mmRound");	
 
 	PrecacheScriptSound( "Turret.Alert" );
 	PrecacheScriptSound( "Turret.Die" );
@@ -266,7 +266,7 @@ Class_T CNPC_BaseTurret::Classify( void )
 //=========================================================
 // TraceAttack - being attacked
 //=========================================================
-void CNPC_BaseTurret::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_BaseTurret::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo ainfo = info;
 
@@ -487,7 +487,7 @@ void CNPC_BaseTurret::Initialize(void)
 //=========================================================
 // ActiveThink - 
 //=========================================================
-/*void CNPC_BaseTurret::ActiveThink(void)
+void CNPC_BaseTurret::ActiveThink(void)
 {
 	int fAttack = 0;
 
@@ -521,15 +521,15 @@ void CNPC_BaseTurret::Initialize(void)
 		}
 	}
 
-
-	Vector vecMid = GetAbsOrigin() + GetViewOffset();
-	Vector vecMidEnemy = GetEnemy()->BodyTarget( vecMid, false );
+	Vector vecMid = EyePosition();
+	Vector vecMidEnemy = GetEnemy()->BodyTarget(vecMid, false);
 
 	// Look for our current enemy
-	int fEnemyVisible = FBoxVisible(this, GetEnemy(), vecMidEnemy );	
+	int fEnemyVisible = FInViewCone( GetEnemy() ) && FVisible( GetEnemy() );	
 	
 	//We want to look at the enemy's eyes so we don't jitter
 	Vector	vecDirToEnemyEyes = vecMidEnemy - vecMid;
+//	NDebugOverlay::Line( vecMid, vecMidEnemy, 0, 255, 0, false, 1.0 );
 
 	float flDistToEnemy = vecDirToEnemyEyes.Length();
 
@@ -561,37 +561,28 @@ void CNPC_BaseTurret::Initialize(void)
 		m_vecLastSight = vecMidEnemy;
 	}
 	
-	//ALERT( at_console, "%.0f %.0f : %.2f %.2f %.2f\n", 
-	//	m_vecCurAngles.x, m_vecCurAngles.y,
-	//	gpGlobals->v_forward.x, gpGlobals->v_forward.y, gpGlobals->v_forward.z );
+	Vector forward;
+	AngleVectors( m_vecCurAngles, &forward );
 
-	Vector vecLOS = vecDirToEnemyEyes; //vecMid - m_vecLastSight;
-	VectorNormalize( vecLOS );
+	Vector2D vec2LOS = ( GetEnemy()->GetAbsOrigin() - GetAbsOrigin() ).AsVector2D();
+	vec2LOS.NormalizeInPlace();
 
-	Vector vecMuzzle, vecMuzzleDir;
-	QAngle vecMuzzleAng;
-	GetAttachment( 1, vecMuzzle, vecMuzzleAng );
+	float flDot = vec2LOS.Dot( forward.AsVector2D() );
 
-	AngleVectors( vecMuzzleAng, &vecMuzzleDir );
-	
-	// Is the Gun looking at the target
-	if (DotProduct(vecLOS, vecMuzzleDir) <= 0.866) // 30 degree slop
+	if ( flDot  <= 0.866 )
 		fAttack = FALSE;
 	else
 		fAttack = TRUE;
 
 	//forward
-//	NDebugOverlay::Line(vecMuzzle, vecMid + ( vecMuzzleDir * 200 ), 255,0,0, false, 0.1);
+	//NDebugOverlay::Line(vecMuzzle, vecMid + ( forward ), 255,0,0, false, 0.1);
 	//LOS
-//	NDebugOverlay::Line(vecMuzzle, vecMid + ( vecLOS * 200 ), 0,0,255, false, 0.1);
+	//NDebugOverlay::Line(vecMuzzle, vecMid + ( vecDirToEnemyEyes * 200 ), 0,0,255, false, 0.1);
 
 	// fire the gun
 	if (m_iSpin && ((fAttack) || (m_fBeserk)))
 	{
-		Vector vecOrigin;
-		QAngle vecAngles;
-		GetAttachment( 1, vecOrigin, vecAngles );
-		Shoot(vecOrigin, vecMuzzleDir );
+		Shoot(vecMid, forward );
 		SetTurretAnim(TURRET_ANIM_FIRE);
 	} 
 	else
@@ -656,166 +647,6 @@ void CNPC_BaseTurret::Initialize(void)
 		m_vecGoalAngles.y = vecAnglesToEnemy.y;
 		m_vecGoalAngles.x = vecAnglesToEnemy.x;
 
-	}
-
-	SpinUpCall();
-	MoveTurret();
-}*/
-void CNPC_BaseTurret::ActiveThink(void)
-{
-	int fAttack = 0;
-
-	SetNextThink(gpGlobals->curtime + 0.1);
-	StudioFrameAdvance();
-
-	if ((!m_iOn) || (GetEnemy() == NULL))
-	{
-		SetEnemy(NULL);
-		m_flLastSight = gpGlobals->curtime + m_flMaxWait;
-		SetThink(&CNPC_BaseTurret::SearchThink);
-		return;
-	}
-
-	if (!GetEnemy()->IsAlive())
-	{
-		if (!m_flLastSight)
-		{
-			m_flLastSight = gpGlobals->curtime + 0.5;
-		}
-		else
-		{
-			if (gpGlobals->curtime > m_flLastSight)
-			{
-				SetEnemy(NULL);
-				m_flLastSight = gpGlobals->curtime + m_flMaxWait;
-				SetThink(&CNPC_BaseTurret::SearchThink);
-				return;
-			}
-		}
-	}
-
-	Vector vecMid;
-	QAngle vecAng;
-	GetAttachment(1, vecMid, vecAng);
-
-	Vector vecMidEnemy = GetEnemy()->BodyTarget(vecMid, false);
-
-	Vector vecDirToEnemyEyes = vecMidEnemy - vecMid;
-
-	int fEnemyVisible = FBoxVisible(this, GetEnemy(), vecMidEnemy);
-
-	float flDistToEnemy = vecDirToEnemyEyes.Length();
-
-	VectorNormalize(vecDirToEnemyEyes);
-
-	QAngle vecAnglesToEnemy;
-
-	VectorAngles(vecDirToEnemyEyes, vecAnglesToEnemy);
-
-	if (!fEnemyVisible || (flDistToEnemy > TURRET_RANGE))
-	{
-		if (!m_flLastSight)
-			m_flLastSight = gpGlobals->curtime + 0.5;
-		else
-		{
-			if (gpGlobals->curtime > m_flLastSight)
-			{
-				SetEnemy(NULL);
-				m_flLastSight = gpGlobals->curtime + m_flMaxWait;
-				SetThink(&CNPC_BaseTurret::SearchThink);
-				return;
-			}
-		}
-		fEnemyVisible = 0;
-	}
-	else
-	{
-		m_vecLastSight = vecMidEnemy;
-	}
-
-	if (m_fBeserk)
-	{
-		if (random->RandomInt(0, 9) == 0)
-		{
-			m_vecGoalAngles.y = random->RandomFloat(0, 360);
-			m_vecGoalAngles.x = random->RandomFloat(0, -85) + 85 * m_iOrientation;
-
-			CTakeDamageInfo info;
-			info.SetAttacker(this);
-			info.SetInflictor(this);
-			info.SetDamage(1);
-			info.SetDamageType(DMG_GENERIC);
-
-			TakeDamage(info);
-			return;
-		}
-	}
-	else if (fEnemyVisible)
-	{
-
-		if (vecAnglesToEnemy.y > 360)
-			vecAnglesToEnemy.y -= 360;
-
-		if (vecAnglesToEnemy.y < 0)
-			vecAnglesToEnemy.y += 360;
-
-		if (vecAnglesToEnemy.x < -180)
-			vecAnglesToEnemy.x += 360;
-
-		if (vecAnglesToEnemy.x > 180)
-			vecAnglesToEnemy.x -= 360;
-
-		if (m_iOrientation == 1)
-		{
-			if (vecAnglesToEnemy.x > 90)
-				vecAnglesToEnemy.x = 90;
-			else if (vecAnglesToEnemy.x < m_iMinPitch)
-				vecAnglesToEnemy.x = m_iMinPitch;
-		}
-		else
-		{
-			if (vecAnglesToEnemy.x < -90)
-				vecAnglesToEnemy.x = -90;
-			else if (vecAnglesToEnemy.x > -m_iMinPitch)
-				vecAnglesToEnemy.x = -m_iMinPitch;
-		}
-		vecAnglesToEnemy.x += 1;
-
-		m_vecGoalAngles.y = vecAnglesToEnemy.y;
-		m_vecGoalAngles.x = vecAnglesToEnemy.x;
-	}
-
-	float int_x = m_vecGoalAngles.x - m_vecCurAngles.x;
-	float int_y = m_vecGoalAngles.y - m_vecCurAngles.y;
-	float int_z = m_vecGoalAngles.z - m_vecCurAngles.z;
-
-	if (int_x < 0) {
-		int_x = -int_x;
-	}
-	if (int_y < 0) {
-		int_y = -int_y;
-	}
-	if (int_z < 0) {
-		int_z = -int_z;
-	}
-
-	float flt_average = ((int_x + int_y + int_z)) / ((float)3);
-
-	if (flt_average > 1.8)
-		fAttack = FALSE;
-	else
-		fAttack = TRUE;
-
-	if (m_iSpin && (fAttack || m_fBeserk))
-	{
-		Vector forward;
-		AngleVectors(vecAng, &forward);
-		Shoot(vecMid, forward);
-		SetTurretAnim(TURRET_ANIM_FIRE);
-	}
-	else
-	{
-		SetTurretAnim(TURRET_ANIM_SPIN);
 	}
 
 	SpinUpCall();
@@ -1294,7 +1125,7 @@ void CNPC_BaseTurret::EyeOff(void)
 	{
 		if (m_eyeBrightness > 0)
 		{
-			m_eyeBrightness = max( 0, m_eyeBrightness - 30 );
+			m_eyeBrightness = MAX( 0, m_eyeBrightness - 30 );
 			m_pEyeGlow->SetBrightness( m_eyeBrightness );
 		}
 	}

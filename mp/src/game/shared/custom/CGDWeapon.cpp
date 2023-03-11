@@ -6,7 +6,7 @@
 
 #define CGuidedWeapon CGDWeapon
 #define CG GW
-#define TRend tr.endpos + (tr.plane.normal * 2e0f)
+#define TRend tr.endpos + (tr.plane.normal * 2.0f)
 
 #define DOTON gpGlobals->curtime + 0.75f;
 #define DOTOFF gpGlobals->curtime + 0.25f;
@@ -59,7 +59,6 @@ void CGuidedWeapon::WeaponIdle(void)
 void CGuidedWeapon::PrimaryAttack(void)
 {
 	// Only the player fires this way so we can cast
-
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
 	if (!pPlayer) return;

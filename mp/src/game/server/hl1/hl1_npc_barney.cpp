@@ -213,9 +213,7 @@ void CNPC_Barney::AlertSound( void )
 //=========================================================
 void CNPC_Barney::SetMaxYawSpeed ( void )
 {
-	int ys;
-
-	//ys = 0;
+	int ys = 0;
 
 	switch ( GetActivity() )
 	{
@@ -407,16 +405,16 @@ void CNPC_Barney::TraceAttack(const CTakeDamageInfo& inputInfo, const Vector& ve
 			info.ScaleDamage(0.5f);
 		}
 	}
-	else if (ptr->hitgroup == 10)
+	else if (ptr->hitgroup == HITGROUP_GEAR)
 	{
 		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
 		{
 			info.SetDamage(info.GetDamage() - 20);
-			//if (info.GetDamage() <= 0)
-			//{
-				g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
-				info.SetDamage(0.01);
-			//}
+	
+			if ( info.GetDamage() <= 0 )
+				info.SetDamage( 0.01f );
+
+			g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
 		}
 	}
 	else if (ptr->hitgroup == HITGROUP_HEAD)
@@ -649,8 +647,7 @@ int CNPC_Barney::SelectSchedule( void )
 
 	if ( HasCondition( COND_HEAR_DANGER ) )
 	{
-		CSound *pSound;
-		pSound = GetBestSound();
+		CSound *pSound = GetBestSound();
 
 		ASSERT( pSound != NULL );
 

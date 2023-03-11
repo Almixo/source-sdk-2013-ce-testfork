@@ -61,7 +61,6 @@ END_RECV_TABLE()
 //Get them from server...
 BEGIN_RECV_TABLE_NOBASE( C_HL1MP_Player, DT_HL1MPLocalPlayerExclusive )
     RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
-	RecvPropBool(RECVINFO( bShouldDoSomething )),
 END_RECV_TABLE()
 
 BEGIN_RECV_TABLE_NOBASE( C_HL1MP_Player, DT_HL1MPNonLocalPlayerExclusive )
@@ -205,11 +204,6 @@ void C_HL1MP_Player::PreThink( void )
 void C_HL1MP_Player::PostThink( void ) //if you stop predicting eyeangles, delete this!!!
 {
 	BaseClass::PostThink();
-
-	if ( bShouldDoSomething && gpGlobals->curtime > 0.5f )
-	{
-		DevWarning( "Hey it's on!\n" );
-	}
 
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();

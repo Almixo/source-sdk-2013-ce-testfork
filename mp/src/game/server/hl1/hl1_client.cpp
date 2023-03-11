@@ -171,14 +171,12 @@ void InstallGameRules()
 	engine->ServerCommand( "exec game.cfg\n" );
 	engine->ServerExecute();
 
-	if ( gpGlobals->deathmatch || gpGlobals->teamplay )
+	if (gpGlobals->deathmatch == false && gpGlobals->teamplay == false)
 	{
-		CreateGameRulesObject( "CHL1MPRules" );
+		CreateGameRulesObject("CHalfLife1");
 		return;
 	}
-	else
-		CreateGameRulesObject( "CHalfLife1" );
+
+	CreateGameRulesObject("CHL1MPRules");
 	return;
-
 }
-

@@ -33,7 +33,7 @@ protected:
 	virtual bool GetPlayerScoreInfo(int playerIndex, KeyValues *outPlayerInfo);
 	virtual void UpdatePlayerInfo();
 
-	virtual void Paint();
+	virtual void Paint() {};
 
 	// vgui overrides for rounded corner background
 	virtual void PaintBackground();

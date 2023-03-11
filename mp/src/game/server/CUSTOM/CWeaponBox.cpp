@@ -8,19 +8,18 @@
 
 class CWpnBox : public CHL1Item
 {
-public:
-	DECLARE_CLASS( CWpnBox, CHL1Item );
-
-	void Spawn( void );
-	void Precache( void );
-	bool KeyValue( const char *szKeyName, const char *szValue );
-	void Touch( CBaseEntity *pOther );
-
+	DECLARE_CLASS(CWpnBox, CHL1Item);
 	DECLARE_DATADESC();
+public:
+	void Spawn(void);
+	void Precache(void);
+	bool KeyValue(const char *szKeyName, const char *szValue);
+	void Touch(CBaseEntity *pOther);
 
-	void GiveAmmo( CBaseEntity *pOther );
-	void GiveWpn( CBaseEntity *pOther );
+	void GiveAmmo(CBaseEntity *pOther);
+	void GiveWpn(CBaseEntity *pOther);
 
+private:
 	CUtlVectorFixed<char*, MAX_WEAPONS>szWpns;
 	CUtlVectorFixed<char*, MAX_AMMO_TYPES>szAmmo;
 	CUtlVectorFixed<int, MAX_AMMO_TYPES>iAmmoCount;
@@ -28,15 +27,15 @@ public:
 	bool bWpn = false;
 	bool bAmmo = false;
 };
-LINK_ENTITY_TO_CLASS( w_weaponbox, CWpnBox );
-PRECACHE_REGISTER( w_weaponbox );
+LINK_ENTITY_TO_CLASS(w_weaponbox, CWpnBox);
+PRECACHE_REGISTER(w_weaponbox);
 
-BEGIN_DATADESC( CWpnBox )
-DEFINE_ARRAY( szWpns, FIELD_STRING, MAX_WEAPONS ),
-DEFINE_ARRAY( szAmmo, FIELD_STRING, MAX_AMMO_TYPES ),
-DEFINE_ARRAY( iAmmoCount, FIELD_INTEGER, MAX_AMMO_TYPES ),
-DEFINE_FIELD( bWpn, FIELD_BOOLEAN ),
-DEFINE_FIELD( bAmmo, FIELD_BOOLEAN ),
+BEGIN_DATADESC(CWpnBox)
+	DEFINE_ARRAY(szWpns, FIELD_STRING, MAX_WEAPONS),
+	DEFINE_ARRAY(szAmmo, FIELD_STRING, MAX_AMMO_TYPES),
+	DEFINE_ARRAY(iAmmoCount, FIELD_INTEGER, MAX_AMMO_TYPES),
+	DEFINE_FIELD(bWpn, FIELD_BOOLEAN),
+	DEFINE_FIELD(bAmmo, FIELD_BOOLEAN),
 END_DATADESC();
 
 void CWpnBox::Spawn()
@@ -44,82 +43,88 @@ void CWpnBox::Spawn()
 	BaseClass::Spawn();
 	Precache();
 
-	DevWarning( "%s spawned at %g %g %g!\n", GetDebugName(), GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z );
-	
-	SetModel( WEAPONBOX_MODEL );
+	Vector vecOrg = GetAbsOrigin();
+
+	DevWarning("%s spawned at %f %f %f!\n", vecOrg.x, vecOrg.y, vecOrg.z);
+
+	SetModel(WEAPONBOX_MODEL);
 }
-void CWpnBox::Precache( void )
+void CWpnBox::Precache(void)
 {
 	BaseClass::Precache();
-	PrecacheModel( WEAPONBOX_MODEL );
+	PrecacheModel(WEAPONBOX_MODEL);
 }
-bool CWpnBox::KeyValue( const char *szKeyName, const char *szValue )
+bool CWpnBox::KeyValue(const char *szKeyName, const char *szValue)
 {
-	const char *p = strstr( szKeyName, "weapon_" );
-	if ( p != NULL ) //it's a weapon!
+	const char *p = strstr(szKeyName, "weapon_");
+	if (p != NULL) //it's a weapon!
 	{
 		bWpn = true;
-		Warning( "char *p = %s.\n", p );
-		szWpns.AddToHead( (char*)szKeyName );
+		DevWarning("Packed in weapon by the name of : %s.\n", szKeyName);
+		szWpns.AddToHead((char*)szKeyName);
 
 		return true;
 	}
-	if ( GetAmmoDef()->Index( szKeyName ) != NULL )
+	if (GetAmmoDef()->Index(szKeyName) != NULL)
 	{
 		bAmmo = true;
-		Warning("AmmoDef might be %s?\n", szKeyName);
+		DevWarning("Packed in ammo by the name of : %s.\n", szKeyName);
 		szAmmo.AddToTail((char*)szKeyName);
 
-		if ( atoi( szValue ) > 0 )
+		if (atoi(szValue) > 0)
 			iAmmoCount.AddToTail(atoi(szValue));
 
 		return true;
 	}
-	
-	BaseClass::KeyValue( szKeyName, szValue );
+
+	BaseClass::KeyValue(szKeyName, szValue);
 	return false;
 }
-void CWpnBox::Touch( CBaseEntity *pOther )
+void CWpnBox::Touch(CBaseEntity *pOther)
 {
-	if ( !( GetFlags() & FL_ONGROUND ) )
+	if (!(GetFlags() & FL_ONGROUND))
 		return;
 
-	if ( !pOther->IsPlayer() )
+	if (!pOther->IsPlayer())
 		return;
 
-	if ( !pOther->IsAlive() )
+	if (!pOther->IsAlive())
 		return;
 
-	if ( bAmmo == true )
+	if (bAmmo == true)
 		GiveAmmo(pOther);
-	if ( bWpn == true )
+	if (bWpn == true)
 		GiveWpn(pOther);
 
-	UTIL_Remove( this ); // so we don't get more ammo/weapons than we should
+	UTIL_Remove(this); //delete itself after pickup!
 }
-void CWpnBox::GiveAmmo( CBaseEntity *pOther )
+void CWpnBox::GiveAmmo(CBaseEntity *pOther)
 {
 	CHL1MP_Player *pPlayer = static_cast<CHL1MP_Player*>(pOther);
 
-	for ( int i = 0; i < MAX_AMMO_TYPES; i++ )
+	for (int i = 0; i < MAX_AMMO_TYPES; i++)
 	{
-		if ( szAmmo[ i ] == NULL || iAmmoCount[ i ] == NULL )
+		if (szAmmo[i] == NULL || iAmmoCount[i] == NULL)
 			continue;
 
 		DevWarning("Would have given %i ammo of type %s.\n", iAmmoCount[i], szAmmo[i]);
-		pPlayer->GiveAmmo( iAmmoCount[ i ], szAmmo[ i ] );
+
+		if (!stricmp(szAmmo[i], "TripMine"))
+			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]); //because weapon_tripmine already gives you one ammo!
+		else
+			pPlayer->GiveAmmo(iAmmoCount[i], szAmmo[i]);
 	}
 }
-void CWpnBox::GiveWpn( CBaseEntity *pOther )
+void CWpnBox::GiveWpn(CBaseEntity *pOther)
 {
 	CHL1MP_Player *pPlayer = static_cast<CHL1MP_Player*>(pOther);
 
-	for ( int i = 0; i < MAX_WEAPONS; i++ )
+	for (int i = 0; i < MAX_WEAPONS; i++)
 	{
-		if ( szWpns[ i ] == NULL )
+		if (szWpns[i] == NULL)
 			continue;
 
 		DevWarning("Would have given you weapon %s.\n", szWpns[i]);
-		pPlayer->GiveNamedItem( szWpns[ i ] );
+		pPlayer->GiveNamedItem(szWpns[i]);
 	}
 }

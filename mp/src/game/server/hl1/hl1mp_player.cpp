@@ -78,7 +78,6 @@ REGISTER_SEND_PROXY_NON_MODIFIED_POINTER( SendProxy_SendNonLocalDataTable );
 //for us
 BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MPLocalPlayerExclusive )
 	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
-	SendPropBool	(SENDINFO(bShouldDoSomething)),
 END_SEND_TABLE()
 
 //for not us
@@ -139,10 +138,6 @@ CHL1MP_Player::CHL1MP_Player()
 	m_lifeState					= LIFE_DEAD; // Start "dead".
 	
 	m_hRagdoll					= NULL;
-
-	bShouldDoSomething = false;
-
-	BaseClass::ChangeTeam( 0 );
 }
 
 CHL1MP_Player::~CHL1MP_Player()
@@ -162,6 +157,18 @@ void CHL1MP_Player::PostThink( void )
 	m_angEyeAngles = EyeAngles();
 
     m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+}
+
+void CHL1MP_Player::FireBullets(const FireBulletsInfo_t &info)
+{
+	// Move other players back to history positions based on local player's lag
+	lagcompensation->StartLagCompensation(this, this->GetCurrentCommand());
+
+	FireBulletsInfo_t modinfo = info;
+	BaseClass::FireBullets(modinfo);
+
+	// Move other players back to history positions based on local player's lag
+	lagcompensation->FinishLagCompensation(this);
 }
 
 void CHL1MP_Player::Spawn( void )
@@ -197,9 +204,6 @@ void CHL1MP_Player::Spawn( void )
 	m_hRagdoll = NULL;
 
 	engine->ClientCommand( edict(), "bind tab +showscores" );
-
-	if ( !IsObserver() )
-		PickDefaultSpawnTeam();
 }
 
 void CHL1MP_Player::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
@@ -268,8 +272,7 @@ void CHL1MP_Player::Event_Killed( const CTakeDamageInfo &info )
 void CHL1MP_Player::PackDeadPlayerItems( void )
 {
 	CBaseEntity *pEnt = Create( "w_weaponbox", GetAbsOrigin(), vec3_angle, nullptr );
-	pEnt->SetBaseVelocity( GetAbsVelocity() );
-	pEnt->AddFlag( FL_ONGROUND );
+	pEnt->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_SLIDE );
 
 	for ( int i = 0; i < MAX_WEAPONS; i++ )
 	{
@@ -568,170 +571,33 @@ bool CHL1MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 	return true;
 }
 
-
-void CHL1MP_Player::ChangeTeam( int iTeamNum )
+void CHL1MP_Player::SetPlayerModel(void)
 {
-	int iTeam = iTeamNum;
-
-	bool bKill = false;
-
-	if ( HL1MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
-	{
-		//don't let them try to join combine or rebels during deathmatch.
-		iTeam = TEAM_UNASSIGNED;
-	}
-
-	if ( HL1MPRules()->IsTeamplay() == true )
-	{
-		if ( iTeam != GetTeamNumber() && GetTeamNumber() != TEAM_UNASSIGNED )
-		{
-			bKill = true;
-		}
-	}
-
-	BaseClass::ChangeTeam( iTeam );
-
-	m_flNextTeamChangeTime = gpGlobals->curtime + 5.0f;
-
-	if ( HL1MPRules()->IsTeamplay() )
-	{
-		SetPlayerTeamModel();
-	}
-	else
-	{
-		SetPlayerModel();
-	}
-
-	if ( iTeam == TEAM_SPECTATOR )
-		return;
-
-	if ( bKill == true )
-	{
-		CommitSuicide();
-	}
-
-	CTeam *pTeam = GetGlobalTeam( iTeamNum );
-	const char *szTeamName = pTeam->GetName();
-	char szReturnString[ 64 ];
-	V_snprintf( szReturnString, 64, "* You are on team '%s'.", szTeamName );
-	
-	ClientPrint( this, HUD_PRINTTALK, szReturnString );
-}
-
-void CHL1MP_Player::SetPlayerTeamModel( void )
-{
-	int iTeamNum = GetTeamNumber();
-
-	if ( iTeamNum <= TEAM_SPECTATOR )
-		return;
-
-	CTeam *pTeam = GetGlobalTeam( iTeamNum );
-
-	const char *szTeamName = pTeam->GetName();
-
-	DevWarning( "Team name is %s.\n", szTeamName );
-
-	char szModelName[ 256 ];
-	V_snprintf( szModelName, 256, "%s%s/%s.mdl", s_szModelPath, szTeamName, szTeamName );
-
-	// Check to see if the model was properly precached, do not error out if not.
-	int i = modelinfo->GetModelIndex( szModelName );
-	if ( i == -1 )
-	{
-		Warning( "Model %s does not exist.\n", szModelName );
-		return;
-	}
-
-	SetModel( szModelName );
-	m_flNextModelChangeTime = gpGlobals->curtime + 5.0f;
-}
-
-void CHL1MP_Player::SetPlayerModel( void )
-{
-	char szBaseName[ 128 ];
-	Q_FileBase( engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" ), szBaseName, 128 );
+	char szBaseName[128];
+	V_FileBase(engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel"), szBaseName, 128);
 
 	// Don't let it be 'none'; default to Barney
-	if ( Q_stricmp( "none", szBaseName ) == 0 )
+	if (V_stricmp("none", szBaseName) == 0)
 	{
-		Q_strcpy( szBaseName, "gordon"  );
+		V_strcpy(szBaseName, "gordon");
 	}
 
 	char szModelName[256];
-	Q_snprintf( szModelName, 256, "%s%s/%s.mdl", s_szModelPath, szBaseName, szBaseName );
+	V_snprintf(szModelName, 256, "%s%s/%s.mdl", s_szModelPath, szBaseName, szBaseName);
 
-    // Check to see if the model was properly precached, do not error out if not.
-    int i = modelinfo->GetModelIndex( szModelName );
-    if ( i == -1 )
-    {
-		SetModel( "models/player/mp/gordon/gordon.mdl" );
-		engine->ClientCommand ( edict(), "cl_playermodel models/gordon.mdl\n" );
-        return;
-    }
+	// Check to see if the model was properly precached, do not error out if not.
+	int i = modelinfo->GetModelIndex(szModelName);
+	if (i == -1)
+	{
+		SetModel("models/player/mp/gordon/gordon.mdl");
+		engine->ClientCommand(edict(), "cl_playermodel gordon\n");
+		return;
+	}
 
-	SetModel( szModelName );
+	SetModel(szModelName);
 
 	m_flNextModelChangeTime = gpGlobals->curtime + 5;
 }
-
-void CHL1MP_Player::PickDefaultSpawnTeam( void )
-{
-	if ( GetTeamNumber() == 0 )
-	{
-		if ( HL1MPRules()->IsTeamplay() == false )
-		{
-			if ( !GetModelPtr() )
-			{
-				SetPlayerModel();
-
-				ChangeTeam( TEAM_UNASSIGNED );
-			}
-		}
-		else
-		{
-			CTeam *pTeam1 = GetGlobalTeam( 2 );
-			CTeam *pTeam2 = GetGlobalTeam( 3 );
-
-			if ( pTeam1 == NULL || pTeam2 == NULL )
-			{
-				ChangeTeam( RandomInt( TEAM_1, TEAM_2 ) );
-			}
-			else
-			{
-				if ( pTeam1->GetNumPlayers() > pTeam2->GetNumPlayers() )
-				{
-					ChangeTeam( TEAM_2 );
-				}
-				else if ( pTeam1->GetNumPlayers() < pTeam2->GetNumPlayers() )
-				{
-					ChangeTeam( TEAM_1 );
-				}
-				else
-				{
-					ChangeTeam( RandomInt( TEAM_1, TEAM_2 ) );
-				}
-			}
-		}
-	}
-}
-
-void CHL1MP_Player::ImpulseCommands( void )
-{
-	int i = GetImpulse();
-	switch ( i )
-	{
-		case 86:
-			if ( gpGlobals->curtime > 0.5f )
-			{
-				bShouldDoSomething = !bShouldDoSomething;
-			}
-			break;
-		default:
-			return BaseClass::ImpulseCommands();
-			break;
-	}
-}
-
 
 // -------------------------------------------------------------------------------- //
 // Ragdoll entities.
