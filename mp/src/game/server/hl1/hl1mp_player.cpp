@@ -42,7 +42,7 @@ END_SEND_TABLE()
 
 static CTEPlayerAnimEvent g_TEPlayerAnimEvent( "PlayerAnimEvent" );
 
-void TE_PlayerAnimEvent( CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nData )
+void TE_PlayerAnimEvent(CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nData)
 {
 	CPVSFilter filter( pPlayer->EyePosition() );
 	
@@ -59,7 +59,6 @@ void TE_PlayerAnimEvent( CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nDat
 	g_TEPlayerAnimEvent.Create( filter, 0 );
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 
 extern int	gEvilImpulse101;
@@ -67,6 +66,7 @@ extern int	gEvilImpulse101;
 LINK_ENTITY_TO_CLASS( player_mp, CHL1MP_Player );
 PRECACHE_REGISTER( player_mp );
 
+//********************************************************************************************************************************************************
 void* SendProxy_SendNonLocalDataTable( const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID )
 {
 	pRecipients->SetAllRecipients();
@@ -74,42 +74,42 @@ void* SendProxy_SendNonLocalDataTable( const SendProp *pProp, const void *pStruc
 	return ( void * )pVarData;
 }
 REGISTER_SEND_PROXY_NON_MODIFIED_POINTER( SendProxy_SendNonLocalDataTable );
+//********************************************************************************************************************************************************
 
-//for us
-BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MPLocalPlayerExclusive )
-	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
-END_SEND_TABLE()
+BEGIN_SEND_TABLE_NOBASE(CHL1MP_Player, DT_HL1MP_PlayerExclusive)
+// send a hi-res origin to the local player for use in prediction
+SendPropVector(SENDINFO(m_vecOrigin), -1, SPROP_NOSCALE | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin),
+SendPropFloat(SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f),
+END_SEND_TABLE();
 
-//for not us
-BEGIN_SEND_TABLE_NOBASE(CHL1MP_Player, DT_HL1MPNonLocalPlayerExclusive )
-	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_COORD|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
-END_SEND_TABLE()
+BEGIN_SEND_TABLE_NOBASE(CHL1MP_Player, DT_HL1MP_PlayerNonLocalExclusive)
+// send a lo-res origin to other players
+SendPropVector(SENDINFO(m_vecOrigin), -1, SPROP_COORD_MP_LOWPRECISION | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin),
+SendPropFloat(SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f),
+SendPropAngle(SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN),
+END_SEND_TABLE();
 
 IMPLEMENT_SERVERCLASS_ST( CHL1MP_Player, DT_HL1MP_PLAYER )
-	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
-	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),	
-	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
-	SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
-	SendPropExclude( "DT_BaseAnimatingOverlay", "overlay_vars" ),
-	
-//	SendPropExclude( "DT_ServerAnimationData" , "m_flCycle" ),	
-	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
-
-	// We need to send a hi-res origin to the local player to avoid prediction errors sliding along walls
-	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
-
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN ),
+	// These aren't needed either because we use client-side animation, or because they are being moved to the local/non-local table.
+	SendPropExclude("DT_BaseAnimating", "m_flPoseParameter"),
+	SendPropExclude("DT_BaseAnimating", "m_flPlaybackRate"),
+	SendPropExclude("DT_BaseAnimating", "m_nSequence"),
+	SendPropExclude("DT_BaseAnimating", "m_nNewSequenceParity"),
+	SendPropExclude("DT_BaseAnimating", "m_nResetEventsParity"),
+	SendPropExclude("DT_BaseEntity", "m_angRotation"),
+	SendPropExclude("DT_BaseAnimatingOverlay", "overlay_vars"),
+	SendPropExclude("DT_BaseEntity", "m_vecOrigin"),
+	SendPropExclude("DT_ServerAnimationData", "m_flCycle"),
+	SendPropExclude("DT_AnimTimeMustBeFirst", "m_flAnimTime"),
 
     SendPropEHandle( SENDINFO( m_hRagdoll ) ),
 	SendPropInt( SENDINFO( m_iSpawnInterpCounter), 4 ),
 	SendPropInt( SENDINFO( m_iRealSequence ), 9 ),
 
-	//Dont forget to send the thing!
-	SendPropDataTable( "hl1mplocaldata", 0, &REFERENCE_SEND_TABLE( DT_HL1MPLocalPlayerExclusive ), SendProxy_SendLocalDataTable ),
-	SendPropDataTable( "hl1mpnonlocaldata", 0, &REFERENCE_SEND_TABLE( DT_HL1MPNonLocalPlayerExclusive ), SendProxy_SendNonLocalDataTable ),
-
-//	SendPropDataTable( SENDINFO_DT( m_Shared ), &REFERENCE_SEND_TABLE( DT_TFCPlayerShared ) )
+	// Data that only gets sent to the local player.
+	SendPropDataTable("hl1mp_player_local", 0, &REFERENCE_SEND_TABLE(DT_HL1MP_PlayerExclusive), SendProxy_SendLocalDataTable),
+	// Data that gets sent to all other players
+	SendPropDataTable("hl1mp_player_nonlocal", 0, &REFERENCE_SEND_TABLE(DT_HL1MP_PlayerNonLocalExclusive), SendProxy_SendNonLocalDataTable),
 END_SEND_TABLE()
 
 void cc_CreatePredictionError_f()
@@ -127,6 +127,7 @@ CHL1MP_Player::CHL1MP_Player()
 	m_PlayerAnimState = CreatePlayerAnimState( this );
 
 	UseClientSideAnimation();
+	SetPredictionEligible(true);
 
 	m_angEyeAngles.Init();
 
@@ -147,27 +148,21 @@ CHL1MP_Player::~CHL1MP_Player()
 
 void CHL1MP_Player::PostThink( void )
 {
-    BaseClass::PostThink();
+	BaseClass::PostThink();
 
+	// Keep the model upright; pose params will handle pitch aiming.
 	QAngle angles = GetLocalAngles();
 	angles[PITCH] = 0;
-	SetLocalAngles( angles );
-	
-	// Store the eye angles pitch so the client can compute its animation state correctly.
-	m_angEyeAngles = EyeAngles();
+	SetLocalAngles(angles);
 
-    m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+	m_angEyeAngles = EyeAngles();
+	m_PlayerAnimState->Update(m_angEyeAngles[YAW], m_angEyeAngles[PITCH]);
 }
 
 void CHL1MP_Player::FireBullets(const FireBulletsInfo_t &info)
 {
-	// Move other players back to history positions based on local player's lag
 	lagcompensation->StartLagCompensation(this, this->GetCurrentCommand());
-
-	FireBulletsInfo_t modinfo = info;
-	BaseClass::FireBullets(modinfo);
-
-	// Move other players back to history positions based on local player's lag
+	BaseClass::FireBullets(info);
 	lagcompensation->FinishLagCompensation(this);
 }
 
@@ -190,11 +185,13 @@ void CHL1MP_Player::Spawn( void )
 	}
 
 	AddFlag( FL_ONGROUND );
+	SetMoveType(MOVETYPE_NONE);
 
 	if ( !IsObserver() )
 	{
 	    GiveDefaultItems();
 		SetPlayerModel();
+		SetMoveType(MOVETYPE_WALK);
 	}
 
 	m_bHasLongJump = false;
@@ -260,7 +257,7 @@ void CHL1MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 
 	RemoveEffects( EF_NODRAW );	// still draw player body
-
+	RemoveFlag(FL_BASEVELOCITY);
 	
 	PackDeadPlayerItems();
 
@@ -654,9 +651,7 @@ void CHL1MP_Player::CreateRagdollEntity( void )
 		pRagdoll->m_vecRagdollVelocity = GetAbsVelocity();
 		pRagdoll->m_nModelIndex = m_nModelIndex;
 		pRagdoll->m_nForceBone = m_nForceBone;
-		//pRagdoll->m_vecForce = m_vecTotalBulletForce;
-		pRagdoll->SetAbsOrigin( GetAbsOrigin() );
-        
+		pRagdoll->SetAbsOrigin(GetAbsOrigin());        
     }
 
 	m_hRagdoll = pRagdoll;    

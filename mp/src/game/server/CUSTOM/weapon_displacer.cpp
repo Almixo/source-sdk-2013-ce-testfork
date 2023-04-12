@@ -7,32 +7,26 @@
 #include "prop_combine_ball.h"
 
 //how much ammo we want to remove
-constexpr int AMMOCOUNT_PRIMARY			= 3;
-constexpr int AMMOCOUNT_SECONDARY		= 5;
+constexpr const int AMMOCOUNT_PRIMARY = 3;
+constexpr const int AMMOCOUNT_SECONDARY = 5;
 
 //bunch of macros to make the life easier, can be changed to whatever you want*
-constexpr auto			ENTNAME			= "point_displace";									//name of the entity to get the key-value from!!!
-constexpr color32		FADEINCOLOUR	= { 0, 200, 0, 255 };								//fade-in colour
-constexpr float			RADIUS			= 64.0f;											//search radius
+constexpr const char*	ENTNAME = "point_displace";									//name of the entity to get the key-value from!!!
+constexpr const color32	FADEINCOLOUR = { 0, 200, 0, 255 };								//fade-in colour
+constexpr const float	RADIUS = 64.0f;											//search radius
 
-constexpr auto CHARGEUP					= SPECIAL1;
-constexpr auto BALLER					= WPN_DOUBLE;
-constexpr auto AFTERCHRG				= SPECIAL2;
-constexpr auto DENY						= SPECIAL3;
+constexpr const auto CHARGEUP = SPECIAL1;
+constexpr const auto BALLER = WPN_DOUBLE;
+constexpr const auto AFTERCHRG = SPECIAL2;
+constexpr const auto DENY = SPECIAL3;
 
 ConVar sk_weapon_dp_alt_fire_radius("sk_weapon_dp_alt_fire_radius", "10");
 ConVar sk_weapon_dp_alt_fire_duration("sk_weapon_dp_alt_fire_duration", "2");
 ConVar sk_weapon_dp_alt_fire_mass("sk_weapon_dp_alt_fire_mass", "150");
 
-enum
-{
-	PRIMARY = 1,
-	SECONDARY,
-};
-
 class CDisplacer_sv : public CBaseHL1CombatWeapon
 {
-	DECLARE_CLASS( CDisplacer_sv, CBaseHL1CombatWeapon );
+	DECLARE_CLASS(CDisplacer_sv, CBaseHL1CombatWeapon);
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
 
@@ -51,21 +45,23 @@ private:
 
 	CBaseEntity* pFound;				// base-entity-point pointer, working with it throughout the code
 
-	bool	bInThink		= false;	//are we charging?
-	float	fNextThink		= 0;		//when's it gonna get charged?
-	int		iModeSwitch		= 0;		//1 for primary, 2 for secondary
+	bool	bInThink	= false;	//are we charging?
+	float	fNextThink	= 0;		//when's it gonna get charged?
+
+	typedef enum { NONE, PRIMARY, SECONDARY } bMode;
+	bMode iModeSwitch; //0 for none, 1 for primary, 2 for secondary
 };
 
-IMPLEMENT_SERVERCLASS_ST( CDisplacer_sv, DT_Displacer_sv )
+IMPLEMENT_SERVERCLASS_ST(CDisplacer_sv, DT_Displacer_sv)
 END_SEND_TABLE();
 
 //change the name (weapon_displacer_sv) to fit your needs, don't forget to change it in stubs afterwards, also rename the script file!
-LINK_ENTITY_TO_CLASS( weapon_displacer_sv, CDisplacer_sv );
+LINK_ENTITY_TO_CLASS(weapon_displacer_sv, CDisplacer_sv);
 
-PRECACHE_WEAPON_REGISTER( weapon_displacer_sv );
+PRECACHE_WEAPON_REGISTER(weapon_displacer_sv);
 
 //save-restore
-BEGIN_DATADESC( CDisplacer_sv )
+BEGIN_DATADESC(CDisplacer_sv)
 DEFINE_FIELD(pFound, FIELD_CLASSPTR),
 DEFINE_FIELD(bInThink, FIELD_BOOLEAN),
 DEFINE_FIELD(fNextThink, FIELD_FLOAT),
@@ -77,10 +73,10 @@ CDisplacer_sv::CDisplacer_sv(void)
 	m_bReloadsSingly	= false;
 	m_bFiresUnderwater	= false;
 
-	pFound				= 0;
-	bInThink			= false;
-	fNextThink			= 0;
-	iModeSwitch			= 0;
+	pFound			= 0;
+	bInThink		= false;
+	fNextThink		= 0;
+	iModeSwitch		= NONE;
 }
 
 void CDisplacer_sv::SecondaryAttack(void)
@@ -111,19 +107,18 @@ void CDisplacer_sv::SecondaryAttack(void)
 	}
 
 	pOwner->RemoveAmmo(AMMOCOUNT_PRIMARY, m_iPrimaryAmmoType);
-//	pOwner->SetMoveType(MOVETYPE_NONE);
-	pOwner->AddFlag( FL_FROZEN | FL_ATCONTROLS );
+	pOwner->AddFlag(FL_FROZEN | FL_ATCONTROLS);
 
 	SendWeaponAnim(ACT_VM_PRIMARYATTACK);
 	WeaponSound(CHARGEUP);
 
-	fNextThink	= gpGlobals->curtime + 1.5f; //schedule teleport
+	fNextThink		= gpGlobals->curtime + 1.5f; //schedule teleport
 
-	pFound		= pEnt;			//assign a pointer to it
+	pFound			= pEnt;			//assign a pointer to it
 
-	iModeSwitch = SECONDARY;	//set our mode to secondary attack
+	iModeSwitch		= SECONDARY;	//set our mode to secondary attack
 
-	bInThink	= true;			//thinking!
+	bInThink		= true;			//thinking!
 
 	//pOwner->SetNextAttack() breaks the thinking logic?!
 	m_flNextSecondaryAttack = gpGlobals->curtime + 3.0f;
@@ -158,11 +153,11 @@ void CDisplacer_sv::PrimaryAttack(void)
 	// Decrease ammo
 	pPlayer->RemoveAmmo(AMMOCOUNT_PRIMARY, m_iPrimaryAmmoType);
 
-	fNextThink	= gpGlobals->curtime + SequenceDuration(); //schedule ball firing
+	fNextThink		= gpGlobals->curtime + SequenceDuration(); //schedule ball firing
 
-	iModeSwitch = PRIMARY;		//set our mode to primary attack
+	iModeSwitch		= PRIMARY;		//set our mode to primary attack
 
-	bInThink	= true;			//thinking!
+	bInThink		= true;			//thinking!
 
 	pPlayer->SetNextAttack(gpGlobals->curtime + SequenceDuration());
 }
@@ -243,10 +238,10 @@ void CDisplacer_sv::DelayedAttack(void)
 			// Can shoot again immediately
 			pOwner->SetNextAttack(gpGlobals->curtime + 1.0f);
 
-			bInThink = false;
+			bInThink	= false;
 
 			fNextThink	= 0;
-			iModeSwitch = 0;
+			iModeSwitch = NONE;
 
 			break;
 		}
@@ -267,10 +262,10 @@ void CDisplacer_sv::DelayedAttack(void)
 			{
 				DevWarning("Invalid entity!\n");
 
-				bInThink = false; //stop thinking!
+				bInThink	= false; //stop thinking!
 
 				fNextThink	= 0;
-				iModeSwitch = 0;
+				iModeSwitch = NONE;
 
 				return;
 			}
@@ -286,16 +281,19 @@ void CDisplacer_sv::DelayedAttack(void)
 
 			UTIL_ScreenFade(pPlayer, FADEINCOLOUR, 0.5f, 0.1f, FFADE_IN);
 
-//			pPlayer->SetMoveType(MOVETYPE_WALK); //reset player's movement to default
-			pPlayer->RemoveFlag( FL_FROZEN | FL_ATCONTROLS);
+			pPlayer->RemoveFlag(FL_FROZEN | FL_ATCONTROLS); //reset player's movement to default
 
-			bInThink = false;
+			bInThink	= false;
 
 			fNextThink	= 0;
-			iModeSwitch = 0;
+			iModeSwitch = NONE;
 
 			break;
 		}
+		default:
+			fNextThink	= 0;
+			iModeSwitch = NONE;
+			Warning("Incorrect mode in DelayedAttack()! It's %i\n", static_cast<int>(iModeSwitch));
 	}
 }
 

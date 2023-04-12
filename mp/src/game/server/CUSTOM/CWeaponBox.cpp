@@ -100,31 +100,32 @@ void CWpnBox::Touch(CBaseEntity *pOther)
 }
 void CWpnBox::GiveAmmo(CBaseEntity *pOther)
 {
-	CHL1MP_Player *pPlayer = static_cast<CHL1MP_Player*>(pOther);
+	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>(pOther);
 
 	for (int i = 0; i < MAX_AMMO_TYPES; i++)
 	{
 		if (szAmmo[i] == NULL || iAmmoCount[i] == NULL)
 			continue;
 
-		DevWarning("Would have given %i ammo of type %s.\n", iAmmoCount[i], szAmmo[i]);
-
 		if (!stricmp(szAmmo[i], "TripMine"))
 			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]); //because weapon_tripmine already gives you one ammo!
+		else if (!stricmp(szAmmo[i], "Satchel"))
+			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]);
+		else if (!stricmp(szAmmo[i], "Grenade"))
+			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]);
 		else
 			pPlayer->GiveAmmo(iAmmoCount[i], szAmmo[i]);
+
+		DevWarning("Giving %i of %s ammo!\n", iAmmoCount[i], szAmmo[i]);
 	}
 }
 void CWpnBox::GiveWpn(CBaseEntity *pOther)
 {
-	CHL1MP_Player *pPlayer = static_cast<CHL1MP_Player*>(pOther);
+	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer*>(pOther);
 
-	for (int i = 0; i < MAX_WEAPONS; i++)
+	for (auto& wpn : szWpns)
 	{
-		if (szWpns[i] == NULL)
-			continue;
-
-		DevWarning("Would have given you weapon %s.\n", szWpns[i]);
-		pPlayer->GiveNamedItem(szWpns[i]);
+		DevWarning("Giving %s weapon!\n", wpn);
+		pPlayer->GiveNamedItem(wpn);
 	}
 }

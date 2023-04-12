@@ -192,20 +192,12 @@ void CWeapon357::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeapon357::SecondaryAttack( void )
 {
-	// only in multiplayer
-	if (g_pGameRules->IsMultiplayer())
-	{
 #ifndef CLIENT_DLL
-		// unless we have cheats on
-		if (!sv_cheats->GetBool())
-		{
-			return;
-		}
-#endif
-
-
+	if (g_pGameRules->IsMultiplayer() || sv_cheats->GetBool())
+	{
 		ToggleZoom();
 	}
+#endif
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
 }
 

@@ -44,10 +44,6 @@ public:
 
 IMPLEMENT_CLIENTCLASS_EVENT( C_TEPlayerAnimEvent, DT_TEPlayerAnimEvent, CTEPlayerAnimEvent );
 
-// ------------------------------------------------------------------------------------------ //
-// Data tables and prediction tables.
-// ------------------------------------------------------------------------------------------ //
-
 BEGIN_RECV_TABLE_NOBASE( C_TEPlayerAnimEvent, DT_TEPlayerAnimEvent )
 	RecvPropEHandle( RECVINFO( m_hPlayer ) ),
 	RecvPropInt( RECVINFO( m_iEvent ) ),
@@ -58,32 +54,29 @@ END_RECV_TABLE()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Get them from server...
-BEGIN_RECV_TABLE_NOBASE( C_HL1MP_Player, DT_HL1MPLocalPlayerExclusive )
-    RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PlayerExclusive)
+	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)), // RECVINFO_NAME copies the networked value over to the 'real' one
+	RecvPropFloat(RECVINFO(m_angEyeAngles[0])),
 END_RECV_TABLE()
 
-BEGIN_RECV_TABLE_NOBASE( C_HL1MP_Player, DT_HL1MPNonLocalPlayerExclusive )
-    RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PlayerNonLocalExclusive)
+	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)), // RECVINFO_NAME again
+	RecvPropFloat(RECVINFO(m_angEyeAngles[0])),
+	RecvPropFloat(RECVINFO(m_angEyeAngles[1])),
 END_RECV_TABLE()
 
 IMPLEMENT_CLIENTCLASS_DT( C_HL1MP_Player, DT_HL1MP_Player, CHL1MP_Player )
-	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
-	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
-    RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
+	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
 	RecvPropInt( RECVINFO( m_iSpawnInterpCounter ) ),    
 	RecvPropInt( RECVINFO( m_iRealSequence ) ),
-	//I said get them from server.
-	RecvPropDataTable( "hl1mplocaldata", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MPLocalPlayerExclusive) ),
-    RecvPropDataTable( "hl1mpnonlocaldata", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MPNonLocalPlayerExclusive) ),
+	RecvPropDataTable( "hl1mp_player_local", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PlayerExclusive) ),
+	RecvPropDataTable( "hl1mp_player_nonlocal", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PlayerNonLocalExclusive) ),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_HL1MP_Player )
 	DEFINE_PRED_FIELD( m_flCycle, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	//maybe predict eye angles???
-	DEFINE_PRED_FIELD( m_angEyeAngles[0], FIELD_VECTOR, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	DEFINE_PRED_FIELD( m_angEyeAngles[1], FIELD_VECTOR, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	//there we go?
+	DEFINE_PRED_FIELD( m_nSequence, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
+	DEFINE_PRED_FIELD( m_flPlaybackRate, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
 END_PREDICTION_DATA()
 
 /////////////////////////////////////////////////////////////////////
@@ -94,11 +87,10 @@ C_HL1MP_Player::C_HL1MP_Player( void ) : m_iv_angEyeAngles( "C_HL1MP_Player::m_i
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this );
 	m_angEyeAngles.Init();
+	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	SetPredictionEligible(true);
 
 	m_fLastPredFreeze = -1;
-
-// cant interpolate ... buggy?  it keeps resetting the angle to 0,0,0
-//	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 }
 
 C_HL1MP_Player::~C_HL1MP_Player()
@@ -120,12 +112,12 @@ const QAngle& C_HL1MP_Player::GetRenderAngles()
 
 void C_HL1MP_Player::UpdateClientSideAnimation()
 {
-	// Update the animation data. It does the local check here so this works when using
-	// a third-person camera (and we don't have valid player angles).
-	if ( this == C_BasePlayer::GetLocalPlayer() )
-		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
-	else
-		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+	// Keep the model upright; pose params will handle pitch aiming.
+	QAngle angles = GetLocalAngles();
+	angles[PITCH] = 0;
+	SetLocalAngles( angles );
+
+	m_PlayerAnimState->Update( EyeAngles()[YAW], EyeAngles()[PITCH] );
 
 	BaseClass::UpdateClientSideAnimation();
 }
@@ -133,6 +125,7 @@ void C_HL1MP_Player::UpdateClientSideAnimation()
 
 void C_HL1MP_Player::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 {
+	MDLCACHE_CRITICAL_SECTION();
 	m_PlayerAnimState->DoAnimationEvent( event, nData );
 }
 

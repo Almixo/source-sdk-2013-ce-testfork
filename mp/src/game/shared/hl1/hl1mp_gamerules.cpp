@@ -127,7 +127,7 @@ CHL1MPRules::CHL1MPRules()
 #ifndef CLIENT_DLL
 	m_bTeamPlayEnabled = teamplay.GetBool();
 
-	if (IsTeamplay())
+	if (IsTeamplay() == true)
 	{
 		// Create basic server teams
 
@@ -173,8 +173,7 @@ CHL1MPRules::CHL1MPRules()
 			if (pTeam == nullptr)
 				continue;
 
-			Warning("Team : %s.\n", pTeam->GetName());
-			Log("Team : %s.\n", pTeam->GetName());
+			DevWarning("Team : %s.\n", pTeam->GetName());
 		}
 	}
 #endif
@@ -310,22 +309,27 @@ void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 {
 	CHL1MP_Player *pHL1Player = ToHL1MPPlayer(pPlayer);
 
-	if (pHL1Player == NULL)
+	if (pHL1Player == nullptr)
 		return;
 
 	if (IsTeamplay() == true)
 	{
-		char szTeamModel[128];
+		char szTeamModel[64];
 		const char *szModelpath = "models/player/mp";
 
-		CTeam *pTeam = pHL1Player->GetTeam();
-		const char *szTeamName = pTeam->GetName();
+		const char *szTeamName = pHL1Player->GetTeam()->GetName();
 
 		V_snprintf(szTeamModel, sizeof(szTeamModel), "%s/%s/%s.mdl", szModelpath, szTeamName, szTeamName);
 
-		pHL1Player->SetModel(szTeamModel);
+		UTIL_SetModel(pHL1Player, szTeamModel);
+
+		char szReturn[32];
+		V_snprintf(szReturn, 32, "* You are on team %s", szTeamName);
+
+		ClientPrint(pHL1Player, HUD_PRINTTALK, szReturn);
 	}
-	else
+
+	if (IsTeamplay() == false)
 	{
 		// strip down to just the name
 		char szTempCurrentModel[128];
@@ -356,6 +360,75 @@ void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 	}
 
 	BaseClass::ClientSettingsChanged( pPlayer );
+}
+
+
+const char *CHL1MPRules::SetDefaultPlayerTeam(CBasePlayer *pPlayer)
+{
+	CHL1MP_Player *pHL1Player = (CHL1MP_Player*)pPlayer;
+
+	if (IsTeamplay() == false)
+		return BaseClass::SetDefaultPlayerTeam(pHL1Player);
+
+	const char *szTeam = TeamWithFewestPlayers();
+
+	if (szTeam == nullptr)
+		Assert(0);
+
+	int iTeam = GetTeamIndex(szTeam);
+
+	if (iTeam == -1 || !IsValidTeam(szTeam))
+	{
+		Warning("Invalid team!\n");
+		Assert(0);
+	}
+
+	pHL1Player->ChangeTeam(iTeam);
+
+	return szTeam;
+}
+
+const char *CHL1MPRules::TeamWithFewestPlayers()
+{
+	char *szTeamName = nullptr;
+	
+	CTeam *pTeam1 = GetGlobalTeam(2);
+	CTeam *pTeam2 = GetGlobalTeam(3);
+
+	int iPlr1 = pTeam1->GetNumPlayers();
+	int iPlr2 = pTeam2->GetNumPlayers();
+
+	if (iPlr1 == iPlr2)
+	{
+		int i = RandomInt(2, 3);
+
+		if (i == 2)
+			szTeamName = (char*)pTeam1->GetName();
+		if (i == 3)
+			szTeamName = (char*)pTeam2->GetName();
+	}
+
+	if (iPlr1 > iPlr2)
+		szTeamName = (char*)pTeam2->GetName();
+	if (iPlr1 < iPlr2)
+		szTeamName = (char*)pTeam1->GetName();
+
+	return szTeamName;
+} 
+
+
+int CHL1MPRules::GetTeamIndex(const char *pName)
+{
+	if (pName && pName != nullptr)
+	{
+		for (int i = 0; i < GetNumberOfTeams(); i++)
+		{
+			if (stricmp(g_Teams[i]->GetName(), pName) == 0)
+				return i;
+		}
+	}
+
+	return -1; // no match
 }
 
 
@@ -627,67 +700,4 @@ void CHL1MPRules::InitDefaultAIRelationships( void )
 	CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_INSECT,			D_NU, 0 );
 }
 //TODO: Move team management code from CHL1MP_Player to here
-
-const char *CHL1MPRules::SetDefaultPlayerTeam(CBasePlayer *pPlayer)
-{
-	if (!IsTeamplay())
-		return BaseClass::SetDefaultPlayerTeam(pPlayer);
-
-	const char *szTeam = TeamWithFewestPlayers();
-
-	if (szTeam == nullptr)
-		assert(0);
-
-	int iTeam = GetTeamIndex(szTeam);
-
-	if (iTeam == -1 || !IsValidTeam(szTeam))
-		Assert(0);
-
-	pPlayer->ChangeTeam(iTeam);
-
-	return szTeam;
-}
-
-const char *CHL1MPRules::TeamWithFewestPlayers()
-{
-	char *szTeamName = nullptr;
-	
-	CTeam *pTeam1 = GetGlobalTeam(2);
-	CTeam *pTeam2 = GetGlobalTeam(3);
-
-	int iPlr1 = pTeam1->GetNumPlayers();
-	int iPlr2 = pTeam2->GetNumPlayers();
-
-	if (iPlr1 == iPlr2)
-	{
-		int i = RandomInt(2, 3);
-
-		if (i == 2)
-			szTeamName = (char*)pTeam1->GetName();
-		if (i == 3)
-			szTeamName = (char*)pTeam2->GetName();
-	}
-
-	if (iPlr1 > iPlr2)
-		szTeamName = (char*)pTeam2->GetName();
-	if (iPlr1 < iPlr2)
-		szTeamName = (char*)pTeam1->GetName();
-
-	return szTeamName;
-} 
-
-
-int CHL1MPRules::GetTeamIndex(const char *pName)
-{
-	if (pName && pName != nullptr)
-	{
-		for (int i = 0; i < GetNumberOfTeams(); i++)
-		{
-			if (!V_stricmp(g_Teams[i]->GetName(), pName))
-				return i;
-		}
-	}
-
-	return -1; // no match
-}
 #endif

@@ -64,7 +64,7 @@ public:
 
 	virtual int GetTeamIndex( const char * pName );
 
-	virtual const char *SetDefaultPlayerTeam(CBasePlayer *pPlayer);
+	virtual const char *SetDefaultPlayerTeam(CBasePlayer *pPlayer) override;
 	virtual const char* TeamWithFewestPlayers();
 #endif
 

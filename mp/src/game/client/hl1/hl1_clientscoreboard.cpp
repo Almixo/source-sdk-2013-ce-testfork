@@ -27,8 +27,6 @@ using namespace vgui;
 
 #define TEAM_MAXCOUNT			5
 
-#define CHL2MPClientScoreBoardDialog CHL1MPClientScoreBoardDialog
-
 // id's of sections used in the scoreboard
 enum EScoreboardSections
 {
@@ -53,21 +51,21 @@ static int coord[NumSegments + 1] = {
 //-----------------------------------------------------------------------------
 // Purpose: Konstructor
 //-----------------------------------------------------------------------------
-CHL2MPClientScoreBoardDialog::CHL2MPClientScoreBoardDialog(IViewPort *pViewPort) :CClientScoreBoardDialog(pViewPort)
+CHL1MPClientScoreBoardDialog::CHL1MPClientScoreBoardDialog(IViewPort *pViewPort) :CClientScoreBoardDialog(pViewPort)
 {
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Destructor
 //-----------------------------------------------------------------------------
-CHL2MPClientScoreBoardDialog::~CHL2MPClientScoreBoardDialog()
+CHL1MPClientScoreBoardDialog::~CHL1MPClientScoreBoardDialog()
 {
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Paint background for rounded corners
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::PaintBackground()
+void CHL1MPClientScoreBoardDialog::PaintBackground()
 {
 	m_pPlayerList->SetBgColor(Color(0, 0, 0, 0));
 	m_pPlayerList->SetBorder(NULL);
@@ -84,7 +82,7 @@ void CHL2MPClientScoreBoardDialog::PaintBackground()
 //-----------------------------------------------------------------------------
 // Purpose: Paint border for rounded corners
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::PaintBorder()
+void CHL1MPClientScoreBoardDialog::PaintBorder()
 {
 	surface()->DrawSetColor(m_borderColor);
 	surface()->DrawSetTextColor(m_borderColor);
@@ -96,7 +94,7 @@ void CHL2MPClientScoreBoardDialog::PaintBorder()
 //-----------------------------------------------------------------------------
 // Purpose: Apply scheme settings
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::ApplySchemeSettings(vgui::IScheme *pScheme)
+void CHL1MPClientScoreBoardDialog::ApplySchemeSettings(vgui::IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
@@ -111,7 +109,7 @@ void CHL2MPClientScoreBoardDialog::ApplySchemeSettings(vgui::IScheme *pScheme)
 //-----------------------------------------------------------------------------
 // Purpose: sets up base sections
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::InitScoreboardSections()
+void CHL1MPClientScoreBoardDialog::InitScoreboardSections()
 {
 	m_pPlayerList->SetBgColor(Color(0, 0, 0, 0));
 	m_pPlayerList->SetBorder(NULL);
@@ -135,7 +133,7 @@ void CHL2MPClientScoreBoardDialog::InitScoreboardSections()
 //-----------------------------------------------------------------------------
 // Purpose: resets the scoreboard team info
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::UpdateTeamInfo()
+void CHL1MPClientScoreBoardDialog::UpdateTeamInfo()
 {
 	if (g_PR == NULL)
 		return;
@@ -232,7 +230,7 @@ void CHL2MPClientScoreBoardDialog::UpdateTeamInfo()
 //-----------------------------------------------------------------------------
 // Purpose: adds the top header of the scoreboars
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::AddHeader()
+void CHL1MPClientScoreBoardDialog::AddHeader()
 {
 	// add the top header
 	m_pPlayerList->AddSection(0, "");
@@ -250,7 +248,7 @@ void CHL2MPClientScoreBoardDialog::AddHeader()
 //-----------------------------------------------------------------------------
 // Purpose: Adds a new section to the scoreboard (i.e the team header)
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
+void CHL1MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
 {
 	HFont hFallbackFont = scheme()->GetIScheme(GetScheme())->GetFont("DefaultVerySmallFallBack", false);
 
@@ -283,7 +281,7 @@ void CHL2MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
 	}
 }
 
-int CHL2MPClientScoreBoardDialog::GetSectionFromTeamNumber(int teamNumber)
+int CHL1MPClientScoreBoardDialog::GetSectionFromTeamNumber(int teamNumber)
 {
 	switch (teamNumber)
 	{
@@ -302,7 +300,7 @@ int CHL2MPClientScoreBoardDialog::GetSectionFromTeamNumber(int teamNumber)
 //-----------------------------------------------------------------------------
 // Purpose: Adds a new row to the scoreboard, from the playerinfo structure
 //-----------------------------------------------------------------------------
-bool CHL2MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues *kv)
+bool CHL1MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues *kv)
 {
 	kv->SetInt("playerIndex", playerIndex);
 	kv->SetInt("team", g_PR->GetTeam(playerIndex));
@@ -380,7 +378,7 @@ int PlayerScoreInfoSort(const PlayerScoreInfo *p1, const PlayerScoreInfo *p2)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2MPClientScoreBoardDialog::UpdatePlayerInfo()
+void CHL1MPClientScoreBoardDialog::UpdatePlayerInfo()
 {
 	m_iSectionId = 0; // 0'th row is a header
 	int selectedRow = -1;
