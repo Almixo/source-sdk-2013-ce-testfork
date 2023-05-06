@@ -29,11 +29,9 @@ public:
 	virtual void PostDataUpdate( DataUpdateType_t updateType )
 	{
 		// Create the effect.
-		C_HL1MP_Player *pPlayer = dynamic_cast< C_HL1MP_Player* >( m_hPlayer.Get() );
+		C_HL1MP_Player* pPlayer = dynamic_cast<C_HL1MP_Player*>( m_hPlayer.Get() );
 		if ( pPlayer && !pPlayer->IsDormant() )
-		{
 			pPlayer->DoAnimationEvent( (PlayerAnimEvent_t)m_iEvent.Get(), m_nData );
-		}	
 	}
 
 public:
@@ -48,7 +46,7 @@ BEGIN_RECV_TABLE_NOBASE( C_TEPlayerAnimEvent, DT_TEPlayerAnimEvent )
 	RecvPropEHandle( RECVINFO( m_hPlayer ) ),
 	RecvPropInt( RECVINFO( m_iEvent ) ),
 	RecvPropInt( RECVINFO( m_nData ) )
-END_RECV_TABLE()
+END_RECV_TABLE();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -19,44 +19,38 @@ enum
 	TEAM_2,
 };
 
+extern ConVar cl_print_model("cl_print_model", "0", FCVAR_USERINFO | FCVAR_ARCHIVE, "Print current model in deathmatch. Kinda wasteful.");
+
 class CTEPlayerAnimEvent : public CBaseTempEntity
 {
 public:
 	DECLARE_CLASS( CTEPlayerAnimEvent, CBaseTempEntity );
 	DECLARE_SERVERCLASS();
 
-					CTEPlayerAnimEvent( const char *name ) : CBaseTempEntity( name )
-					{
-					}
+	CTEPlayerAnimEvent( const char *name ) : CBaseTempEntity( name ) {}
 
 	CNetworkHandle( CBasePlayer, m_hPlayer );
 	CNetworkVar( int, m_iEvent );
 	CNetworkVar( int, m_nData );
 };
 
-IMPLEMENT_SERVERCLASS_ST_NOBASE( CTEPlayerAnimEvent, DT_TEPlayerAnimEvent )
-	SendPropEHandle( SENDINFO( m_hPlayer ) ),
-	SendPropInt( SENDINFO( m_iEvent ), Q_log2( PLAYERANIMEVENT_COUNT ) + 1, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO( m_nData ), 32 )
+IMPLEMENT_SERVERCLASS_ST_NOBASE(CTEPlayerAnimEvent, DT_TEPlayerAnimEvent)
+	SendPropEHandle(SENDINFO(m_hPlayer)),
+	SendPropInt(SENDINFO(m_iEvent), Q_log2(PLAYERANIMEVENT_COUNT) + 1, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_nData), 32)
 END_SEND_TABLE()
 
-static CTEPlayerAnimEvent g_TEPlayerAnimEvent( "PlayerAnimEvent" );
+static CTEPlayerAnimEvent g_TEPlayerAnimEvent("PlayerAnimEvent");
 
 void TE_PlayerAnimEvent(CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nData)
 {
-	CPVSFilter filter( pPlayer->EyePosition() );
-	
-	// The player himself doesn't need to be sent his animation events 
-	// unless cs_showanimstate wants to show them.
-//	if ( !ToolsEnabled() && ( cl_showanimstate.GetInt() == pPlayer->entindex() ) )
-	{
-//		filter.RemoveRecipient( pPlayer );
-	}
+	CPVSFilter filter(pPlayer->EyePosition());
+	filter.RemoveRecipient(pPlayer);
 
 	g_TEPlayerAnimEvent.m_hPlayer = pPlayer;
 	g_TEPlayerAnimEvent.m_iEvent = event;
 	g_TEPlayerAnimEvent.m_nData = nData;
-	g_TEPlayerAnimEvent.Create( filter, 0 );
+	g_TEPlayerAnimEvent.Create(filter, 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -120,7 +114,21 @@ void cc_CreatePredictionError_f()
 
 ConCommand cc_CreatePredictionError( "CreatePredictionError", cc_CreatePredictionError_f, "Create a prediction error", FCVAR_CHEAT );
 
-static const char * s_szModelPath = "models/player/mp/";
+static const char *s_szModelPath = "models/player/mp/";
+
+const char *szPossibleModel[] =
+{
+	"models/player/mp/barney/barney.mdl",
+	"models/player/mp/gina/gina.mdl",
+	"models/player/mp/gman/gman.mdl",
+	"models/player/mp/gordon/gordon.mdl",
+	"models/player/mp/helmet/helmet.mdl",
+	"models/player/mp/hgrunt/hgrunt.mdl",
+	"models/player/mp/robo/robo.mdl",
+	"models/player/mp/scientist/scientist.mdl",
+	"models/player/mp/zombie/zombie.mdl",
+//	"models/player/mp/unassigned/unassigned.mdl",
+};
 
 CHL1MP_Player::CHL1MP_Player()
 {
@@ -186,13 +194,18 @@ void CHL1MP_Player::Spawn( void )
 
 	AddFlag( FL_ONGROUND );
 	SetMoveType(MOVETYPE_NONE);
-
+	
 	if ( !IsObserver() )
 	{
 	    GiveDefaultItems();
-		SetPlayerModel();
+
+		if (!HL1MPRules()->IsTeamplay())
+			SetPlayerModel();
+
 		SetMoveType(MOVETYPE_WALK);
 	}
+
+	RemoveEffects(EF_NOINTERP);
 
 	m_bHasLongJump = false;
 
@@ -201,6 +214,15 @@ void CHL1MP_Player::Spawn( void )
 	m_hRagdoll = NULL;
 
 	engine->ClientCommand( edict(), "bind tab +showscores" );
+}
+
+void CHL1MP_Player::Precache( void )
+{
+	BaseClass::Precache();
+
+//	PrecacheModel("models/player/mp/Unassigned/Unassigned.mdl");
+	for (int i = 0; i < ARRAYSIZE(szPossibleModel); i++)
+		PrecacheModel(szPossibleModel[i]);
 }
 
 void CHL1MP_Player::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
@@ -244,26 +266,28 @@ void CHL1MP_Player::DetonateSatchelCharges( void )
 
 void CHL1MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
-	DoAnimationEvent( PLAYERANIMEVENT_DIE );
-//    SetNumAnimOverlays( 0 );
-
-    
 	// Note: since we're dead, it won't draw us on the client, but we don't set EF_NODRAW
 	// because we still want to transmit to the clients in our PVS.
-	if ( !IsHLTV() )
-		CreateRagdollEntity();
+	CreateRagdollEntity();
 
 	DetonateSatchelCharges();
-
-
-	RemoveEffects( EF_NODRAW );	// still draw player body
-	RemoveFlag(FL_BASEVELOCITY);
-	
 	PackDeadPlayerItems();
+
+	BaseClass::Event_Killed(info);
+
+	if (info.GetDamageType() & DMG_DISSOLVE)
+	{
+		if (m_hRagdoll)
+		{
+			m_hRagdoll->GetBaseAnimating()->Dissolve(NULL, gpGlobals->curtime, false, ENTITY_DISSOLVE_NORMAL);
+		}
+	}
+
+	FlashlightTurnOff();
 
 	m_lifeState = LIFE_DEAD;
 
-	BaseClass::Event_Killed( info );
+	RemoveEffects(EF_NODRAW);	// still draw player body
 }
 
 void CHL1MP_Player::PackDeadPlayerItems( void )
@@ -288,8 +312,6 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 			char what[ 4 ];
 			itoa( iAmmoCount, what, 10);
 
-			Warning( "%s\n", what );
-
 			pEnt->KeyValue( szAmmo, what );
 
 			//secondary ammo
@@ -301,8 +323,6 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 			char what2[ 4 ];
 			itoa( iAmmoCount2, what2, 10 );
-
-			Warning( "2 is %s\n", what2 );
 
 			pEnt->KeyValue( szAmmo2, what2 );
 		}
@@ -570,8 +590,8 @@ bool CHL1MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 void CHL1MP_Player::SetPlayerModel(void)
 {
-	char szBaseName[128];
-	V_FileBase(engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel"), szBaseName, 128);
+	char szBaseName[16];
+	V_snprintf(szBaseName, 16, "%s", engine->GetClientConVarValue(entindex(), "cl_playermodel"));
 
 	// Don't let it be 'none'; default to Barney
 	if (V_stricmp("none", szBaseName) == 0)
@@ -579,8 +599,8 @@ void CHL1MP_Player::SetPlayerModel(void)
 		V_strcpy(szBaseName, "gordon");
 	}
 
-	char szModelName[256];
-	V_snprintf(szModelName, 256, "%s%s/%s.mdl", s_szModelPath, szBaseName, szBaseName);
+	char szModelName[64];
+	V_snprintf(szModelName, 64, "%s%s/%s.mdl", s_szModelPath, szBaseName, szBaseName);
 
 	// Check to see if the model was properly precached, do not error out if not.
 	int i = modelinfo->GetModelIndex(szModelName);
@@ -593,7 +613,22 @@ void CHL1MP_Player::SetPlayerModel(void)
 
 	SetModel(szModelName);
 
+	if (cl_print_model.GetBool())
+	{
+		char szCurrMDL[16];
+		V_FileBase(modelinfo->GetModelName(GetModel()), szCurrMDL, 16);
+
+		char szPrtMDL[48];
+		V_snprintf(szPrtMDL, 48, "* Your model is '%s'.", szCurrMDL);
+
+		ClientPrint(this, HUD_PRINTTALK, szPrtMDL);
+	}
+
 	m_flNextModelChangeTime = gpGlobals->curtime + 5;
+}
+
+void CHL1MP_Player::SetPlayerTeamModel(char *sz)
+{
 }
 
 // -------------------------------------------------------------------------------- //

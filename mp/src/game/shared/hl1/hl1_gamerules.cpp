@@ -108,9 +108,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
 	{
 	public:
-		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool & b )
+		virtual bool CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool &bProximity )
 		{
-			b = true;
 			return true;
 		}
 	};

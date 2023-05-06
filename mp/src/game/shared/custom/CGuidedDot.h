@@ -5,21 +5,22 @@
 #endif
 
 #include "cbase.h"
-#include "baseplayer_shared.h"		//hl1/c_hl1mp_player.h
 
 #ifdef CLIENT_DLL
 #include "model_types.h"
 #include "beamdraw.h"
 #include "fx_line.h"
 #include "view.h"
+#include "c_baseplayer.h"
 #else
 #include "te_effect_dispatch.h"
+#include "player.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define	RPG_LASER_SPRITE	"sprites/redglow_mp1"
+#define	DOT_SPRITE	"sprites/redglow_mp1"
 
 #ifdef CLIENT_DLL
 #define CGuidedDot C_GuidedDot
@@ -37,9 +38,6 @@ public:
 	~CGuidedDot( void );
 
 	static CGuidedDot *Create( const Vector &origin, CBaseEntity *pOwner = NULL, bool bVisibleDot = true );
-
-	void	SetTargetEntity( CBaseEntity *pTarget ) { m_hTargetEnt = pTarget; }
-	CBaseEntity *GetTargetEntity( void ) { return m_hTargetEnt; }
 
 	void	SetDotPosition( const Vector &origin, const Vector &normal );
 	Vector	GetChasePosition();
@@ -62,9 +60,6 @@ public:
 
 protected:
 	Vector				m_vecSurfaceNormal;
-	EHANDLE				m_hTargetEnt;
-	bool				m_bVisibleLaserDot;
-//	bool				m_bIsOn;
 	CNetworkVar( bool, m_bIsOn );
 
 public:

@@ -19,6 +19,7 @@ public:
 	void GiveAmmo(CBaseEntity *pOther);
 	void GiveWpn(CBaseEntity *pOther);
 
+	~CWpnBox();
 private:
 	CUtlVectorFixed<char*, MAX_WEAPONS>szWpns;
 	CUtlVectorFixed<char*, MAX_AMMO_TYPES>szAmmo;
@@ -38,6 +39,12 @@ BEGIN_DATADESC(CWpnBox)
 	DEFINE_FIELD(bAmmo, FIELD_BOOLEAN),
 END_DATADESC();
 
+CWpnBox::~CWpnBox()
+{
+	szWpns.Purge();
+	szAmmo.Purge();
+	iAmmoCount.Purge();
+}
 void CWpnBox::Spawn()
 {
 	BaseClass::Spawn();
@@ -45,7 +52,7 @@ void CWpnBox::Spawn()
 
 	Vector vecOrg = GetAbsOrigin();
 
-	DevWarning("%s spawned at %f %f %f!\n", vecOrg.x, vecOrg.y, vecOrg.z);
+	DevWarning("%s spawned at %f %f %f!\n", GetDebugName(), vecOrg.x, vecOrg.y, vecOrg.z);
 
 	SetModel(WEAPONBOX_MODEL);
 }
@@ -107,11 +114,11 @@ void CWpnBox::GiveAmmo(CBaseEntity *pOther)
 		if (szAmmo[i] == NULL || iAmmoCount[i] == NULL)
 			continue;
 
-		if (!stricmp(szAmmo[i], "TripMine"))
-			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]); //because weapon_tripmine already gives you one ammo!
-		else if (!stricmp(szAmmo[i], "Satchel"))
+		if (FStrEq(szAmmo[i], "TripMine"))
 			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]);
-		else if (!stricmp(szAmmo[i], "Grenade"))
+		else if (FStrEq(szAmmo[i], "Satchel"))
+			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]);
+		else if (FStrEq(szAmmo[i], "Grenade"))
 			pPlayer->GiveAmmo(iAmmoCount[i] - 1, szAmmo[i]);
 		else
 			pPlayer->GiveAmmo(iAmmoCount[i], szAmmo[i]);

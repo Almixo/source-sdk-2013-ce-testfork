@@ -44,8 +44,7 @@ public:
 	}
 
 	virtual float GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, int nAmmoType );
-    virtual float GetDamageMultiplier( void );    
-
+    virtual float GetDamageMultiplier( void );
 #ifdef CLIENT_DLL
 #else
 	virtual void Think ( void );
@@ -57,15 +56,12 @@ public:
 	virtual float FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon );
 	virtual float FlItemRespawnTime( CItem *pItem );
 
-	//virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer );
-	virtual void InitHUD(CBasePlayer *pPlayer) { BaseClass::InitHUD(pPlayer); };
-	/*virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, bool bKill, bool bGib );*/
-	virtual void ClientSettingsChanged( CBasePlayer *pPlayer );
+	virtual void ClientSettingsChanged( CBasePlayer *pPlayer ) override;
 
-	virtual int GetTeamIndex( const char * pName );
+	virtual int GetTeamIndex( const char *pName );
 
-	virtual const char *SetDefaultPlayerTeam(CBasePlayer *pPlayer) override;
-	virtual const char* TeamWithFewestPlayers();
+	virtual void SetPlayerTeam( CBasePlayer *pPlayer );
+	virtual const char* TeamWithFewestPlayers( void );
 #endif
 
 private:

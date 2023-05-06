@@ -49,6 +49,7 @@ public:
 	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
 
 	void SetPlayerModel( void );
+	void SetPlayerTeamModel( char * sz );
 
 	float GetNextModelChangeTime( void ) { return m_flNextModelChangeTime; }
 	float GetNextTeamChangeTime( void ) { return m_flNextTeamChangeTime; }
@@ -58,6 +59,8 @@ public:
 	virtual bool StartObserverMode (int mode) { return false;	}
 
 	void DetonateSatchelCharges( void );
+
+	void Precache( void );
 
 	CNetworkVar( int, m_iRealSequence );
 

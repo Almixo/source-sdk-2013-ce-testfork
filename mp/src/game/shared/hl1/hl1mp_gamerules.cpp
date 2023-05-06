@@ -129,9 +129,9 @@ CHL1MPRules::CHL1MPRules()
 
 	if (IsTeamplay() == true)
 	{
-		// Create basic server teams
+// --------------- Create basic server teams --------------- 
 
-		CTeam *pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
+		CTeam* pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
 		pTeam->Init("Unassigned", 0);
 		g_Teams.AddToTail(pTeam);
 
@@ -142,13 +142,13 @@ CHL1MPRules::CHL1MPRules()
 		char szTeamList[32];
 		V_FileBase(teamlist.GetString(), szTeamList, 32);		
 
-		int teamnum = 0;
-		char *szTeamName = strtok(szTeamList, ";");
+		int teamnum = 2;
+		char* szTeamName = strtok(szTeamList, ";");
 
 		while (szTeamName != NULL)
 		{
 			CTeam *pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
-			pTeam->Init(szTeamName, teamnum + 2);
+			pTeam->Init(szTeamName, teamnum);
 			g_Teams.AddToTail(pTeam);
 
 			teamnum++;
@@ -158,18 +158,18 @@ CHL1MPRules::CHL1MPRules()
 
 		if (GetNumberOfTeams() < 4)
 		{
-			CTeam *pTeam1 = static_cast<CTeam*>(CreateEntityByName("team_manager"));
-			pTeam1->Init("robo", 2);
-			g_Teams.InsertBefore(3, pTeam1);
+			CTeam* pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
+			pTeam->Init("robo", 2);
+			g_Teams.InsertBefore(3, pTeam);
 
-			CTeam *pTeam2 = static_cast<CTeam*>(CreateEntityByName("team_manager"));
-			pTeam2->Init("hgrunt", 3);
-			g_Teams.InsertBefore(4, pTeam2);
+			pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
+			pTeam->Init("hgrunt", 3);
+			g_Teams.InsertBefore(4, pTeam);
 		}
 
 		for (int i = 0; i < MAX_TEAMS; i++)
 		{
-			CTeam *pTeam = GetGlobalTeam(i);
+			CTeam* pTeam = GetGlobalTeam(i);
 			if (pTeam == nullptr)
 				continue;
 
@@ -220,8 +220,7 @@ float CHL1MPRules::GetDamageMultiplier( void )
 
 
 
-#ifdef CLIENT_DLL
-#else
+#ifndef CLIENT_DLL
 
 
 void CHL1MPRules::Think ( void )
@@ -283,7 +282,6 @@ void CHL1MPRules::Think ( void )
 
 void CHL1MPRules::GoToIntermission()
 {
-#ifndef CLIENT_DLL
 	if ( g_fGameOver )
 		return;
 
@@ -301,56 +299,51 @@ void CHL1MPRules::GoToIntermission()
 		pPlayer->ShowViewPortPanel( PANEL_SCOREBOARD );
 		pPlayer->AddFlag( FL_FROZEN );
 	}
-#endif
 }
 
 
-void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
+void CHL1MPRules::ClientSettingsChanged(CBasePlayer *pPlayer)
 {
 	CHL1MP_Player *pHL1Player = ToHL1MPPlayer(pPlayer);
-
-	if (pHL1Player == nullptr)
+	if (!pHL1Player)
 		return;
 
-	if (IsTeamplay() == true)
-	{
-		char szTeamModel[64];
-		const char *szModelpath = "models/player/mp";
+	SetPlayerTeam(pHL1Player);
 
-		const char *szTeamName = pHL1Player->GetTeam()->GetName();
+	if (IsTeamplay())
+	{		
+		char szMDL[64];
+		V_snprintf(szMDL, 64, "models/player/mp/%s/%s.mdl", pHL1Player->TeamID(), pHL1Player->TeamID());
 
-		V_snprintf(szTeamModel, sizeof(szTeamModel), "%s/%s/%s.mdl", szModelpath, szTeamName, szTeamName);
+		UTIL_SetModel(pHL1Player, szMDL);
 
-		UTIL_SetModel(pHL1Player, szTeamModel);
+		char szAccMDL[16];
+		V_FileBase(modelinfo->GetModelName(pHL1Player->GetModel()), szAccMDL, 16);
 
-		char szReturn[32];
-		V_snprintf(szReturn, 32, "* You are on team %s", szTeamName);
+		char szPrtMDL[48];
+		V_snprintf(szPrtMDL, 48, "* Your model is '%s'.", szAccMDL);
 
-		ClientPrint(pHL1Player, HUD_PRINTTALK, szReturn);
+		ClientPrint(pHL1Player, HUD_PRINTTALK, szPrtMDL);
 	}
-
-	if (IsTeamplay() == false)
+	else
 	{
-		// strip down to just the name
-		char szTempCurrentModel[128];
-		V_FileBase(modelinfo->GetModelName(pPlayer->GetModel()), szTempCurrentModel, 128);
-		const char *pCurrentModel = szTempCurrentModel;
+		char szCurrMDL[32];
+		V_FileBase(modelinfo->GetModelName(pHL1Player->GetModel()), szCurrMDL, 32);
 
-		char szTempModelName[128];
-		V_FileBase(engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel"), szTempModelName, 128);
-		const char *szModelName = szTempModelName;
+		char szAccMDL[32];
+		V_FileBase(engine->GetClientConVarValue(pHL1Player->entindex(), "cl_playermodel"), szAccMDL, 32);
 
-		if (V_strlen(szModelName) > 0 && V_strcmp(szModelName, pCurrentModel))
+		if (!FStrEq(szCurrMDL, szAccMDL))
 		{
 			if (pHL1Player->GetNextModelChangeTime() >= gpGlobals->curtime)
 			{
-				char szReturnString[512];
+				engine->ClientCommand(pHL1Player->edict(), "cl_playermodel %s\n", szCurrMDL);
 
-				V_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pCurrentModel);
-				engine->ClientCommand(pHL1Player->edict(), szReturnString);
+				int iTimeLeft = pHL1Player->GetNextModelChangeTime() - gpGlobals->curtime;
+				char szPrint[64];
+				V_snprintf(szPrint, 64, "Please wait %d more seconds before trying to switch.\n", iTimeLeft);
 
-				V_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch.\n", (int)(pHL1Player->GetNextModelChangeTime() - gpGlobals->curtime));
-				ClientPrint(pHL1Player, HUD_PRINTTALK, szReturnString);
+				ClientPrint(pHL1Player, HUD_PRINTTALK, szPrint);
 			}
 			else
 			{
@@ -359,38 +352,34 @@ void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		}
 	}
 
-	BaseClass::ClientSettingsChanged( pPlayer );
+	BaseClass::ClientSettingsChanged(pHL1Player);
 }
 
-
-const char *CHL1MPRules::SetDefaultPlayerTeam(CBasePlayer *pPlayer)
+void CHL1MPRules::SetPlayerTeam(CBasePlayer *pPlayer)
 {
-	CHL1MP_Player *pHL1Player = (CHL1MP_Player*)pPlayer;
+	if (!IsTeamplay())	//isn't teamplay, don't do anything... the Source will figure the team out somehow
+		return;
 
-	if (IsTeamplay() == false)
-		return BaseClass::SetDefaultPlayerTeam(pHL1Player);
+	if (pPlayer->GetTeamNumber() > 1)	//we already have a team, don't change it again!
+		return;
 
-	const char *szTeam = TeamWithFewestPlayers();
+	CHL1MP_Player *pHL1Player = ToHL1MPPlayer(pPlayer);
+	if (!pHL1Player)
+		return;
 
-	if (szTeam == nullptr)
-		Assert(0);
+	const char *szTeamName = TeamWithFewestPlayers();
 
-	int iTeam = GetTeamIndex(szTeam);
+	pHL1Player->ChangeTeam( GetTeamIndex(szTeamName) );
 
-	if (iTeam == -1 || !IsValidTeam(szTeam))
-	{
-		Warning("Invalid team!\n");
-		Assert(0);
-	}
+	char out[32];
+	V_snprintf(out, sizeof(out), "* You are on team '%s.'", szTeamName);
 
-	pHL1Player->ChangeTeam(iTeam);
-
-	return szTeam;
+	ClientPrint(pHL1Player, HUD_PRINTTALK, out);
 }
 
-const char *CHL1MPRules::TeamWithFewestPlayers()
+const char* CHL1MPRules::TeamWithFewestPlayers()
 {
-	char *szTeamName = nullptr;
+	char* szTeamName = nullptr;
 	
 	CTeam *pTeam1 = GetGlobalTeam(2);
 	CTeam *pTeam2 = GetGlobalTeam(3);
@@ -407,15 +396,16 @@ const char *CHL1MPRules::TeamWithFewestPlayers()
 		if (i == 3)
 			szTeamName = (char*)pTeam2->GetName();
 	}
-
-	if (iPlr1 > iPlr2)
-		szTeamName = (char*)pTeam2->GetName();
-	if (iPlr1 < iPlr2)
-		szTeamName = (char*)pTeam1->GetName();
+	else
+	{
+		if (iPlr1 > iPlr2)
+			szTeamName = (char*)pTeam2->GetName();
+		if (iPlr1 < iPlr2)
+			szTeamName = (char*)pTeam1->GetName();
+	}
 
 	return szTeamName;
 } 
-
 
 int CHL1MPRules::GetTeamIndex(const char *pName)
 {
@@ -423,14 +413,13 @@ int CHL1MPRules::GetTeamIndex(const char *pName)
 	{
 		for (int i = 0; i < GetNumberOfTeams(); i++)
 		{
-			if (stricmp(g_Teams[i]->GetName(), pName) == 0)
+			if (FStrEq(g_Teams[i]->GetName(), pName))
 				return i;
 		}
 	}
 
 	return -1; // no match
 }
-
 
 float CHL1MPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
 {
@@ -446,13 +435,10 @@ float CHL1MPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
 	return sv_hl1mp_weapon_respawn_time.GetInt();
 }
 
-
 float CHL1MPRules::FlItemRespawnTime( CItem *pItem )
 {
 	return sv_hl1mp_item_respawn_time.GetInt();
 }
-
-
 
 // This is a direct rip from CHalfLife1
 void CHL1MPRules::InitDefaultAIRelationships( void )
@@ -699,5 +685,4 @@ void CHL1MPRules::InitDefaultAIRelationships( void )
 	CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 	CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_INSECT,			D_NU, 0 );
 }
-//TODO: Move team management code from CHL1MP_Player to here
 #endif

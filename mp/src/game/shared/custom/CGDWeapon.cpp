@@ -182,11 +182,12 @@ bool CGuidedWeapon::Holster(CBaseCombatWeapon *pSwitchingTo)
 }
 void CGuidedWeapon::UpdateDotPos(void)
 {
+#ifndef CLIENT_DLL
 	if (!CheckForErrors()) return;
 
 	if (!bDot) return;
 
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwner());
 	Vector vOrigin, vDir, vEnd;
 	trace_t tr;
 
@@ -195,23 +196,21 @@ void CGuidedWeapon::UpdateDotPos(void)
 
 	UTIL_TraceLine(vOrigin, vOrigin + (vDir * MAX_TRACE_LENGTH), MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr);
 
-	vEnd = tr.endpos - (vDir * 1e1f);
+	vEnd = tr.endpos - (vDir * 10);
 
-	pSprite->SetDotPosition(vEnd, vEnd);
+	pSprite->SetDotPosition(vEnd, tr.plane.normal);
+#endif
 }
 void CGuidedWeapon::SpawnDot(void)
 {
 #ifndef CLIENT_DLL
 	if (!pSprite)
 	{
-		pSprite = CGuidedDot::Create(GetAbsOrigin(), GetOwner(), bDot);
+		pSprite = CGuidedDot::Create(GetAbsOrigin(), GetOwner());
 
 		if (bDot && bWasOn)
-		{
-			CBaseCombatWeapon::WeaponSound(SPECIAL1);
-
-		}
-}
+			WeaponSound(SPECIAL1);
+	}
 #endif
 }
 inline void CGuidedWeapon::ToggleDot(void)
@@ -230,12 +229,12 @@ inline void CGuidedWeapon::ToggleDot(void)
 	if (bDot)
 	{
 		pSprite->TurnOn();
-		CBaseCombatWeapon::WeaponSound(SPECIAL1);
+		WeaponSound(SPECIAL1);
 	}
 	if (!bDot)
 	{
 		pSprite->TurnOff();
-		CBaseCombatWeapon::WeaponSound(SPECIAL2);
+		WeaponSound(SPECIAL2);
 	}
 }
 inline bool CGuidedWeapon::IsDotOn(void)

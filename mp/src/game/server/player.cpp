@@ -5095,6 +5095,8 @@ void CBasePlayer::Precache( void )
 	PrecacheScriptSound( "Player.AmbientUnderWater" );
 	enginesound->PrecacheSentenceGroup( "HEV" );
 
+	PrecacheModel("player/mp/Unassigned/Unassigned.mdl");
+
 	// These are always needed
 #ifndef TF_DLL
 	PrecacheParticleSystem( "slime_splash_01" );
