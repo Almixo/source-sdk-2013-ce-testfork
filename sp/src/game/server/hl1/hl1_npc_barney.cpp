@@ -67,17 +67,17 @@ ConVar	sk_barney_health( "sk_barney_health","35");
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CNPC_Barney )
-	DEFINE_FIELD( CNPC_Barney, m_fGunDrawn, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Barney, m_flPainTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Barney, m_flCheckAttackTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Barney, m_fLastAttackCheck, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fGunDrawn, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flPainTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flCheckAttackTime, FIELD_TIME ),
+	DEFINE_FIELD( m_fLastAttackCheck, FIELD_BOOLEAN ),
 END_DATADESC()
 
 
 LINK_ENTITY_TO_CLASS( monster_barney, CNPC_Barney );
 
 
-static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
+static bool IsFacing( CBaseEntity *pevTest, const Vector &reference )
 {
 	Vector vecDir = (reference - pevTest->GetAbsOrigin());
 	vecDir.z = 0;
@@ -90,9 +90,9 @@ static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
 	// He's facing me, he meant it
 	if ( DotProduct( forward, vecDir ) > 0.96 )	// +/- 15 degrees or so
 	{
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 //=========================================================
@@ -128,7 +128,7 @@ void CNPC_Barney::Spawn()
 	
 	NPCInit();
 	
-	SetUse( FollowerUse );
+	SetUse( &CNPC_Barney::FollowerUse );
 }
 
 //=========================================================
@@ -136,21 +136,14 @@ void CNPC_Barney::Spawn()
 //=========================================================
 void CNPC_Barney::Precache()
 {
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
+	m_iAmmoType = GetAmmoDef()->Index( "9mmRound" );
 
-	engine->PrecacheModel("models/barney.mdl");
+	PrecacheModel( "models/barney.mdl" );
 
-	enginesound->PrecacheSound("barney/ba_attack1.wav" );
-	enginesound->PrecacheSound("barney/ba_attack2.wav" );
+	PrecacheScriptSound( "Barney.FirePistol" );
+	PrecacheScriptSound( "Barney.Pain" );
+	PrecacheScriptSound( "Barney.Die" );
 
-	enginesound->PrecacheSound("barney/ba_pain1.wav");
-	enginesound->PrecacheSound("barney/ba_pain2.wav");
-	enginesound->PrecacheSound("barney/ba_pain3.wav");
-
-	enginesound->PrecacheSound("barney/ba_die1.wav");
-	enginesound->PrecacheSound("barney/ba_die2.wav");
-	enginesound->PrecacheSound("barney/ba_die3.wav");
-	
 	// every new barney must call this, otherwise
 	// when a level is loaded, nobody will talk (time is reset to 0)
 	TalkInit();
@@ -312,7 +305,7 @@ void CNPC_Barney::BarneyFirePistol ( void )
 	
 	VectorAngles( vecShootDir, angDir );
 //	SetBlending( 0, angDir.x );
-	m_fEffects  = EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 
 	FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, m_iAmmoType );
 	
@@ -382,13 +375,9 @@ void CNPC_Barney :: PainSound ( void )
 	
 	m_flPainTime = gpGlobals->curtime + random->RandomFloat( 0.5, 0.75 );
 
-	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt( 0, 2 ) )
-	{
-		case 0: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_pain1.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 1: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_pain2.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 2: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_pain3.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-	}
+	CPASAttenuationFilter filter(this);
+	EmitSound(filter, entindex(), "Barney.Pain");
+	m_flPainTime = gpGlobals->curtime + RandomFloat(0.5f, 0.75f);
 }
 
 //=========================================================
@@ -396,16 +385,11 @@ void CNPC_Barney :: PainSound ( void )
 //=========================================================
 void CNPC_Barney :: DeathSound ( void )
 {
-	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt( 0, 2 ) )
-	{
-		case 0: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_die1.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 1: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_die2.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 2: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_die3.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-	}
+	CPASAttenuationFilter filter(this);
+	EmitSound(filter, entindex(), "Barney.Die");
 }
 
-void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr )
+void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 
@@ -433,7 +417,7 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 		break;
 	}
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 void CNPC_Barney::Event_Killed( const CTakeDamageInfo &info )
@@ -828,7 +812,7 @@ LINK_ENTITY_TO_CLASS( monster_barney_dead, CNPC_DeadBarney );
 
 BEGIN_DATADESC( CNPC_DeadBarney )
 	// Function Pointers
-	DEFINE_THINKFUNC( CNPC_DeadBarney, StartRagdoll ),
+	DEFINE_THINKFUNC( StartRagdoll ),
 END_DATADESC()
 
 //=========================================================
@@ -839,7 +823,7 @@ void CNPC_DeadBarney :: Spawn( void )
 	engine->PrecacheModel("models/barney.mdl");
 	SetModel( "models/barney.mdl");
 
-	m_fEffects			= 0;
+	ClearEffects();
 	SetSequence( 0 );
 	m_bloodColor		= BLOOD_COLOR_RED;
 
@@ -855,7 +839,7 @@ void CNPC_DeadBarney :: Spawn( void )
 
 	NPCInit();
 	
-	SetThink( StartRagdoll );
+	SetThink( &CNPC_DeadBarney::StartRagdoll );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 

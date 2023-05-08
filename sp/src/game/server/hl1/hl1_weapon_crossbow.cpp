@@ -18,6 +18,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "IEffects.h"
+#include <te_effect_dispatch.h>
 
 
 #define BOLT_MODEL			"models/crossbow_bolt.mdl"
@@ -56,8 +57,8 @@ LINK_ENTITY_TO_CLASS( crossbow_bolt, CCrossbowBolt );
 
 BEGIN_DATADESC( CCrossbowBolt )
 	// Function Pointers
-	DEFINE_FUNCTION( CCrossbowBolt, BubbleThink ),
-	DEFINE_FUNCTION( CCrossbowBolt, BoltTouch ),
+	DEFINE_FUNCTION( BubbleThink ),
+	DEFINE_FUNCTION( BoltTouch ),
 END_DATADESC()
 
 CCrossbowBolt *CCrossbowBolt::BoltCreate( const Vector &vecOrigin, const QAngle &angAngles, CBasePlayer *pentOwner )
@@ -95,7 +96,7 @@ void CCrossbowBolt::Precache( )
 	engine->PrecacheModel( BOLT_MODEL );
 }
 
-void TE_StickyBolt( IRecipientFilter& filter, float delay,	int iIndex, Vector vecDirection, const Vector * origin );
+//void TE_StickyBolt( IRecipientFilter& filter, float delay,	int iIndex, Vector vecDirection, const Vector * origin );
 
 
 void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
@@ -108,7 +109,8 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 
 	if ( pOther->m_takedamage != DAMAGE_NO )
 	{
-		trace_t	tr = BaseClass::GetTouchTrace( );
+		trace_t	tr;
+		tr = BaseClass::GetTouchTrace();
 		Vector	vecNormalizedVel = GetAbsVelocity();
 
 		ClearMultiDamage( );
@@ -144,9 +146,17 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 		vForward = GetAbsOrigin() - tr.endpos;
 		VectorNormalize ( vForward );
 
-		CPASFilter filter( GetAbsOrigin() );
+		/*CPASFilter filter( GetAbsOrigin() );
 
-		TE_StickyBolt( filter, 0.05, entindex(), vForward, &tr.endpos );
+		TE_StickyBolt( filter, 0.05, entindex(), vForward, &tr.endpos );*/
+
+		CEffectData	data;
+
+		data.m_vOrigin = tr.endpos;
+		data.m_vNormal = vForward;
+		data.m_nEntIndex = tr.fraction != 1.0f;
+		
+		DispatchEffect( "BoltImpact", data );
 
 		if ( !g_pGameRules->IsMultiplayer() )
 		{
@@ -172,7 +182,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			SetAbsAngles( angAngles );
 
 			AddSolidFlags( FSOLID_NOT_SOLID );
-			Relink();
+			//Relink();
 
 			SetMoveType( MOVETYPE_FLY );
 			SetAbsVelocity( Vector( 0, 0, 0 ) );
@@ -193,9 +203,18 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			vForward = GetAbsOrigin() - tr.endpos;
 			VectorNormalize ( vForward );
 
-			CPASFilter filter( GetAbsOrigin() );
+			/*CPASFilter filter( GetAbsOrigin() );
 
-			TE_StickyBolt( filter, 0.05, entindex(), vForward, &tr.endpos );
+			TE_StickyBolt( filter, 0.05, entindex(), vForward, &tr.endpos );*/
+
+			CEffectData	data;
+
+			data.m_vOrigin = GetAbsOrigin();
+			data.m_vNormal = vForward;
+			data.m_nEntIndex = 0;
+
+			DispatchEffect( "BoltImpact", data );
+
 		}
 
 		if (  UTIL_PointContents( GetAbsOrigin() ) != CONTENTS_WATER)
@@ -475,12 +494,12 @@ void CWeaponCrossbow::ToggleZoom( void )
 
 	if ( m_fInZoom )
 	{
-		pPlayer->m_Local.m_iFOV = 0;
+		pPlayer->SetFOV(this, 0);
 		m_fInZoom = false;
 	}
 	else
 	{
-		pPlayer->m_Local.m_iFOV = 20;
+		pPlayer->SetFOV(this, 20);
 		m_fInZoom = true;
 	}
 }

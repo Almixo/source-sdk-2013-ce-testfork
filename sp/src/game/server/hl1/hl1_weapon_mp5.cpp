@@ -46,9 +46,6 @@ void CWeaponMP5::Precache( void )
 {
 	BaseClass::Precache();
 
-	enginesound->PrecacheSound( "items/clipinsert1.wav" );
-	enginesound->PrecacheSound( "items/cliprelease1.wav" );
-
 	UTIL_PrecacheOther( "grenade_mp5" );
 }
 
@@ -71,7 +68,7 @@ void CWeaponMP5::PrimaryAttack( void )
 
 	WeaponSound( SINGLE );
 
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	m_iClip1--;
 
@@ -83,7 +80,7 @@ void CWeaponMP5::PrimaryAttack( void )
 	Vector vecSrc		= pPlayer->Weapon_ShootPosition();
 	Vector vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );	
 
-	if ( !g_pGameRules->IsMultiplayer() )
+	if ( g_pGameRules->IsMultiplayer() )
 	{
 		// optimized multiplayer. Widened to make it easier to hit a moving player
 		pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_6DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
@@ -94,7 +91,8 @@ void CWeaponMP5::PrimaryAttack( void )
 		pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_3DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
 	}
 
-	pPlayer->ViewPunch( QAngle( random->RandomFloat( -2, 2 ), 0, 0 ) );
+	pPlayer->ViewPunch( QAngle( random->RandomFloat( -.5, .5 ), 0, 0 ) );
+	pPlayer->ViewPunchReset();
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
@@ -125,9 +123,9 @@ void CWeaponMP5::SecondaryAttack( void )
 		return;
 	}
 
-	WeaponSound(DOUBLE);
+	WeaponSound(WPN_DOUBLE);
 
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
@@ -140,7 +138,7 @@ void CWeaponMP5::SecondaryAttack( void )
 	m_pMyGrenade->SetAbsVelocity( vecThrow );
 	m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, -500 ), 0, 0 ) );
 	m_pMyGrenade->SetMoveType( MOVETYPE_FLYGRAVITY ); 
-	m_pMyGrenade->SetOwner( GetOwner() );
+	m_pMyGrenade->SetOwnerEntity( GetOwner() );
 	m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() );
 
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );

@@ -36,14 +36,14 @@ LINK_ENTITY_TO_CLASS( monster_snark, CSnark);
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CSnark )
-	DEFINE_FIELD( CSnark, m_flDie, FIELD_TIME ),
-	DEFINE_FIELD( CSnark, m_vecTarget, FIELD_VECTOR ),
-	DEFINE_FIELD( CSnark, m_flNextHunt, FIELD_TIME ),
-	DEFINE_FIELD( CSnark, m_flNextHit, FIELD_TIME ),
-	DEFINE_FIELD( CSnark, m_posPrev, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CSnark, m_hOwner, FIELD_EHANDLE ),
-	DEFINE_ENTITYFUNC( CSnark, SuperBounceTouch ),
-	DEFINE_THINKFUNC( CSnark, HuntThink ),
+	DEFINE_FIELD( m_flDie, FIELD_TIME ),
+	DEFINE_FIELD( m_vecTarget, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flNextHunt, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextHit, FIELD_TIME ),
+	DEFINE_FIELD( m_posPrev, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
+	DEFINE_ENTITYFUNC( SuperBounceTouch ),
+	DEFINE_THINKFUNC( HuntThink ),
 END_DATADESC()
 
 
@@ -63,15 +63,13 @@ void CSnark::Precache( void )
 {
 	BaseClass::Precache();
 
-	engine->PrecacheModel( "models/w_squeak.mdl" );
+	PrecacheModel("models/w_squeak2.mdl");
 
-	enginesound->PrecacheSound( "squeek/sqk_blast1.wav" );
-	enginesound->PrecacheSound( "common/bodysplat.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_die1.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_hunt1.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_hunt2.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_hunt3.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_deploy1.wav" );
+	PrecacheScriptSound("Snark.Die");
+	PrecacheScriptSound("Snark.Gibbed");
+	PrecacheScriptSound("Snark.Squeak");
+	PrecacheScriptSound("Snark.Deploy");
+	PrecacheScriptSound("Snark.Bounce");
 }
 
 
@@ -162,7 +160,7 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 
 	// play squeek blast
 	CPASAttenuationFilter filter( this, 0.5 );
-	enginesound->EmitSound( filter, entindex(), CHAN_ITEM, "squeek/sqk_blast1.wav", 1, 0.5, 0, PITCH_NORM );
+	EmitSound( filter, entindex(), "Snark.Die" );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), SNARK_EXPLOSION_VOLUME, 3.0 );
 
@@ -170,11 +168,11 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 
 	if ( m_hOwner != NULL )
 	{
-		RadiusDamage( CTakeDamageInfo( this, m_hOwner, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE );
+		RadiusDamage( CTakeDamageInfo( this, m_hOwner, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, this );
 	}
 	else
 	{
-		RadiusDamage( CTakeDamageInfo( this, this, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE );
+		RadiusDamage( CTakeDamageInfo( this, this, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, this );
 	}
 
 	// reset owner so death message happens
@@ -182,7 +180,9 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 		SetOwnerEntity( m_hOwner );
 
 	CTakeDamageInfo info = inputInfo;
-	info.SetDamageType( DMG_GIB_CORPSE );
+	int iGibDamage = g_pGameRules->Damage_GetShouldGibCorpse();
+	info.SetDamageType( iGibDamage );
+
 
 	BaseClass::Event_Killed( info );
 }
@@ -191,7 +191,7 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 bool CSnark::Event_Gibbed( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "common/bodysplat.wav", 0.75, ATTN_NORM, 0, 200 );
+	EmitSound( filter, entindex(), "Snark.Gibbed" );
 
 	return BaseClass::Event_Gibbed( info );
 }
@@ -259,7 +259,7 @@ void CSnark::HuntThink( void )
 	if ( (m_flDie - gpGlobals->curtime <= 0.5) && (m_flDie - gpGlobals->curtime >= 0.3) )
 	{
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "squeek/sqk_die1.wav", 1, ATTN_NORM, 0, 100 + random->RandomInt( 0, 0x3F ) );
+		EmitSound( filter, entindex(), "Snark.Squeak" );
 		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 256, 0.25 );
 	}
 
@@ -325,7 +325,8 @@ void CSnark::HuntThink( void )
 void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 {
 	float	flpitch;
-	trace_t tr = CBaseEntity::GetTouchTrace( );
+	trace_t tr;
+	tr = GetTouchTrace();
 
 	// don't hit the guy that launched this grenade
 	if ( m_hOwner && ( pOther == m_hOwner ) )
@@ -382,7 +383,14 @@ void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 
 				// make bite sound
 				CPASAttenuationFilter filter( this );
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "squeek/sqk_deploy1.wav", 1, ATTN_NORM, 0, (int)flpitch );
+				CSoundParameters params;
+				if ( GetParametersForSound( "Snark.Deploy", params, NULL ) )
+				{
+					EmitSound_t ep( params );
+					ep.m_nPitch = (int)flpitch;
+
+					EmitSound( filter, entindex(), ep );
+				}
 				m_flNextAttack = gpGlobals->curtime + 0.5;
 			}
 		}
@@ -409,14 +417,13 @@ void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 	{
 		// play bounce sound
 		CPASAttenuationFilter filter2( this );
-		switch ( random->RandomInt( 0, 2 ) )
+		CSoundParameters params;
+		if ( GetParametersForSound( "Snark.Bounce", params, NULL ) )
 		{
-		case 0:
-			enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "squeek/sqk_hunt1.wav", 1, ATTN_NORM, 0, (int)flpitch );	break;
-		case 1:
-			enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "squeek/sqk_hunt2.wav", 1, ATTN_NORM, 0, (int)flpitch );	break;
-		case 2:
-			enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "squeek/sqk_hunt3.wav", 1, ATTN_NORM, 0, (int)flpitch );	break;
+			EmitSound_t ep( params );
+			ep.m_nPitch = (int)flpitch;
+
+			EmitSound( filter2, entindex(), ep );
 		}
 
 		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 256, 0.25 );

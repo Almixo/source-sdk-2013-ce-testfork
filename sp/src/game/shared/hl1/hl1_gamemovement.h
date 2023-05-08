@@ -28,7 +28,7 @@ class CHL1GameMovement : public CGameMovement
 public:
 	DECLARE_CLASS( CHL1GameMovement, CGameMovement );
 
-	virtual void CheckJumpButton( void );
+	virtual bool CheckJumpButton( void );
 
 protected:
 	CHL1_Player *m_pHL1Player;

@@ -40,7 +40,6 @@
 #include	"ammodef.h"
 #include	"basecombatweapon.h"
 #include	"hl1_basegrenade.h"
-#include	"customentity.h"
 #include	"ai_interactions.h"
 #include	"scripted.h"
 #include	"hl1_basegrenade.h"
@@ -204,18 +203,18 @@ int ACT_GRUNT_SHOTGUN_CROUCHING;
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CNPC_HGrunt )
-	DEFINE_FIELD( CNPC_HGrunt, m_flNextGrenadeCheck, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_HGrunt, m_flNextPainTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_HGrunt, m_flCheckAttackTime, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_HGrunt, m_vecTossVelocity, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_HGrunt, m_iLastGrenadeCondition, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_HGrunt, m_fStanding, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_HGrunt, m_fFirstEncounter, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_HGrunt, m_iClipSize, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_HGrunt, m_voicePitch, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_HGrunt, m_iSentence, FIELD_INTEGER ),
-	DEFINE_KEYFIELD( CNPC_HGrunt, m_iWeapons, FIELD_INTEGER, "weapons" ),
-	DEFINE_KEYFIELD( CNPC_HGrunt, m_SquadName, FIELD_STRING, "netname" ),
+	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextPainTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flCheckAttackTime, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecTossVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_iLastGrenadeCondition, FIELD_INTEGER ),
+	DEFINE_FIELD( m_fStanding, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fFirstEncounter, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_iClipSize, FIELD_INTEGER ),
+	DEFINE_FIELD( m_voicePitch, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iSentence, FIELD_INTEGER ),
+	DEFINE_KEYFIELD( m_iWeapons, FIELD_INTEGER, "weapons" ),
+	DEFINE_KEYFIELD( m_SquadName, FIELD_STRING, "netname" ),
 END_DATADESC()
 
 
@@ -235,7 +234,7 @@ void CNPC_HGrunt::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_RED;
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= sk_hgrunt_health.GetFloat();
 	m_flFieldOfView		= 0.2;// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -325,35 +324,18 @@ void CNPC_HGrunt::Precache()
 
 	engine->PrecacheModel("models/hgrunt.mdl");
 
-	enginesound->PrecacheSound( "hgrunt/gr_mgun1.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_mgun2.wav" );
-	
-	enginesound->PrecacheSound( "hgrunt/gr_die1.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_die2.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_die3.wav" );
-
-	enginesound->PrecacheSound( "hgrunt/gr_pain1.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_pain2.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_pain3.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_pain4.wav" );
-	enginesound->PrecacheSound( "hgrunt/gr_pain5.wav" );
-
-	enginesound->PrecacheSound( "hgrunt/gr_reload1.wav" );
-
-	enginesound->PrecacheSound( "weapons/glauncher.wav" );
-
-	enginesound->PrecacheSound( "weapons/sbarrel1.wav" );
-
-	enginesound->PrecacheSound("zombie/claw_miss2.wav");// because we use the basemonster SWIPE animation event
+	PrecacheScriptSound("HGrunt.Reload");
+	PrecacheScriptSound("HGrunt.GrenadeLaunch");
+	PrecacheScriptSound("HGrunt.9MM");
+	PrecacheScriptSound("HGrunt.Shotgun");
+	PrecacheScriptSound("HGrunt.Pain");
+	PrecacheScriptSound("HGrunt.Die");
 
 	// get voice pitch
 	if ( random->RandomInt(0,1))
 		m_voicePitch = 109 + random->RandomInt(0,7);
 	else
 		m_voicePitch = 100;
-
-	m_iBrassShell = engine->PrecacheModel ("models/shell.mdl");// brass shell
-	m_iShotgunShell = engine->PrecacheModel ("models/shotgunshell.mdl");
 
 	BaseClass::Precache();
 
@@ -688,7 +670,7 @@ int CNPC_HGrunt::GetGrenadeConditions( float flDot, float flDist  )
 		return COND_NONE;
 	
 	Vector flEnemyLKP = GetEnemyLKP();
-	if ( !(pEnemy->GetFlags() & FL_ONGROUND) && pEnemy->GetWaterLevel() == 0 && flEnemyLKP.z > GetAbsMaxs().z  )
+	if ( !(pEnemy->GetFlags() & FL_ONGROUND) && pEnemy->GetWaterLevel() == 0 && flEnemyLKP.z > (GetAbsOrigin().z + WorldAlignMaxs().z) )
 	{
 		//!!!BUGBUG - we should make this check movetype and make sure it isn't FLY? Players who jump a lot are unlikely to 
 		// be grenaded.
@@ -704,7 +686,7 @@ int CNPC_HGrunt::GetGrenadeConditions( float flDot, float flDist  )
 		if ( random->RandomInt( 0,1 ) )
 		{
 			// magically know where they are
-			vecTarget = Vector( pEnemy->GetAbsOrigin().x, pEnemy->GetAbsOrigin().y, pEnemy->GetAbsMins().z );
+			pEnemy->CollisionProp()->NormalizedToWorldSpace(Vector(0.5f, 0.5f, 0.0f), &vecTarget);
 		}
 		else
 		{
@@ -833,7 +815,7 @@ int CNPC_HGrunt::GetSoundInterests( void )
 //=========================================================
 // TraceAttack - make sure we're not taking it in the helmet
 //=========================================================
-void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr )
+void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 
@@ -851,7 +833,7 @@ void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 		// it's head shot anyways
 		ptr->hitgroup = HITGROUP_HEAD;
 	}
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 
@@ -959,7 +941,7 @@ bool CNPC_HGrunt::HandleInteraction(int interactionType, void *data, CBaseCombat
 	if (interactionType == g_interactionBarnacleVictimDangle)
 	{
 		// Force choosing of a new schedule
-		ClearSchedule();
+		ClearSchedule("barnacleDangle");
 		m_bInBarnacleMouth	= true;
 		return true;
 	}
@@ -982,7 +964,7 @@ bool CNPC_HGrunt::HandleInteraction(int interactionType, void *data, CBaseCombat
 		if ( GetState() == NPC_STATE_SCRIPT )
 		{
 			 m_hCine->CancelScript();
-			 ClearSchedule();
+			 ClearSchedule("BarnacleGrab");
 		}
 
 		SetState( NPC_STATE_PRONE );
@@ -1091,7 +1073,6 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 			// alway explode 3 seconds after the pin was pulled
 			pGrenade->m_flDetonateTime = gpGlobals->curtime + 3.5;
 			pGrenade->Spawn( );
-			pGrenade->SetOwner( this );
 			pGrenade->SetOwnerEntity( this );
 			pGrenade->SetGravity( 0.5 );
 			pGrenade->SetAbsVelocity( m_vecTossVelocity );
@@ -1101,7 +1082,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 			m_iLastGrenadeCondition =  COND_NONE;
 			m_flNextGrenadeCheck = gpGlobals->curtime + 6;// wait six seconds before even looking again to see if a grenade can be thrown.
 
-			Msg( this, "Tossing a grenade to flush you out!\n"	);
+			Msg( "Tossing a grenade to flush you out!\n" );
 		}
 		break;
 
@@ -1119,7 +1100,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 			m_pMyGrenade->SetAbsVelocity( m_vecTossVelocity );
 			m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, -500 ), 0, 0 ) );
 			m_pMyGrenade->SetMoveType( MOVETYPE_FLYGRAVITY ); 
-			m_pMyGrenade->SetOwner( this );
+			m_pMyGrenade->SetThrower( this );
 			m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() );
 
 			if (g_iSkillLevel == SKILL_HARD)
@@ -1129,7 +1110,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 
 			m_iLastGrenadeCondition =  COND_NONE;
 
-			Msg( this, "Using grenade launcer to flush you out!\n"	);
+			Msg( "Using grenade launcher to flush you out!\n" );
 		}
 		break;
 
@@ -1139,11 +1120,10 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 			pGrenade->SetAbsVelocity( m_vecTossVelocity );
 			pGrenade->m_flDetonateTime = gpGlobals->curtime + 3.5;
 			pGrenade->Spawn( );
-			pGrenade->SetOwner( this );
 			pGrenade->SetOwnerEntity( this );		
 
 			m_iLastGrenadeCondition =  COND_NONE;
-			Msg( this, "Dropping a grenade!\n"	);
+			Msg( "Dropping a grenade!\n" );
 		}
 		break;
 
@@ -1155,21 +1135,14 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 
 				CPASAttenuationFilter filter3( this );
 				// the first round of the three round burst plays the sound and puts a sound in the world sound list.
-				if ( random->RandomInt(0,1) )
-				{
-					enginesound->EmitSound( filter3, entindex(), CHAN_WEAPON, "hgrunt/gr_mgun1.wav", 1, ATTN_NORM );
-				}
-				else
-				{
-					enginesound->EmitSound( filter3, entindex(), CHAN_WEAPON, "hgrunt/gr_mgun2.wav", 1, ATTN_NORM );
-				}
+				EmitSound(filter3, entindex(), "HGrunt.9MM");
 			}
 			else
 			{
 				Shotgun( );
 
 				CPASAttenuationFilter filter4( this );
-				enginesound->EmitSound( filter4, entindex(), CHAN_WEAPON, "weapons/sbarrel1.wav", 1, ATTN_NORM );
+				EmitSound(filter4, entindex(), "HGrunt.Shotgun");
 			}
 		
 			CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), 384, 0.3 );
@@ -1248,7 +1221,7 @@ void CNPC_HGrunt::Shoot ( void )
 //	EjectBrass ( vecShootOrigin - vecShootDir * 24, vecShellVelocity, GetAbsAngles().y, m_iBrassShell, TE_BOUNCE_SHELL); 
 	FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, m_iAmmoType ); // shoot +-5 degrees
 	
-	m_fEffects |= EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 	
 	m_cAmmoLoaded--;// take away a bullet!
 
@@ -1273,7 +1246,7 @@ void CNPC_HGrunt :: Shotgun ( void )
 	//EjectBrass ( vecShootOrigin - vecShootDir * 24, vecShellVelocity, GetAbsAngles().y, m_iShotgunShell, TE_BOUNCE_SHOTSHELL); 
 	FireBullets( sk_hgrunt_pellets.GetFloat(), vecShootOrigin, vecShootDir, VECTOR_CONE_15DEGREES, 2048, m_iAmmoType, 0 ); // shoot +-7.5 degrees
 
-	m_fEffects |= EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 	
 	m_cAmmoLoaded--;// take away a bullet!
 
@@ -1362,25 +1335,8 @@ void CNPC_HGrunt::PainSound ( void )
 {
 	if ( gpGlobals->curtime > m_flNextPainTime )
 	{
-		CPASAttenuationFilter filter( this );
-		switch ( random->RandomInt( 0,6 ) )
-		{
-		case 0:	
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_pain3.wav", 1, ATTN_NORM );	
-			break;
-		case 1:
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_pain4.wav", 1, ATTN_NORM );	
-			break;
-		case 2:
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_pain5.wav", 1, ATTN_NORM );	
-			break;
-		case 3:
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_pain1.wav", 1, ATTN_NORM );	
-			break;
-		case 4:
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_pain2.wav", 1, ATTN_NORM );	
-			break;
-		}
+		CPASAttenuationFilter filter(this);
+		EmitSound(filter, entindex(), "HGrunt.Pain");
 
 		m_flNextPainTime = gpGlobals->curtime + 1;
 	}
@@ -1391,19 +1347,10 @@ void CNPC_HGrunt::PainSound ( void )
 //=========================================================
 void CNPC_HGrunt::DeathSound ( void )
 {
-	CPASAttenuationFilter filter( this, ATTN_IDLE );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_die1.wav", 1, ATTN_IDLE );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_die2.wav", 1, ATTN_IDLE );	
-		break;
-	case 2:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "hgrunt/gr_die3.wav", 1, ATTN_IDLE );	
-		break;
-	}
+	SentenceStop();
+
+	CPASAttenuationFilter filter(this, ATTN_IDLE);
+	EmitSound(filter, entindex(), "HGrunt.Die");
 }
 
 //=========================================================
@@ -1914,7 +1861,7 @@ LINK_ENTITY_TO_CLASS( monster_grunt_repel, CNPC_HGruntRepel );
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CNPC_HGruntRepel )
-	DEFINE_USEFUNC( CNPC_HGruntRepel, RepelUse ),
+	DEFINE_USEFUNC( RepelUse ),
 END_DATADESC()
 
 void CNPC_HGruntRepel::Spawn( void )
@@ -1922,7 +1869,7 @@ void CNPC_HGruntRepel::Spawn( void )
 	Precache( );
 	SetSolid( SOLID_NONE );
 
-	SetUse( RepelUse );
+	SetUse( &CNPC_HGruntRepel::RepelUse );
 }
 
 void CNPC_HGruntRepel::Precache( void )
@@ -1948,7 +1895,7 @@ void CNPC_HGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller,
 	pBeam->PointEntInit( GetAbsOrigin() + Vector(0,0,112), pGrunt );
 	pBeam->SetBeamFlags( FBEAM_SOLID );
 	pBeam->SetColor( 255, 255, 255 );
-	pBeam->SetThink( SUB_Remove );
+	pBeam->SetThink( &CBeam::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + -4096.0 * tr.fraction / pGrunt->GetAbsVelocity().z + 0.5 );
 
 	UTIL_Remove( this );
@@ -2607,7 +2554,7 @@ void CNPC_DeadHGrunt::Spawn( void )
 	engine->PrecacheModel("models/hgrunt.mdl");
 	SetModel( "models/hgrunt.mdl" );
 
-	m_fEffects			= 0;
+	ClearEffects();
 	SetSequence( 0 );
 	m_bloodColor		= BLOOD_COLOR_RED;
 

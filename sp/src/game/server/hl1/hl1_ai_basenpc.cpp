@@ -100,14 +100,14 @@ bool CHL1BaseNPC::NoFriendlyFire( void )
 	return true;
 }
 
-void CHL1BaseNPC::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CHL1BaseNPC::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
 	{
 		UTIL_BloodSpray( ptr->endpos, vecDir, BloodColor(), 4, FX_BLOODSPRAY_ALL );	
 	}
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 
@@ -116,7 +116,7 @@ bool CHL1BaseNPC::ShouldGib( const CTakeDamageInfo &info )
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
-	if ( ( info.GetDamageType() & DMG_GIB_CORPSE && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
+	if ( ( g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
 		 return true;
 	
 	return false;

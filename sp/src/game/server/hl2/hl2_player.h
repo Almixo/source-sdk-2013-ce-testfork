@@ -14,7 +14,14 @@
 #include "hl2_playerlocaldata.h"
 #include "simtimer.h"
 #include "soundenvelope.h"
-#include "singleplayer_animstate.h"
+
+// In HL2MP we need to inherit from  BaseMultiplayerPlayer!
+#if defined ( HL2MP ) && defined ( SDK2013CE )
+#include "basemultiplayerplayer.h"
+#define BASEPLAYERCLASS CBaseMultiplayerPlayer
+#else
+#define BASEPLAYERCLASS CBasePlayer
+#endif
 
 class CAI_Squad;
 class CPropCombineBall;
@@ -76,14 +83,13 @@ public:
 //=============================================================================
 // >> HL2_PLAYER
 //=============================================================================
-class CHL2_Player : public CBasePlayer
+class CHL2_Player : public BASEPLAYERCLASS
 {
 public:
-	DECLARE_CLASS( CHL2_Player, CBasePlayer );
+	DECLARE_CLASS( CHL2_Player, BASEPLAYERCLASS );
 
 	CHL2_Player();
 	~CHL2_Player( void );
-	void SetAnimation(PLAYER_ANIM playerAnim);
 	
 	static CHL2_Player *CreatePlayer( const char *className, edict_t *ed )
 	{
@@ -243,6 +249,9 @@ public:
 	virtual	bool		IsHoldingEntity( CBaseEntity *pEnt );
 	virtual void		ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis );
 	virtual float		GetHeldObjectMass( IPhysicsObject *pHeldObject );
+#ifdef SDK2013CE
+	virtual CBaseEntity	*GetHeldObject( void );
+#endif // SDK2013CE
 
 	virtual bool		IsFollowingPhysics( void ) { return (m_afPhysicsFlags & PFLAG_ONBARNACLE) > 0; }
 	void				InputForceDropPhysObjects( inputdata_t &data );
@@ -364,9 +373,6 @@ private:
 	float				m_flTimeNextLadderHint;	// Next time we're eligible to display a HUD hint about a ladder.
 	
 	friend class CHL2GameMovement;
-
-	CSinglePlayerAnimState* m_pPlayerAnimState;
-	QAngle m_angEyeAngles; 
 };
 
 

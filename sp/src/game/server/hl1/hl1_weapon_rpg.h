@@ -32,7 +32,7 @@ class CRpgRocket : public CHL1BaseGrenade
 public:
 	CRpgRocket();
 
-	Class_T Classify( void ) { return CLASS_MISSILE; }
+	Class_T Classify( void ) { return CLASS_NONE; }
 	
 	void Spawn( void );
 	void Precache( void );

@@ -30,7 +30,7 @@ extern ConVar sk_plr_dmg_grenade;
 LINK_ENTITY_TO_CLASS( grenade_hand, CHandGrenade );
 
 BEGIN_DATADESC( CHandGrenade )
-	DEFINE_FUNCTION( CHandGrenade, BounceTouch ),
+	DEFINE_ENTITYFUNC( BounceTouch ),
 END_DATADESC()
 
 
@@ -43,7 +43,7 @@ void CHandGrenade::Spawn( void )
 
 	UTIL_SetSize( this, Vector( -1, -4, -4), Vector( 13, 5, 4 ) );
 
-	m_fRegisteredSound = false;
+	m_bHasWarnedAI = false;
 
 	QAngle angles;
 	Vector vel = GetAbsVelocity();
@@ -51,13 +51,13 @@ void CHandGrenade::Spawn( void )
 	VectorAngles( vel, angles );
 	SetAbsAngles( angles );
 	
-	SetTouch( BounceTouch );	// Bounce if touched
+	SetTouch( &CHandGrenade::BounceTouch );	// Bounce if touched
 	
 	// Take one second off of the desired detonation time and set the think to PreDetonate. PreDetonate
 	// will insert a DANGER sound into the world sound list and delay detonation for one second so that 
 	// the grenade explodes after the exact amount of time specified in the call to ShootTimed(). 
 
-	SetThink( TumbleThink );
+	SetThink( &CHandGrenade::TumbleThink );
 	SetNextThink( gpGlobals->curtime + 0.1 );
 
 	// if the delay is < 0.1 seconds, don't fly anywhere
@@ -95,20 +95,21 @@ void CHandGrenade::BounceTouch( CBaseEntity *pOther )
 		return;
 
 	// don't hit the guy that launched this grenade
-	if ( pOther == GetOwner() )
+	if ( pOther == GetOwnerEntity() )
 		return;
 
 	// only do damage if we're moving fairly fast
 	if ( (pOther->m_takedamage != DAMAGE_NO) && (m_flNextAttack < gpGlobals->curtime && GetAbsVelocity().Length() > 100))
 	{
-		if ( GetOwner() )
+		if ( GetOwnerEntity() )
 		{
-			trace_t tr = CBaseEntity::GetTouchTrace( );
+			trace_t tr;
+			tr = GetTouchTrace();
 			ClearMultiDamage( );
 			Vector forward;
 			AngleVectors( GetAbsAngles(), &forward );
 
-			CTakeDamageInfo info( this, GetOwner(), 1, DMG_CLUB );
+			CTakeDamageInfo info( this, GetOwnerEntity(), 1, DMG_CLUB );
 			CalculateMeleeDamageForce( &info, forward, tr.endpos );
 			pOther->DispatchTraceAttack( info, forward, &tr ); 
 			ApplyMultiDamage();
@@ -125,14 +126,14 @@ void CHandGrenade::BounceTouch( CBaseEntity *pOther )
 	vecTestVelocity = GetAbsVelocity(); 
 	vecTestVelocity.z *= 0.45;
 
-	if ( !m_fRegisteredSound && vecTestVelocity.Length() <= 60 )
+	if ( !m_bHasWarnedAI && vecTestVelocity.Length() <= 60 )
 	{
 		// grenade is moving really slow. It's probably very close to where it will ultimately stop moving. 
 		// emit the danger sound.
 		
 		// register a radius louder than the explosion, so we make sure everyone gets out of the way
 		CSoundEnt::InsertSound ( SOUND_DANGER, GetAbsOrigin(), m_flDamage / 0.4, 0.3 );
-		m_fRegisteredSound = TRUE;
+		m_bHasWarnedAI = true;
 	}
 
 	// HACKHACK - On ground isn't always set, so look for ground underneath
@@ -278,7 +279,6 @@ void CWeaponHandGrenade::WeaponIdle( void )
 		// alway explode 3 seconds after the pin was pulled
 		pGrenade->m_flDetonateTime = m_flStartThrow + 3.0;
 		pGrenade->Spawn( );
-		pGrenade->SetOwner( pPlayer );
 		pGrenade->SetOwnerEntity( pPlayer );
 		pGrenade->SetGravity( 0.5 );
 		pGrenade->SetFriction( 0.8 );

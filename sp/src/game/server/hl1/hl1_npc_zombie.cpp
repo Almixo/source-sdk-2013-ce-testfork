@@ -30,46 +30,6 @@ ConVar  sk_zombie_dmg_both_slash( "sk_zombie_dmg_both_slash", "40" );
 
 LINK_ENTITY_TO_CLASS( monster_zombie, CNPC_Zombie );
 
-const char *CNPC_Zombie::pAttackHitSounds[] = 
-{
-	"zombie/claw_strike1.wav",
-	"zombie/claw_strike2.wav",
-	"zombie/claw_strike3.wav",
-};
-
-const char *CNPC_Zombie::pAttackMissSounds[] = 
-{
-	"zombie/claw_miss1.wav",
-	"zombie/claw_miss2.wav",
-};
-
-const char *CNPC_Zombie::pAttackSounds[] = 
-{
-	"zombie/zo_attack1.wav",
-	"zombie/zo_attack2.wav",
-};
-
-const char *CNPC_Zombie::pIdleSounds[] = 
-{
-	"zombie/zo_idle1.wav",
-	"zombie/zo_idle2.wav",
-	"zombie/zo_idle3.wav",
-	"zombie/zo_idle4.wav",
-};
-
-const char *CNPC_Zombie::pAlertSounds[] = 
-{
-	"zombie/zo_alert10.wav",
-	"zombie/zo_alert20.wav",
-	"zombie/zo_alert30.wav",
-};
-
-const char *CNPC_Zombie::pPainSounds[] = 
-{
-	"zombie/zo_pain1.wav",
-	"zombie/zo_pain2.wav",
-};
-
 //=========================================================
 // Spawn
 //=========================================================
@@ -103,14 +63,14 @@ void CNPC_Zombie::Spawn()
 //=========================================================
 void CNPC_Zombie::Precache()
 {
-	engine->PrecacheModel( "models/zombie.mdl" );
+	PrecacheModel("models/zombie.mdl");
 
-	PRECACHE_SOUND_ARRAY( pAttackHitSounds );
-	PRECACHE_SOUND_ARRAY( pAttackMissSounds );
-	PRECACHE_SOUND_ARRAY( pAttackSounds );
-	PRECACHE_SOUND_ARRAY( pIdleSounds );
-	PRECACHE_SOUND_ARRAY( pAlertSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
+	PrecacheScriptSound("Zombie.AttackHit");
+	PrecacheScriptSound("Zombie.AttackMiss");
+	PrecacheScriptSound("Zombie.Pain");
+	PrecacheScriptSound("Zombie.Idle");
+	PrecacheScriptSound("Zombie.Alert");
+	PrecacheScriptSound("Zombie.Attack");
 
 	BaseClass::Precache();
 }
@@ -156,10 +116,10 @@ void CNPC_Zombie :: HandleAnimEvent( animevent_t *pEvent )
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - v_right * 100 );
 				}
 				// Play a random attack hit sound
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter, entindex(), "Zombie.AttackHit" );
 			}
 			else // Play a random attack miss sound
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter, entindex(), "Zombie.AttackMiss" );
 
 			if ( random->RandomInt( 0, 1 ) )
 				 AttackSound();
@@ -188,10 +148,10 @@ void CNPC_Zombie :: HandleAnimEvent( animevent_t *pEvent )
 
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - v_right * 100 );
 				}
-				enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter2, entindex(), "Zombie.AttackHit" );
 			}
 			else
-				enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter2, entindex(), "Zombie.AttackMiss" );
 
 			if ( random->RandomInt( 0,1 ) ) 
 				 AttackSound();
@@ -219,10 +179,10 @@ void CNPC_Zombie :: HandleAnimEvent( animevent_t *pEvent )
 					GetVectors( &v_forward, &v_right, NULL );
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - v_right * 100 );
 				}
-				enginesound->EmitSound( filter3, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter3, entindex(), "Zombie.AttackHit" );
 			}
 			else
-				enginesound->EmitSound( filter3, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt( 0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter3, entindex(),"Zombie.AttackMiss" );
 
 			if ( random->RandomInt( 0,1 ) )
 				 AttackSound();
@@ -264,7 +224,7 @@ int CNPC_Zombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	// Take 30% damage from bullets
 	if ( info.GetDamageType() == DMG_BULLET )
 	{
-		Vector vecDir = GetAbsOrigin() - ( info.GetInflictor()->GetAbsMins() + info.GetInflictor()->GetAbsMaxs()) * 0.5;
+		Vector vecDir = GetAbsOrigin() - info.GetInflictor()->WorldSpaceCenter();
 		VectorNormalize( vecDir );
 		float flForce = DamageForce( WorldAlignSize(), info.GetDamage() );
 		SetAbsVelocity( GetAbsVelocity() + vecDir * flForce );
@@ -280,35 +240,31 @@ int CNPC_Zombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 
 void CNPC_Zombie::PainSound( void )
 {
-	int pitch = 95 + random->RandomInt( 0,9 );
-
 	if ( random->RandomInt(0,5) < 2)
 	{
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pPainSounds[ random->RandomInt(0,ARRAYSIZE(pPainSounds)-1) ], 1.0, ATTN_NORM, 0, pitch );
+		EmitSound( filter, entindex(), "Zombie.Pain" );
 	}
 }
 
 void CNPC_Zombie::AlertSound( void )
 {
-	int pitch = 95 + random->RandomInt(0,9);
-
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAlertSounds[ random->RandomInt(0,ARRAYSIZE(pAlertSounds)-1) ], 1.0, ATTN_NORM, 0, pitch );
+	EmitSound( filter, entindex(), "Zombie.Alert" );
 }
 
 void CNPC_Zombie::IdleSound( void )
 {
 	// Play a random idle sound
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pIdleSounds[ random->RandomInt(0,ARRAYSIZE(pIdleSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+	EmitSound( filter, entindex(), "Zombie.Idle" );
 }
 
 void CNPC_Zombie::AttackSound( void )
 {
 	// Play a random attack sound
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAttackSounds[ random->RandomInt(0,ARRAYSIZE(pAttackSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+	EmitSound( filter, entindex(), "Zombie.Attack" );
 }
 
 void CNPC_Zombie::RemoveIgnoredConditions ( void )

@@ -36,14 +36,14 @@ void TE_BeamFollow( IRecipientFilter& filter, float delay,
 
 
 BEGIN_DATADESC( CRpgRocket )
-	DEFINE_FIELD( CRpgRocket, m_hOwner,			FIELD_EHANDLE ),
-	DEFINE_FIELD( CRpgRocket, m_vecAbsVelocity,	FIELD_VECTOR ),
-	DEFINE_FIELD( CRpgRocket, m_flIgniteTime,	FIELD_TIME ),
+	DEFINE_FIELD( m_hOwner,			FIELD_EHANDLE ),
+	DEFINE_FIELD( m_vecAbsVelocity,	FIELD_VECTOR ),
+	DEFINE_FIELD( m_flIgniteTime,	FIELD_TIME ),
 	
 	// Function Pointers
-	DEFINE_FUNCTION( CRpgRocket, RocketTouch ),
-	DEFINE_FUNCTION( CRpgRocket, IgniteThink ),
-	DEFINE_FUNCTION( CRpgRocket, SeekThink ),
+	DEFINE_ENTITYFUNC( RocketTouch ),
+	DEFINE_THINKFUNC( IgniteThink ),
+	DEFINE_THINKFUNC( SeekThink ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( rpg_rocket, CRpgRocket );
@@ -81,10 +81,10 @@ void CRpgRocket::Spawn( void )
 	SetModel("models/rpgrocket.mdl");
 	UTIL_SetSize( this, -Vector(0,0,0), Vector(0,0,0) );
 
-	SetTouch( RocketTouch );
+	SetTouch( &CRpgRocket::RocketTouch );
 
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
-	SetThink( IgniteThink );
+	SetThink( &CRpgRocket::IgniteThink );
 	
 	SetNextThink( gpGlobals->curtime + 0.4f );
 
@@ -128,15 +128,16 @@ void CRpgRocket::IgniteThink( void )
 {
 	SetMoveType( MOVETYPE_FLY );
 
-	m_fEffects |= EF_DIMLIGHT;
+	AddEffects(EF_DIMLIGHT);
 
-	EmitSound( "Weapon_RPG.RocketIgnite" );
+	CPASAttenuationFilter filter(this);
+	EmitSound( filter, entindex(), "Weapon_RPG.RocketIgnite" );
 
-	SetThink( SeekThink );
+	SetThink( &CRpgRocket::SeekThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	CBroadcastRecipientFilter filter;
-	TE_BeamFollow( filter, 0.0,
+	CBroadcastRecipientFilter filter1;
+	TE_BeamFollow( filter1, 0.0,
 		entindex(),
 		m_iTrail,
 		0,
@@ -227,10 +228,10 @@ void CRpgRocket::SeekThink( void )
 	}
 	else
 	{
-		if ( m_fEffects & EF_DIMLIGHT )
+		if ( GetEffects() & EF_DIMLIGHT)
 		{
-			m_fEffects = 0;
-			StopSound( "Weapon_RPG.RocketIgnite" );
+			ClearEffects();
+			StopSound( entindex(), "Weapon_RPG.RocketIgnite" );
 		}
 
 		SetAbsVelocity( GetAbsVelocity() * 0.2 + vecTarget * flSpeed * 0.798 );
@@ -322,7 +323,6 @@ void CLaserDot::SetLaserPosition( const Vector &origin, const Vector &normal )
 	if ( m_hLaserSprite )
 	{
 		m_hLaserSprite->SetAbsOrigin( origin );
-		UTIL_Relink( m_hLaserSprite );
 	}
 
 	m_vecSurfaceNormal = normal;
@@ -343,7 +343,7 @@ void CLaserDot::TurnOn( void )
 		m_hLaserSprite->TurnOn();
 	}
 
-	m_fEffects &= ~EF_NODRAW;
+	RemoveEffects(EF_NODRAW);
 }
 
 //-----------------------------------------------------------------------------
@@ -356,13 +356,13 @@ void CLaserDot::TurnOff( void )
 		m_hLaserSprite->TurnOff();
 	}
 
-	m_fEffects |= EF_NODRAW;
+	AddEffects(EF_NODRAW);
 }
 
 
 bool CLaserDot::IsActive( void )
 {
-	if ( m_hLaserSprite && ( FBitSet( m_hLaserSprite->m_fEffects, EF_NODRAW ) == false ) )
+	if ( m_hLaserSprite && ( FBitSet( m_hLaserSprite->GetEffects(), EF_NODRAW) == false))
 	{
 		return true;
 	}
@@ -383,12 +383,12 @@ IMPLEMENT_SERVERCLASS_ST( CWeaponRPG, DT_WeaponRPG )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponRPG )
-	DEFINE_FIELD( CWeaponRPG,	m_bIntialStateUpdate,		FIELD_BOOLEAN ),
-	DEFINE_FIELD( CWeaponRPG,	m_bGuiding,					FIELD_BOOLEAN ),
-	DEFINE_FIELD( CWeaponRPG,	m_hLaserDot,				FIELD_EHANDLE ),
-	DEFINE_FIELD( CWeaponRPG,	m_hMissile,					FIELD_EHANDLE ),
-	DEFINE_FIELD( CWeaponRPG,	m_bLaserDotSuspended,		FIELD_BOOLEAN ),
-	DEFINE_FIELD( CWeaponRPG,	m_flLaserDotReviveTime,		FIELD_TIME ),
+	DEFINE_FIELD( m_bIntialStateUpdate,		FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bGuiding,				FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_hLaserDot,				FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hMissile,				FIELD_EHANDLE ),
+	DEFINE_FIELD( m_bLaserDotSuspended,		FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flLaserDotReviveTime,	FIELD_TIME ),
 END_DATADESC()
 
 
@@ -534,7 +534,7 @@ void CWeaponRPG::PrimaryAttack( void )
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
-	pOwner->m_fEffects |= EF_MUZZLEFLASH;
+	pOwner->DoMuzzleFlash();
 
 	// Register a muzzleflash for the AI
 	pOwner->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );

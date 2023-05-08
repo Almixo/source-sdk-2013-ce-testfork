@@ -6,13 +6,11 @@
 
 #include "cbase.h"
 #include "player.h"
-#include "mathlib.h"
 #include "AI_Speech.h"
 #include "stringregistry.h"
 #include "gamerules.h"
 #include "game.h"
 #include <ctype.h>
-#include "mem_fgets.h"
 #include "EntityList.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
@@ -47,10 +45,10 @@ public:
 LINK_ENTITY_TO_CLASS( speaker, CSpeaker );
 
 BEGIN_DATADESC( CSpeaker )
-	DEFINE_FIELD( CSpeaker, m_preset, FIELD_INTEGER ),
-	DEFINE_KEYFIELD( CSpeaker, m_iszMessage, FIELD_STRING, "message" ),
-	DEFINE_THINKFUNC( CSpeaker, SpeakerThink ),
-	DEFINE_USEFUNC( CSpeaker, ToggleUse ),
+	DEFINE_FIELD( m_preset, FIELD_INTEGER ),
+	DEFINE_KEYFIELD( m_iszMessage, FIELD_STRING, "message" ),
+	DEFINE_THINKFUNC( SpeakerThink ),
+	DEFINE_USEFUNC( ToggleUse ),
 END_DATADESC()
 
 //
@@ -98,9 +96,10 @@ void CSpeaker::SpeakerThink( void )
 
 
 	// Wait for the talking characters to finish first.
-	if ( !g_AITalkSemaphore.IsAvailable() )
+	if ( !g_AIFriendliesTalkSemaphore.IsAvailable( this ) || !g_AIFoesTalkSemaphore.IsAvailable( this ) )
 	{
-		SetNextThink( gpGlobals->curtime + g_AITalkSemaphore.GetReleaseTime() + random->RandomFloat( 5, 10 ) );
+		float releaseTime = max( g_AIFriendliesTalkSemaphore.GetReleaseTime(), g_AIFoesTalkSemaphore.GetReleaseTime() );
+		SetNextThink( gpGlobals->curtime + releaseTime + random->RandomFloat( 5, 10 ) );
 		return;
 	}
 
@@ -128,7 +127,7 @@ void CSpeaker::SpeakerThink( void )
 	if (szSoundFile[0] == '!')
 	{
 		// play single sentence, one shot
-		UTIL_EmitAmbientSound ( this, GetAbsOrigin(), szSoundFile, 
+		UTIL_EmitAmbientSound ( GetSoundSourceIndex(), GetAbsOrigin(), szSoundFile,
 			flvolume, SNDLVL_120dB, flags, pitch);
 
 		// shut off and reset
@@ -146,7 +145,8 @@ void CSpeaker::SpeakerThink( void )
 						random->RandomFloat( ANNOUNCE_MINUTES_MIN * 60.0, ANNOUNCE_MINUTES_MAX * 60.0 ) );
 
 		// time delay until it's ok to speak: used so that two NPCs don't talk at once
-		g_AITalkSemaphore.Acquire( 5 );	
+		g_AIFriendliesTalkSemaphore.Acquire(5, this);
+		g_AIFoesTalkSemaphore.Acquire(5, this);
 	}
 
 	return;

@@ -91,12 +91,6 @@ public:
 	void Cycle ( void );
 	void HitTouch( CBaseEntity *pOther );
 
-	void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector(-400, -400, 0) );
-		SetAbsMaxs( GetAbsOrigin() + Vector(400, 400, 850) );
-	}
-
 	void HandleAnimEvent( animevent_t *pEvent );
 	float HearingSensitivity( void ) { return 2.0; };
 
@@ -164,28 +158,6 @@ LINK_ENTITY_TO_CLASS( monster_tentacle, CNPC_Tentacle );
 #define TE_DIRT 1
 #define TE_WATER 2
 
-const char *CNPC_Tentacle::pHitSilo[] = 
-{
-	"tentacle/te_strike1.wav",
-	"tentacle/te_strike2.wav",
-};
-
-const char *CNPC_Tentacle::pHitDirt[] = 
-{
-	"player/pl_dirt1.wav",
-	"player/pl_dirt2.wav",
-	"player/pl_dirt3.wav",
-	"player/pl_dirt4.wav",
-};
-
-const char *CNPC_Tentacle::pHitWater[] = 
-{
-	"player/pl_slosh1.wav",
-	"player/pl_slosh2.wav",
-	"player/pl_slosh3.wav",
-	"player/pl_slosh4.wav",
-};
-
 // animation sequence aliases 
 typedef enum
 {
@@ -251,26 +223,26 @@ typedef enum
 } TENTACLE_ANIM;
 
 BEGIN_DATADESC( CNPC_Tentacle )
-	DEFINE_FIELD( CNPC_Tentacle, m_flInitialYaw, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iGoalAnim, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iLevel, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iDir, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flFramerateAdj, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flSoundYaw, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iSoundLevel, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flSoundTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flSoundRadius, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iHitDmg, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flHitTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flTapRadius, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flNextSong, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Tentacle, m_iTapSound, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flMaxYaw, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Tentacle, m_vecPrevSound, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CNPC_Tentacle, m_flPrevSoundTime, FIELD_TIME ),
-	DEFINE_THINKFUNC( CNPC_Tentacle, Start ),
-	DEFINE_THINKFUNC( CNPC_Tentacle, Cycle ),
-	DEFINE_ENTITYFUNC( CNPC_Tentacle, HitTouch ),
+	DEFINE_FIELD( m_flInitialYaw, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iGoalAnim, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iLevel, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iDir, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flFramerateAdj, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flSoundYaw, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iSoundLevel, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flSoundRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iHitDmg, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flHitTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flTapRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flNextSong, FIELD_TIME ),
+	DEFINE_FIELD( m_iTapSound, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flMaxYaw, FIELD_FLOAT ),
+	DEFINE_FIELD(m_vecPrevSound, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_flPrevSoundTime, FIELD_TIME ),
+	DEFINE_THINKFUNC( Start ),
+	DEFINE_THINKFUNC( Cycle ),
+	DEFINE_ENTITYFUNC( HitTouch ),
 END_DATADESC()
 
 Class_T CNPC_Tentacle::Classify ( void ) 
@@ -316,7 +288,7 @@ void CNPC_Tentacle::Spawn( )
 	AddSolidFlags( FSOLID_CUSTOMRAYTEST );
 
 	SetMoveType( MOVETYPE_FLY );
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= 75;
 	SetSequence( 0 );
 
@@ -331,10 +303,10 @@ void CNPC_Tentacle::Spawn( )
 	ResetSequenceInfo( );
 	m_iDir = 1;
 
-	SetThink( Start );
+	SetThink( &CNPC_Tentacle::Start );
 	SetNextThink( gpGlobals->curtime + 0.2 );
 
-	SetTouch( HitTouch );
+	SetTouch( &CNPC_Tentacle::HitTouch );
 
 	m_flInitialYaw = GetAbsAngles().y;
 	GetMotor()->SetIdealYawAndUpdate( m_flInitialYaw );
@@ -362,32 +334,17 @@ void CNPC_Tentacle::UpdateOnRemove( void )
 
 void CNPC_Tentacle::Precache( )
 {
-	engine->PrecacheModel("models/tentacle2.mdl");
+	PrecacheModel("models/tentacle2.mdl");
 
-	enginesound->PrecacheSound("ambience/flies.wav");
-	enginesound->PrecacheSound("ambience/squirm2.wav");
+	PrecacheScriptSound( "Tentacle.Flies" );
+	PrecacheScriptSound( "Tentacle.Squirm" );
+	PrecacheScriptSound( "Tentacle.Sing" );
+	PrecacheScriptSound( "Tentacle.HitDirt" );
+	PrecacheScriptSound( "Tentacle.Swing" );
+	PrecacheScriptSound( "Tentacle.Search" );
+	PrecacheScriptSound( "Tentacle.Roar" );
+	PrecacheScriptSound( "Tentacle.Alert" );
 
-	enginesound->PrecacheSound("tentacle/te_alert1.wav");
-	enginesound->PrecacheSound("tentacle/te_alert2.wav");
-	enginesound->PrecacheSound("tentacle/te_flies1.wav");
-	enginesound->PrecacheSound("tentacle/te_move1.wav");
-	enginesound->PrecacheSound("tentacle/te_move2.wav");
-	enginesound->PrecacheSound("tentacle/te_roar1.wav");
-	enginesound->PrecacheSound("tentacle/te_roar2.wav");
-	enginesound->PrecacheSound("tentacle/te_search1.wav");
-	enginesound->PrecacheSound("tentacle/te_search2.wav");
-	enginesound->PrecacheSound("tentacle/te_sing1.wav");
-	enginesound->PrecacheSound("tentacle/te_sing2.wav");
-	enginesound->PrecacheSound("tentacle/te_squirm2.wav");
-	enginesound->PrecacheSound("tentacle/te_strike1.wav");
-	enginesound->PrecacheSound("tentacle/te_strike2.wav");
-	enginesound->PrecacheSound("tentacle/te_swing1.wav");
-	enginesound->PrecacheSound("tentacle/te_swing2.wav");
-
-	PRECACHE_SOUND_ARRAY( pHitSilo );
-	PRECACHE_SOUND_ARRAY( pHitDirt );
-	PRECACHE_SOUND_ARRAY( pHitWater );
-	
 	BaseClass::Precache();
 }
 
@@ -489,18 +446,18 @@ int CNPC_Tentacle::MyLevel( )
 
 void CNPC_Tentacle::Start( void )
 {
-	SetThink( Cycle );
+	SetThink( &CNPC_Tentacle::Cycle );
 
 	CPASAttenuationFilter filter( this );
 
 	if ( !g_fFlySound )
 	{
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "ambience/flies.wav", 1, ATTN_NORM );
+		EmitSound( filter, entindex(), "Tentacle.Flies" );
 		g_fFlySound = TRUE;
 	}
 	else if ( !g_fSquirmSound )
 	{
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "ambience/squirm2.wav", 1, ATTN_NORM );
+		EmitSound( filter, entindex(), "Tentacle.Squirm" );
 		g_fSquirmSound = TRUE;
 	}
 	
@@ -529,7 +486,7 @@ void CNPC_Tentacle::Cycle( void )
 
 	// ALERT( at_console, "%s %d %d %d %f %f\n", STRING( pev->targetname ), pev->sequence, m_iGoalAnim, m_iDir, pev->framerate, pev->health );
 
-	if ( m_NPCState == NPC_STATE_SCRIPT || m_IdealNPCState == NPC_STATE_SCRIPT)
+	if ( m_NPCState == NPC_STATE_SCRIPT || GetIdealState() == NPC_STATE_SCRIPT)
 	{
 		SetAbsAngles( QAngle( GetAbsAngles().x, m_flInitialYaw, GetAbsAngles().z ) );
 		GetMotor()->SetIdealYaw( m_flInitialYaw );	
@@ -547,7 +504,7 @@ void CNPC_Tentacle::Cycle( void )
 	CSound *pSound = NULL;
 
 	GetSenses()->Listen();
-	m_BoneFollowerManager.UpdateBoneFollowers();
+	m_BoneFollowerManager.UpdateBoneFollowers(this);
 
 	// Listen will set this if there's something in my sound list
 	if ( HeardAnything() )
@@ -584,15 +541,7 @@ void CNPC_Tentacle::Cycle( void )
 		if (m_flSoundTime < gpGlobals->curtime)
 		{
 			// play "I hear new something" sound
-			char *sound = NULL;	
-
-			switch( random->RandomInt( 0, 1 ) )
-			{
-				case 0: sound = "tentacle/te_alert1.wav"; break;
-				case 1: sound = "tentacle/te_alert2.wav"; break;
-			}
-
-			 UTIL_EmitAmbientSound( this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), sound, 1.0, SNDLVL_GUNFIRE, 0, 100);
+			UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Alert", 1.0, SNDLVL_GUNFIRE, 0, 100);
 		}
 		m_flSoundTime = gpGlobals->curtime + random->RandomFloat( 5.0, 10.0 );
 	}
@@ -754,17 +703,8 @@ void CNPC_Tentacle::Cycle( void )
 				if (m_flNextSong < gpGlobals->curtime)
 				{
 					// play "I hear new something" sound
-					char *sound = NULL;	
-
-					switch( random->RandomInt( 0,1 ) )
-					{
-					case 0: sound = "tentacle/te_sing1.wav"; break;
-					case 1: sound = "tentacle/te_sing2.wav"; break;
-					}
-	
-
 					CPASAttenuationFilter filter( this );
-					enginesound->EmitSound( filter, entindex(), CHAN_VOICE, sound, 1.0, SNDLVL_GUNFIRE);
+					EmitSound( filter, entindex(), "Tentacle.Sing" );
 
 					m_flNextSong = gpGlobals->curtime + random->RandomFloat( 10, 20 );
 				}
@@ -838,12 +778,12 @@ void CNPC_Tentacle::Cycle( void )
 
 		if (m_iDir > 0)
 		{
-			m_flCycle = 0;
+			SetCycle( 0 );
 		}
 		else
 		{
 			m_iDir = -1; // just to safe
-			m_flCycle = 1.0f;
+			SetCycle( 0 );
 		}
 
 		ResetSequenceInfo( );
@@ -896,8 +836,6 @@ void CNPC_Tentacle::Cycle( void )
 
 void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 {
-	char *sound = NULL;
-
 	switch( pEvent->event )
 	{
 	case 1:	// bang 
@@ -913,15 +851,15 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 			switch( m_iTapSound )
 			{
 			case TE_SILO:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitSilo ), 1.0, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitSilo", 1.0, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			case TE_NONE:
 				break;
 			case TE_DIRT:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitDirt ), 1.0, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitDirt", 1.0, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			case TE_WATER:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitWater ), 1.0, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitWater", 1.0, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			}
 		}
@@ -952,15 +890,15 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 			switch( m_iTapSound )
 			{
 			case TE_SILO:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitSilo ), flVol, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitSilo", flVol, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			case TE_NONE:
 				break;
 			case TE_DIRT:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitDirt ), flVol, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitDirt", flVol, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			case TE_WATER:
-				UTIL_EmitAmbientSound( this, vecSrc, RANDOM_SOUND_ARRAY( pHitWater ), flVol, SNDLVL_GUNFIRE, 0, 100);
+				UTIL_EmitAmbientSound( GetSoundSourceIndex(), vecSrc, "Tentacle.HitWater", flVol, SNDLVL_GUNFIRE, 0, 100);
 				break;
 			}
 		}
@@ -968,35 +906,16 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 
 
 	case 7: // roar
-		switch( random->RandomInt(0,1) )
-		{
-		case 0: sound = "tentacle/te_roar1.wav"; break;
-		case 1: sound = "tentacle/te_roar2.wav"; break;
-		}
-
-		UTIL_EmitAmbientSound( this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), sound, 1.0, SNDLVL_GUNFIRE, 0, 100);
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Roar", 1.0, SNDLVL_GUNFIRE, 0, 100);
 		break;
 
 	case 8: // search
-		switch( random->RandomInt(0,1) )
-		{
-		case 0: sound = "tentacle/te_search1.wav"; break;
-		case 1: sound = "tentacle/te_search2.wav"; break;
-		}
-
-		UTIL_EmitAmbientSound( this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), sound, 1.0, SNDLVL_GUNFIRE, 0, 100);
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Search", 1.0, SNDLVL_GUNFIRE, 0, 100);
 		break;
 
 	case 9: // swing
-		switch( random->RandomInt(0,1) )
-		{
-		case 0: sound = "tentacle/te_move1.wav"; break;
-		case 1: sound = "tentacle/te_move2.wav"; break;
-		}
-
-		UTIL_EmitAmbientSound( this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), sound, 1.0, SNDLVL_GUNFIRE, 0, 100);
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Swing", 1.0, SNDLVL_GUNFIRE, 0, 100);
 		break;
-
 	default:
 		BaseClass::HandleAnimEvent( pEvent );
 	}
@@ -1004,7 +923,8 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 
 void CNPC_Tentacle::HitTouch( CBaseEntity *pOther )
 {
-	trace_t tr = CBaseEntity::GetTouchTrace( );
+	trace_t tr;
+	tr = GetTouchTrace();
 
 	if (m_flHitTime > gpGlobals->curtime)
 		return;

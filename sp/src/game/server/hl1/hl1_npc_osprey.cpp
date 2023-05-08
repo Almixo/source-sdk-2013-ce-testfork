@@ -19,7 +19,6 @@
 #include	"ammodef.h"
 #include	"basecombatweapon.h"
 #include	"hl1_basegrenade.h"
-#include	"customentity.h"
 #include	"soundenvelope.h"
 #include	"hl1_cbasehelicopter.h"
 #include	"IEffects.h"
@@ -116,28 +115,28 @@ public:
 LINK_ENTITY_TO_CLASS( monster_osprey, CNPC_Osprey );
 
 BEGIN_DATADESC( CNPC_Osprey )
-	DEFINE_FIELD( CNPC_Osprey, m_startTime, FIELD_TIME ),
+	DEFINE_FIELD( m_startTime, FIELD_TIME ),
 
-	DEFINE_FIELD( CNPC_Osprey, m_flIdealtilt, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Osprey, m_flRotortilt, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flIdealtilt, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flRotortilt, FIELD_FLOAT ),
 
-	DEFINE_FIELD( CNPC_Osprey, m_flRightHealth, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Osprey, m_flLeftHealth, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flRightHealth, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLeftHealth, FIELD_FLOAT ),
 
-	DEFINE_FIELD( CNPC_Osprey, m_iUnits, FIELD_INTEGER ),
-	DEFINE_ARRAY( CNPC_Osprey, m_hGrunt, FIELD_EHANDLE, MAX_CARRY ),
-	DEFINE_ARRAY( CNPC_Osprey, m_vecOrigin, FIELD_POSITION_VECTOR, MAX_CARRY ),
-	DEFINE_ARRAY( CNPC_Osprey, m_hRepel, FIELD_EHANDLE, 4 ),
+	DEFINE_FIELD( m_iUnits, FIELD_INTEGER ),
+	DEFINE_ARRAY( m_hGrunt, FIELD_EHANDLE, MAX_CARRY ),
+	DEFINE_ARRAY( m_vecOrigin, FIELD_POSITION_VECTOR, MAX_CARRY ),
+	DEFINE_ARRAY( m_hRepel, FIELD_EHANDLE, 4 ),
 
-	// DEFINE_FIELD( CNPC_Osprey, m_iSoundState, FIELD_INTEGER ),
-	// DEFINE_FIELD( CNPC_Osprey, m_iSpriteTexture, FIELD_INTEGER ),
-	// DEFINE_FIELD( CNPC_Osprey, m_iPitch, FIELD_INTEGER ),
+	// DEFINE_FIELD( m_iSoundState, FIELD_INTEGER ),
+	// DEFINE_FIELD( m_iSpriteTexture, FIELD_INTEGER ),
+	// DEFINE_FIELD( m_iPitch, FIELD_INTEGER ),
 
-	DEFINE_FIELD( CNPC_Osprey, m_iDoLeftSmokePuff, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Osprey, m_iDoRightSmokePuff, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iDoLeftSmokePuff, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iDoRightSmokePuff, FIELD_INTEGER ),
 
-	DEFINE_THINKFUNC( CNPC_Osprey, FindAllThink ),
-	DEFINE_THINKFUNC( CNPC_Osprey, DeployThink ),
+	DEFINE_THINKFUNC( FindAllThink ),
+	DEFINE_THINKFUNC( DeployThink ),
 	
 /*	DEFINE_FUNCTION ( CNPC_Osprey, HoverThink ),
 	DEFINE_FUNCTION ( CNPC_Osprey, CrashTouch ),
@@ -172,7 +171,7 @@ void CNPC_Osprey :: Spawn( void )
 
 	SetSequence( 0 );
 	ResetSequenceInfo( );
-	m_flCycle = random->RandomInt( 0,0xFF );
+	SetCycle( RandomInt( 0,0xFF ) );
 
 //	InitBoneControllers();
 
@@ -201,20 +200,19 @@ void CNPC_Osprey::Precache( void )
 {
 	UTIL_PrecacheOther( "monster_human_grunt" );
 
-	engine->PrecacheModel("models/osprey.mdl");
-	engine->PrecacheModel("models/HVR.mdl");
+	PrecacheModel("models/osprey.mdl");
+	PrecacheModel("models/HVR.mdl");
 
-	enginesound->PrecacheSound("apache/ap_rotor4.wav");
-	enginesound->PrecacheSound("weapons/mortarhit.wav");
+	m_iSpriteTexture = PrecacheModel( "sprites/rope.vmt" );
 
-	m_iSpriteTexture = engine->PrecacheModel( "sprites/rope.vmt" );
+	m_iExplode	= PrecacheModel( "sprites/fexplo.vmt" );
+	m_iTailGibs = PrecacheModel( "models/osprey_tailgibs.mdl" );
+	m_iBodyGibs = PrecacheModel( "models/osprey_bodygibs.mdl" );
+	m_iEngineGibs = PrecacheModel( "models/osprey_enginegibs.mdl" );
 
-	m_iExplode	= engine->PrecacheModel( "sprites/fexplo.vmt" );
-	m_iTailGibs = engine->PrecacheModel( "models/osprey_tailgibs.mdl" );
-	m_iBodyGibs = engine->PrecacheModel( "models/osprey_bodygibs.mdl" );
-	m_iEngineGibs = engine->PrecacheModel( "models/osprey_enginegibs.mdl" );
+	m_nDebrisModel = PrecacheModel( "models/mechgibs.mdl" );
 
-	m_nDebrisModel = engine->PrecacheModel( "models/gibs/metalgibs.mdl" );
+	PrecacheScriptSound( "Apache.RotorSpinup" );
 
 	BaseClass::Precache();
 }
@@ -229,7 +227,7 @@ void CNPC_Osprey::InitializeRotorSound( void )
 	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
 
 	CPASAttenuationFilter filter( this );
-	m_pRotorSound = controller.SoundCreate( filter, entindex(), CHAN_STATIC, "apache/ap_rotor4.wav", 0.2 );
+	m_pRotorSound = controller.SoundCreate( filter, entindex(), CHAN_STATIC, "Apache.RotorSpinup", 0.2 );
 
 	BaseClass::InitializeRotorSound();
 }
@@ -364,7 +362,7 @@ CAI_BaseNPC *CNPC_Osprey::MakeGrunt( Vector vecSrc )
 			pBeam->PointEntInit( vecSrc + Vector(0,0,112), pGrunt );
 			pBeam->SetBeamFlags( FBEAM_SOLID );
 			pBeam->SetColor( 255, 255, 255 );
-			pBeam->SetThink( SUB_Remove );
+			pBeam->SetThink( &CNPC_Osprey::SUB_Remove );
 			pBeam->SetNextThink( gpGlobals->curtime + -4096.0 * tr.fraction / pGrunt->GetAbsVelocity().z + 0.5 );
 			
 
@@ -407,17 +405,17 @@ void CNPC_Osprey::PrescheduleThink( void )
 	if ( m_startTime != 0.0 && m_startTime <= gpGlobals->curtime )
 		 FindAllThink();
 
-	if ( m_pGoalEnt )
+	if ( GetGoalEnt() )
 	{
-		if ( m_flPrevGoalVel != m_pGoalEnt->m_flSpeed )
+		if ( m_flPrevGoalVel != GetGoalEnt()->m_flSpeed)
 		{
-			if ( m_flPrevGoalVel == 0 && m_pGoalEnt->m_flSpeed != 0 )
+			if ( m_flPrevGoalVel == 0 && GetGoalEnt()->m_flSpeed != 0)
 			{
 				if ( HasDead() && m_iRepelState == LOADED_WITH_GRUNTS )
 					 m_iRepelState = UNLOADING_GRUNTS;
 			}
 
-			m_flPrevGoalVel = m_pGoalEnt->m_flSpeed;
+			m_flPrevGoalVel = GetGoalEnt()->m_flSpeed;
 		}
 	}
 	
@@ -436,8 +434,8 @@ void CNPC_Osprey::Event_Killed( CBaseEntity *pInflictor, CBaseEntity *pAttacker,
 
 	// add gravity
 	UTIL_SetSize( this, Vector( -32, -32, -64), Vector( 32, 32, 0) );
-	SetThink( DyingThink );
-	SetTouch( CrashTouch );
+	SetThink( &CNPC_Osprey::DyingThink );
+	SetTouch( &CNPC_Osprey::CrashTouch );
 //	pev->nextthink = gpGlobals->curtime + 0.1;
 	m_iHealth = 0;
 	m_takedamage = DAMAGE_NO;
@@ -458,7 +456,7 @@ void CNPC_Osprey::DyingThink( void )
 	{
 		Vector vecSize = Vector( 60, 60, 30 );
 		CPVSFilter filter( GetAbsOrigin() );
-		te->BreakModel( filter, 0.0, &GetAbsOrigin(), &vecSize, &vec3_origin, m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
+		te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
 	}
 
 	QAngle angVel = GetLocalAngularVelocity();
@@ -481,34 +479,34 @@ void CNPC_Osprey::DyingThink( void )
 //------------------------------------------------------------------------------
 BEGIN_DATADESC( CBaseHelicopter )
 
-	DEFINE_THINKFUNC( CBaseHelicopter, HelicopterThink ),
-	DEFINE_THINKFUNC( CBaseHelicopter, CallDyingThink ),
-	DEFINE_ENTITYFUNC( CBaseHelicopter, CrashTouch ),
-	DEFINE_ENTITYFUNC( CBaseHelicopter, FlyTouch ),
+	DEFINE_THINKFUNC( HelicopterThink ),
+	DEFINE_THINKFUNC( CallDyingThink ),
+	DEFINE_ENTITYFUNC( CrashTouch ),
+	DEFINE_ENTITYFUNC( FlyTouch ),
 
-	DEFINE_FIELD( CBaseHelicopter, m_flForce,			FIELD_FLOAT ),
-	DEFINE_FIELD( CBaseHelicopter, m_fHelicopterFlags,	FIELD_INTEGER),
-	DEFINE_FIELD( CBaseHelicopter, m_vecDesiredFaceDir,	FIELD_VECTOR ),
-	DEFINE_FIELD( CBaseHelicopter, m_vecDesiredPosition,FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CBaseHelicopter, m_vecGoalOrientation,FIELD_VECTOR ),
-	DEFINE_FIELD( CBaseHelicopter, m_flLastSeen,		FIELD_TIME ),
-	DEFINE_FIELD( CBaseHelicopter, m_flPrevSeen,		FIELD_TIME ),
-//	DEFINE_FIELD( CBaseHelicopter, m_iSoundState,		FIELD_INTEGER ),		// Don't save, precached
-	DEFINE_FIELD( CBaseHelicopter, m_vecTarget,			FIELD_VECTOR ),
-	DEFINE_FIELD( CBaseHelicopter, m_vecTargetPosition,	FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_flForce,			FIELD_FLOAT ),
+	DEFINE_FIELD( m_fHelicopterFlags,	FIELD_INTEGER),
+	DEFINE_FIELD( m_vecDesiredFaceDir,	FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecDesiredPosition,FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecGoalOrientation,FIELD_VECTOR ),
+	DEFINE_FIELD( m_flLastSeen,		FIELD_TIME ),
+	DEFINE_FIELD( m_flPrevSeen,		FIELD_TIME ),
+//	DEFINE_FIELD( m_iSoundState,		FIELD_INTEGER ),		// Don't save, precached
+	DEFINE_FIELD( m_vecTarget,			FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecTargetPosition,	FIELD_POSITION_VECTOR ),
 
-	DEFINE_FIELD( CBaseHelicopter, m_flMaxSpeed,		FIELD_FLOAT ),
-	DEFINE_FIELD( CBaseHelicopter, m_flMaxSpeedFiring,	FIELD_FLOAT ),
-	DEFINE_FIELD( CBaseHelicopter, m_flGoalSpeed,		FIELD_FLOAT ),
-	DEFINE_KEYFIELD( CBaseHelicopter, m_flInitialSpeed, FIELD_FLOAT, "InitialSpeed" ),
+	DEFINE_FIELD( m_flMaxSpeed,		FIELD_FLOAT ),
+	DEFINE_FIELD( m_flMaxSpeedFiring,	FIELD_FLOAT ),
+	DEFINE_FIELD( m_flGoalSpeed,		FIELD_FLOAT ),
+	DEFINE_KEYFIELD( m_flInitialSpeed, FIELD_FLOAT, "InitialSpeed" ),
 
 	// Inputs
-	DEFINE_INPUTFUNC( CBaseHelicopter, FIELD_STRING, "ChangePathCorner", InputChangePathCorner),
-	DEFINE_INPUTFUNC( CBaseHelicopter, FIELD_VOID, "Activate", InputActivate),
+	DEFINE_INPUTFUNC( FIELD_STRING, "ChangePathCorner", InputChangePathCorner),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Activate", InputActivate),
 
 	// Outputs
-	DEFINE_OUTPUT(CBaseHelicopter, m_AtTarget,			"AtPathCorner" ),
-	DEFINE_OUTPUT(CBaseHelicopter, m_LeaveTarget,		"LeavePathCorner" ),//<<TEMP>> Undone
+	DEFINE_OUTPUT( m_AtTarget,			"AtPathCorner" ),
+	DEFINE_OUTPUT( m_LeaveTarget,		"LeavePathCorner" ),//<<TEMP>> Undone
 
 END_DATADESC()
 
@@ -550,7 +548,7 @@ void CBaseHelicopter::Spawn( void )
 
 	m_pRotorSound = NULL;
 
-	m_flCycle = 0;
+	SetCycle( 0 );
 	ResetSequenceInfo();
 
 	AddFlag( FL_NPC );
@@ -737,20 +735,20 @@ void CBaseHelicopter::Hunt( void )
 void CBaseHelicopter::FlyPathCorners( void )
 {
 
-	if ( m_pGoalEnt == NULL && m_target != NULL_STRING )// this monster has a target
+	if ( GetGoalEnt() == NULL && m_target != NULL_STRING)// this monster has a target
 	{
-		m_pGoalEnt = gEntList.FindEntityByName( NULL, m_target, NULL );
-		if (m_pGoalEnt)
+		SetGoalEnt( gEntList.FindEntityByName( NULL, m_target, NULL ) );
+		if ( GetGoalEnt() )
 		{
-			m_vecDesiredPosition = m_pGoalEnt->GetLocalOrigin();
+			m_vecDesiredPosition = GetGoalEnt()->GetLocalOrigin();
 
 			// FIXME: orienation removed from path_corners!
-			AngleVectors( m_pGoalEnt->GetLocalAngles(), &m_vecGoalOrientation );
+			AngleVectors( GetGoalEnt()->GetLocalAngles(), &m_vecGoalOrientation);
 		}
 	}
 
 	// walk route
-	if (m_pGoalEnt)
+	if ( GetGoalEnt() )
 	{
 		// ALERT( at_console, "%.0f\n", flLength );
 		if ( HasReachedTarget( ) )
@@ -759,18 +757,18 @@ void CBaseHelicopter::FlyPathCorners( void )
 			// the desired position, so move on.
 
 			// Fire target that I've reached my goal
-			m_AtTarget.FireOutput( m_pGoalEnt, this );
+			m_AtTarget.FireOutput( GetGoalEnt(), this);
 
-			OnReachedTarget( m_pGoalEnt );
+			OnReachedTarget( GetGoalEnt() );
 
-			m_pGoalEnt = gEntList.FindEntityByName( NULL, m_pGoalEnt->m_target, NULL );
+			SetGoalEnt( gEntList.FindEntityByName( NULL, GetGoalEnt()->m_target, NULL));
 
-			if (m_pGoalEnt)
+			if ( GetGoalEnt() )
 			{
-				m_vecDesiredPosition = m_pGoalEnt->GetAbsOrigin();
+				m_vecDesiredPosition = GetGoalEnt()->GetAbsOrigin();
 			
 				// FIXME: orienation removed from path_corners!
-				AngleVectors( m_pGoalEnt->GetLocalAngles(), &m_vecGoalOrientation );
+				AngleVectors( GetGoalEnt()->GetLocalAngles(), &m_vecGoalOrientation);
 
 				// NDebugOverlay::Box( m_vecDesiredPosition, Vector( -16, -16, -16 ), Vector( 16, 16, 16 ), 0,255,0, false, 30.0);
 			}
@@ -1081,7 +1079,8 @@ void CBaseHelicopter::FlyTouch( CBaseEntity *pOther )
 	// bounce if we hit something solid
 	if ( pOther->GetSolid() == SOLID_BSP) 
 	{
-		trace_t tr = CBaseEntity::GetTouchTrace( );
+		trace_t tr;
+		tr = GetTouchTrace();
 
 		// UNDONE, do a real bounce
 		ApplyAbsVelocityImpulse( tr.plane.normal * (GetAbsVelocity().Length() + 200) );
@@ -1223,8 +1222,8 @@ void CBaseHelicopter::NullThink( void )
 void CBaseHelicopter::Startup( void )
 {
 	m_flGoalSpeed = m_flInitialSpeed;
-	SetThink( HelicopterThink );
-	SetTouch( FlyTouch );
+	SetThink( &CNPC_Osprey::HelicopterThink );
+	SetTouch( &CNPC_Osprey::FlyTouch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -1239,8 +1238,8 @@ void CBaseHelicopter::Event_Killed( const CTakeDamageInfo &info )
 	// Kill the rotor sound.
 
 	UTIL_SetSize( this, Vector( -32, -32, -64), Vector( 32, 32, 0) );
-	SetThink( CallDyingThink );
-	SetTouch( CrashTouch );
+	SetThink( &CNPC_Osprey::CallDyingThink );
+	SetTouch( &CNPC_Osprey::CrashTouch );
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
 	m_iHealth = 0;
@@ -1282,15 +1281,15 @@ void CBaseHelicopter::ChangePathCorner( const char *pszName )
 		return;
 	}
 
-	if (m_pGoalEnt)
+	if ( GetGoalEnt() )
 	{
-		m_pGoalEnt = gEntList.FindEntityByName( NULL, pszName, this );
+		SetGoalEnt( gEntList.FindEntityByName( NULL, pszName, this ) );
 
 		// I don't think we need to do this. The FLIGHT() code will do it for us (sjb)
-		if (m_pGoalEnt)
+		if ( GetGoalEnt() )
 		{
-			m_vecDesiredPosition = m_pGoalEnt->GetLocalOrigin();
-			AngleVectors( m_pGoalEnt->GetLocalAngles(), &m_vecGoalOrientation );
+			m_vecDesiredPosition = GetGoalEnt()->GetLocalOrigin();
+			AngleVectors( GetGoalEnt()->GetLocalAngles(), &m_vecGoalOrientation);
 		}
 	}
 }

@@ -61,7 +61,7 @@ IMPLEMENT_SERVERCLASS_ST( CWeaponSnark, DT_WeaponSnark )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponSnark )
-	DEFINE_FIELD( CWeaponSnark, m_bJustThrown, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bJustThrown, FIELD_BOOLEAN ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -93,8 +93,8 @@ void CWeaponSnark::Precache( void )
 	m_iNestIndex		= PrecacheModel( SNARK_NEST_MODEL );
 	m_iPickedUpIndex	= PrecacheModel( GetWorldModel() );
 
-	enginesound->PrecacheSound( "squeek/sqk_hunt2.wav" );
-	enginesound->PrecacheSound( "squeek/sqk_hunt3.wav" );
+	PrecacheScriptSound("WpnSnark.PrimaryAttack");
+	PrecacheScriptSound("WpnSnark.Deploy");
 
 	UTIL_PrecacheOther("monster_snark");
 }
@@ -146,14 +146,7 @@ void CWeaponSnark::PrimaryAttack( void )
 
 	// play hunt sound
 	CPASAttenuationFilter filter( this );
-
-	switch ( random->RandomInt( 0, 1 ) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "squeek/sqk_hunt2.wav", 1, ATTN_NORM, 0, 105 );	break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "squeek/sqk_hunt3.wav", 1, ATTN_NORM, 0, 105 );	break;
-	}
+	EmitSound( filter, entindex(), "WpnSnark.PrimaryAttack" );
 
 	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), 200, 0.2 );
 
@@ -201,14 +194,7 @@ void CWeaponSnark::WeaponIdle( void )
 bool CWeaponSnark::Deploy( void )
 {
 	CPASAttenuationFilter filter( this );
-
-	switch ( random->RandomInt( 0, 1 ) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "squeek/sqk_hunt2.wav", 1, ATTN_NORM, 0, 100 );	break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "squeek/sqk_hunt3.wav", 1, ATTN_NORM, 0, 100 );	break;
-	}
+	EmitSound( filter, entindex(), "WpnSnark.Deploy" );
 
 	return BaseClass::Deploy();
 }

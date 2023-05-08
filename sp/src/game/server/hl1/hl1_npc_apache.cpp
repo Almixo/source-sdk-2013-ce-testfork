@@ -45,12 +45,6 @@ public:
 
 	void Flight( void );
 
-	void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector( -300, -300, -172) );
-		SetAbsMaxs( GetAbsOrigin() + Vector(300, 300, 8) );
-	}
-
 	bool FireGun( void );
 	void AimRocketGun( void );
 	void FireRocket( void );
@@ -148,30 +142,16 @@ int CNPC_Apache::ObjectCaps( void )
 
 void CNPC_Apache::Precache( void )
 {
+	PrecacheModel( "models/apache.mdl" );
+	PrecacheScriptSound( "Apache.Rotor" );
+	m_nDebrisModel = PrecacheModel(   "models/metalplategibs_green.mdl" );
+
+	PrecacheScriptSound( "Apache.FireGun" );
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound"); 
 
-	engine->PrecacheModel("models/apache.mdl");
-
-	enginesound->PrecacheSound("apache/ap_rotor1.wav");
-	enginesound->PrecacheSound("apache/ap_rotor2.wav");
-	enginesound->PrecacheSound("apache/ap_rotor3.wav");
-	enginesound->PrecacheSound("apache/ap_whine1.wav");
-
-	enginesound->PrecacheSound("weapons/mortarhit.wav");
-
-	//m_iSpriteTexture = PRECACHE_MODEL( "sprites/white.spr" );
-
-	enginesound->PrecacheSound("turret/tu_fire1.wav");
-
-	engine->PrecacheModel("sprites/lgtning.spr");
-
-//	m_iExplode	= PRECACHE_MODEL( "sprites/fexplo.spr" );
-//	m_iBodyGibs = PRECACHE_MODEL( "models/metalplategibs_green.mdl" );
-
-//	UTIL_PrecacheOther( "hvr_rocket" );
-
-	engine->PrecacheModel( "models/weapons/w_missile.mdl" );
-	m_nDebrisModel = engine->PrecacheModel( "models/gibs/rock_gibs.mdl" );
+	UTIL_PrecacheOther( "grenade_homer" );
+	PrecacheScriptSound( "Apache.RPG" );
+	PrecacheModel( "models/weapons/w_missile.mdl" );
 
 	BaseClass::Precache();
 }
@@ -218,12 +198,12 @@ void CNPC_Apache::Flight( void )
 	}
 	else
 	{
-		AngleVectors( m_pGoalEnt->GetAbsAngles(), &m_vecGoalOrientation );
+		AngleVectors( GetGoalEnt()->GetAbsAngles(), &m_vecGoalOrientation);
 	}
 //	SetGoalOrientation( vecGoalOrientation );
 	
 
-	if (m_pGoalEnt)
+	if (GetGoalEnt())
 	{
 		// ALERT( at_console, "%.0f\n", flLength );
 		if ( HasReachedTarget() )
@@ -232,18 +212,18 @@ void CNPC_Apache::Flight( void )
 			// the desired position, so move on.
 
 			// Fire target that I've reached my goal
-			m_AtTarget.FireOutput( m_pGoalEnt, this );
+			m_AtTarget.FireOutput( GetGoalEnt(), this);
 
-			OnReachedTarget( m_pGoalEnt );
+			OnReachedTarget( GetGoalEnt() );
 
-			m_pGoalEnt = gEntList.FindEntityByName( NULL, m_pGoalEnt->m_target, NULL );
+			SetGoalEnt( gEntList.FindEntityByName( NULL, GetGoalEnt()->m_target, NULL));
 
-			if (m_pGoalEnt)
+			if (GetGoalEnt())
 			{
-				m_vecDesiredPosition = m_pGoalEnt->GetAbsOrigin();
+				m_vecDesiredPosition = GetGoalEnt()->GetAbsOrigin();
 				
 //				Vector vecGoalOrientation;
-				AngleVectors( m_pGoalEnt->GetAbsAngles(), &m_vecGoalOrientation );
+				AngleVectors( GetGoalEnt()->GetAbsAngles(), &m_vecGoalOrientation );
 
 //				SetGoalOrientation( vecGoalOrientation );
 
@@ -596,7 +576,7 @@ void CNPC_Apache::DyingThink( void )
 	{
 		Vector vecSize = Vector( 60, 60, 30 );
 		CPVSFilter filter( GetAbsOrigin() );
-		te->BreakModel( filter, 0.0, &GetAbsOrigin(), &vecSize, &vec3_origin, m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
+		te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
 	}
 
 	QAngle angVel = GetLocalAngularVelocity();
@@ -640,10 +620,10 @@ LINK_ENTITY_TO_CLASS( hvr_rocket, CApacheHVR );
 
 BEGIN_DATADESC( CApacheHVR )
 //	DEFINE_FIELD( CApacheHVR, m_iTrail, FIELD_INTEGER ),	// Dont' save, precache
-	DEFINE_FIELD( CApacheHVR, m_vecForward, FIELD_VECTOR ),
-	DEFINE_FUNCTION( CApacheHVR, IgniteThink ),
-	DEFINE_FUNCTION( CApacheHVR, AccelerateThink ),
-	DEFINE_FUNCTION( CApacheHVR, Detonate ),
+	DEFINE_FIELD( m_vecForward, FIELD_VECTOR ),
+	DEFINE_THINKFUNC( IgniteThink ),
+	DEFINE_THINKFUNC( AccelerateThink ),
+	DEFINE_ENTITYFUNC( Detonate ),
 END_DATADESC()
 
 
@@ -663,7 +643,7 @@ void CApacheHVR::StartRocketTrail( void )
 		pSmokeTrail->m_MinSpeed = 15;
 		pSmokeTrail->m_MaxSpeed = 25;
 		pSmokeTrail->SetLifetime(12);
-		pSmokeTrail->FollowEntity(ENTINDEX(pev));
+		pSmokeTrail->FollowEntity(this);
 
 		m_hSmokeTrail[0] = pSmokeTrail;
 	}
@@ -682,7 +662,7 @@ void CApacheHVR::StartRocketTrail( void )
 		pSmokeTrail->m_MinSpeed = 15;
 		pSmokeTrail->m_MaxSpeed = 25;
 		pSmokeTrail->SetLifetime(12);
-		pSmokeTrail->FollowEntity(ENTINDEX(pev));
+		pSmokeTrail->FollowEntity(this);
 
 		m_hSmokeTrail[1] = pSmokeTrail;
 	}
@@ -710,8 +690,8 @@ void CApacheHVR :: Spawn( void )
 	UTIL_SetSize(this, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, GetAbsOrigin() );
 
-	SetThink( IgniteThink );
-	SetTouch( Detonate );
+	SetThink( &CApacheHVR::IgniteThink );
+	SetTouch( &CApacheHVR::Detonate );
 
 	
 	AngleVectors( GetAbsAngles(), &m_vecForward );
@@ -743,7 +723,7 @@ void CApacheHVR :: IgniteThink( void  )
 	StartRocketTrail();
 
 	// set to accelerate
-	SetThink( AccelerateThink );
+	SetThink( &CApacheHVR::AccelerateThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 

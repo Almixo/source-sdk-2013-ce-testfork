@@ -20,6 +20,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "movevars_shared.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 extern void ClearMultiDamage(void);
 extern void ApplyMultiDamage( void );
@@ -45,44 +46,11 @@ ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");
 
 #define	HC_AE_JUMPATTACK		( 2 )
 
-const char *CNPC_Headcrab::pIdleSounds[] = 
-{
-	"headcrab/hc_idle1.wav",
-	"headcrab/hc_idle2.wav",
-	"headcrab/hc_idle3.wav",
-};
-const char *CNPC_Headcrab::pAlertSounds[] = 
-{
-	"headcrab/hc_alert1.wav",
-};
-const char *CNPC_Headcrab::pPainSounds[] = 
-{
-	"headcrab/hc_pain1.wav",
-	"headcrab/hc_pain2.wav",
-	"headcrab/hc_pain3.wav",
-};
-const char *CNPC_Headcrab::pAttackSounds[] = 
-{
-	"headcrab/hc_attack1.wav",
-	"headcrab/hc_attack2.wav",
-	"headcrab/hc_attack3.wav",
-};
-const char *CNPC_Headcrab::pDeathSounds[] = 
-{
-	"headcrab/hc_die1.wav",
-	"headcrab/hc_die2.wav",
-};
-const char *CNPC_Headcrab::pBiteSounds[] = 
-{
-	"headcrab/hc_headbite.wav",
-};
-
-
 BEGIN_DATADESC( CNPC_Headcrab )
 	// m_nGibCount - don't save
 
 	// Function Pointers
-	DEFINE_ENTITYFUNC( CNPC_Headcrab, LeapTouch ),
+	DEFINE_ENTITYFUNC( LeapTouch ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_headcrab, CNPC_Headcrab );
@@ -135,12 +103,10 @@ void CNPC_Headcrab::Spawn( void )
 //-----------------------------------------------------------------------------
 void CNPC_Headcrab::Precache( void )
 {
-	PRECACHE_SOUND_ARRAY( pIdleSounds );
-	PRECACHE_SOUND_ARRAY( pAlertSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
-	PRECACHE_SOUND_ARRAY( pAttackSounds );
-	PRECACHE_SOUND_ARRAY( pDeathSounds );
-	PRECACHE_SOUND_ARRAY( pBiteSounds );
+	PrecacheScriptSound( "Headcrab.Bite" );
+	PrecacheScriptSound( "Headcrab.Attack" );
+	PrecacheScriptSound( "Headcrab.Pain" );
+	PrecacheScriptSound( "Headcrab.Die" );
 
 	engine->PrecacheModel( "models/headcrab.mdl" );
 //	engine->PrecacheModel( "models/hc_squashed01.mdl" );
@@ -161,7 +127,7 @@ void CNPC_Headcrab::StartTask( const Task_t *pTask )
 		case TASK_RANGE_ATTACK1:
 		{
 			SetIdealActivity( ACT_RANGE_ATTACK1 );
-			SetTouch( LeapTouch );
+			SetTouch( &CNPC_Headcrab::LeapTouch );
 			break;
 		}
 
@@ -217,7 +183,7 @@ int CNPC_Headcrab::SelectSchedule( void )
 				}
 				else if ( SelectWeightedSequence( ACT_SMALL_FLINCH ) != -1 )
 				{
-					return SCHED_ALERT_SMALL_FLINCH;
+					return SCHED_SMALL_FLINCH;
 				}
 			}
 			else if (HasCondition( COND_HEAR_DANGER ) ||
@@ -459,7 +425,17 @@ void CNPC_Headcrab::LeapTouch( CBaseEntity *pOther )
 void CNPC_Headcrab::BiteSound( void )
 {
 	CPASAttenuationFilter filter( this, ATTN_IDLE );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, RANDOM_SOUND_ARRAY( pBiteSounds ), GetSoundVolue(), ATTN_IDLE, 0, GetVoicePitch() );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( "Headcrab.Bite", params, NULL ) )
+	{
+		EmitSound_t ep( params );
+
+		ep.m_flVolume = GetSoundVolue();
+		ep.m_nPitch = GetVoicePitch();
+
+		EmitSound( filter, entindex(), ep );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -570,7 +546,7 @@ void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 void CNPC_Headcrab::AttackSound( void )
 {
 	CPASAttenuationFilter filter( this, ATTN_IDLE );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pAttackSounds ), GetSoundVolue(), ATTN_IDLE, 0, GetVoicePitch() );
+	EmitSound( filter, entindex(), "Headcrab.Attack" );
 }
 
 

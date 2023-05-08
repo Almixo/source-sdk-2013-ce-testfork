@@ -39,8 +39,6 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 		SetLocalOrigin( pTrace->endpos + (pTrace->plane.normal * 0.6) );
 	}
 
-	UTIL_Relink( this );
-
 	Vector vecAbsOrigin = GetAbsOrigin();
 	int contents = UTIL_PointContents ( vecAbsOrigin );
 
@@ -58,7 +56,7 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 			m_DmgRadius,
 			m_flDamage,
 			&vecNormal,
-			(char) pdata->gameMaterial );
+			(char) pdata->game.material );
 	}
 	else
 	{
@@ -76,11 +74,11 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
 	// Use the owner's position as the reported position
-	Vector vecReported = GetOwner() ? GetOwner()->GetAbsOrigin() : vec3_origin;
+	Vector vecReported = GetOwnerEntity() ? GetOwnerEntity()->GetAbsOrigin() : vec3_origin;
 	
-	CTakeDamageInfo info( this, GetOwner(), GetBlastForce(), GetAbsOrigin(), m_flDamage, bitsDamageType, 0, &vecReported );
+	CTakeDamageInfo info( this, GetOwnerEntity(), GetBlastForce(), GetAbsOrigin(), m_flDamage, bitsDamageType, 0, &vecReported );
 
-	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE );
+	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, this );
 
 	UTIL_DecalTrace( pTrace, "Scorch" );
 
@@ -90,10 +88,10 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 
 	SetTouch( NULL );
 	
-	m_fEffects		|= EF_NODRAW;
+	AddEffects( EF_NODRAW );
 	SetAbsVelocity( vec3_origin );
 
-	SetThink( Smoke );
+	SetThink( &CHL1BaseGrenade::Smoke );
 	SetNextThink( gpGlobals->curtime + 0.3);
 
 	if ( GetWaterLevel() == 0 )

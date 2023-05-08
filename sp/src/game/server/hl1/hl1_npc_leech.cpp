@@ -50,9 +50,6 @@ public:
 	void Spawn( void );
 	void Precache( void );
 
-	static const char *pAttackSounds[];
-	static const char *pAlertSounds[];
-
 	void SwimThink( void );
 	void DeadThink( void );
 
@@ -62,12 +59,6 @@ public:
 
 	void RecalculateWaterlevel( void );
 	void Touch( CBaseEntity *pOther );
-
-	void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetLocalOrigin() + Vector(-8,-8,0) );
-		SetAbsMaxs( GetLocalOrigin() + Vector(8,8,2) );
-	}
 
 	Disposition_t IRelationType(CBaseEntity *pTarget);
 
@@ -111,36 +102,23 @@ private:
 LINK_ENTITY_TO_CLASS( monster_leech, CNPC_Leech );
 
 BEGIN_DATADESC( CNPC_Leech )
-	DEFINE_FIELD( CNPC_Leech, m_flTurning, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_fPathBlocked, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Leech, m_flAccelerate, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_obstacle, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_top, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_bottom, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_height, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Leech, m_waterTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Leech, m_sideTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Leech, m_zTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Leech, m_stateTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Leech, m_attackSoundTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Leech, m_oldOrigin, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flTurning, FIELD_FLOAT ),
+	DEFINE_FIELD( m_fPathBlocked, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flAccelerate, FIELD_FLOAT ),
+	DEFINE_FIELD( m_obstacle, FIELD_FLOAT ),
+	DEFINE_FIELD( m_top, FIELD_FLOAT ),
+	DEFINE_FIELD( m_bottom, FIELD_FLOAT ),
+	DEFINE_FIELD( m_height, FIELD_FLOAT ),
+	DEFINE_FIELD( m_waterTime, FIELD_TIME ),
+	DEFINE_FIELD( m_sideTime, FIELD_TIME ),
+	DEFINE_FIELD( m_zTime, FIELD_TIME ),
+	DEFINE_FIELD( m_stateTime, FIELD_TIME ),
+	DEFINE_FIELD( m_attackSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_oldOrigin, FIELD_VECTOR ),
 
-	DEFINE_THINKFUNC( CNPC_Leech, SwimThink ),
-	DEFINE_THINKFUNC( CNPC_Leech, DeadThink ),
+	DEFINE_THINKFUNC( SwimThink ),
+	DEFINE_THINKFUNC( DeadThink ),
 END_DATADESC()
-
-const char *CNPC_Leech::pAttackSounds[] =
-{
-	"leech/leech_bite1.wav",
-	"leech/leech_bite2.wav",
-	"leech/leech_bite3.wav",
-};
-
-const char *CNPC_Leech::pAlertSounds[] =
-{
-	"leech/leech_alert1.wav",
-	"leech/leech_alert2.wav",
-};
 
 bool CNPC_Leech::ShouldGib(	const CTakeDamageInfo &info )
 {
@@ -299,10 +277,10 @@ void CNPC_Leech::HandleAnimEvent( animevent_t *pEvent )
 
 void CNPC_Leech::Precache( void )
 {
-	engine->PrecacheModel("models/leech.mdl");
+	PrecacheModel("models/leech.mdl");
 
-    PRECACHE_SOUND_ARRAY(pAttackSounds);
-	PRECACHE_SOUND_ARRAY(pAlertSounds);
+	PrecacheScriptSound("Leech.Attack");
+	PrecacheScriptSound("Leech.Alert");
 }
 
 
@@ -311,8 +289,8 @@ void CNPC_Leech::AttackSound( void )
 	if ( gpGlobals->curtime > m_attackSoundTime )
 	{
 		CPASAttenuationFilter filter( this );
+		EmitSound(filter, entindex(), "Leech.Attack" );
 
-		enginesound->EmitSound(filter, entindex(), CHAN_VOICE, pAttackSounds[ random->RandomInt(0,ARRAYSIZE(pAttackSounds)-1) ], 1.0, ATTN_NORM, 0, PITCH_NORM );
 		m_attackSoundTime = gpGlobals->curtime + 0.5;
 	}
 }
@@ -321,8 +299,7 @@ void CNPC_Leech::AttackSound( void )
 void CNPC_Leech::AlertSound( void )
 {
 	CPASAttenuationFilter filter( this );
-
-	enginesound->EmitSound(filter, entindex(), CHAN_VOICE, pAlertSounds[ random->RandomInt(0,ARRAYSIZE(pAlertSounds)-1) ], 1.0, ATTN_NORM * 0.5, 0, PITCH_NORM );
+	EmitSound(filter, entindex(), "Leech.Alert" );
 }
 
 void CNPC_Leech::SwitchLeechState( void )

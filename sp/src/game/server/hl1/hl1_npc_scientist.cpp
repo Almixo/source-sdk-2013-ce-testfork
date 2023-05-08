@@ -74,9 +74,9 @@ LINK_ENTITY_TO_CLASS( monster_scientist, CNPC_Scientist );
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CNPC_Scientist )
-	DEFINE_FIELD( CNPC_Scientist, m_flFearTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Scientist, m_flHealTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Scientist, m_flPainTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flFearTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flHealTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flPainTime, FIELD_TIME ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -86,18 +86,10 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CNPC_Scientist::Precache( void )
 {
-	engine->PrecacheModel( "models/scientist.mdl" );
+	PrecacheModel( "models/scientist.mdl" );
 
-	enginesound->PrecacheSound("scientist/sci_pain1.wav");
-	enginesound->PrecacheSound("scientist/sci_pain2.wav");
-	enginesound->PrecacheSound("scientist/sci_pain3.wav");
-	enginesound->PrecacheSound("scientist/sci_pain4.wav");
-	enginesound->PrecacheSound("scientist/sci_pain5.wav");
+	PrecacheScriptSound( "Scientist.Pain" );
 
-	enginesound->PrecacheSound("scientist/c1a4_sci_rocket.wav");
-
-	
-	
 	TalkInit();
 	
 	BaseClass::Precache();
@@ -131,7 +123,7 @@ void CNPC_Scientist::TalkInit()
 	case HEAD_GLASSES:	GetExpresser()->SetVoicePitch( 105 );	break;	//glasses
 	case HEAD_EINSTEIN: GetExpresser()->SetVoicePitch( 100 );	break;	//einstein
 	case HEAD_LUTHER:	GetExpresser()->SetVoicePitch( 95 );	break;	//luther
-	case HEAD_SLICK:	GetExpresser()->SetVoicePitch( 100 );	break;//slick
+	case HEAD_SLICK:	GetExpresser()->SetVoicePitch( 100 );	break;	//slick
 	}
 }
 
@@ -161,7 +153,7 @@ void CNPC_Scientist::Spawn( void )
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_RED;
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= sk_scientist_health.GetFloat();
 	m_flFieldOfView		= VIEW_FIELD_WIDE;
 	m_NPCState			= NPC_STATE_NONE;
@@ -180,7 +172,7 @@ void CNPC_Scientist::Spawn( void )
 	
 	NPCInit();
 
-	SetUse( FollowerUse );
+	SetUse( &CNPC_Scientist::FollowerUse );
 }
 
 //-----------------------------------------------------------------------------
@@ -446,29 +438,29 @@ bool CNPC_Scientist::CanHeal( void )
 	return true;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CNPC_Scientist::OnUpcomingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult )
-{
-	// If we can't get through the door, try and open it
-	if ( BaseClass::OnUpcomingDoor( pMoveGoal, pDoor, distClear, pResult ) )
-	{
-		if  ( IsMoveBlocked( *pResult ) && pMoveGoal->directTrace.vHitNormal != vec3_origin )
-		{
-			// Can't do anything if the door's locked
-			if ( !pDoor->m_bLocked && !pDoor->HasSpawnFlags(SF_DOOR_NONPCS) )
-			{
-				// Tell the door to open
-				variant_t emptyVariant;
-				pDoor->AcceptInput( "Open", this, this, emptyVariant, USE_TOGGLE );
-			}
-		}
-		return true;
-	}
-
-	return false;
-}
+////-----------------------------------------------------------------------------
+//// Purpose: 
+////-----------------------------------------------------------------------------
+//bool CNPC_Scientist::OnUpcomingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult )
+//{
+//	// If we can't get through the door, try and open it
+//	if ( BaseClass::OnUpcomingDoor( pMoveGoal, pDoor, distClear, pResult ) )
+//	{
+//		if  ( IsMoveBlocked( *pResult ) && pMoveGoal->directTrace.vHitNormal != vec3_origin )
+//		{
+//			// Can't do anything if the door's locked
+//			if ( !pDoor->m_bLocked && !pDoor->HasSpawnFlags(SF_DOOR_NONPCS) )
+//			{
+//				// Tell the door to open
+//				variant_t emptyVariant;
+//				pDoor->AcceptInput( "Open", this, this, emptyVariant, USE_TOGGLE );
+//			}
+//		}
+//		return true;
+//	}
+//
+//	return false;
+//}
 
 //=========================================================
 // PainSound
@@ -481,15 +473,8 @@ void CNPC_Scientist::PainSound ( void )
 	m_flPainTime = gpGlobals->curtime + random->RandomFloat( 0.5, 0.75 );
 
 	CPASAttenuationFilter filter( this );
-
-	switch (random->RandomInt( 0,4 ) )
-	{
-		case 0: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "scientist/sci_pain1.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 1: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "scientist/sci_pain2.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 2: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "scientist/sci_pain3.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 3: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "scientist/sci_pain4.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-		case 4: enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "scientist/sci_pain5.wav", 1, ATTN_NORM, 0, GetExpresser()->GetVoicePitch()); break;
-	}
+	EmitSound("Scientist.Pain");
+	m_flPainTime = gpGlobals->curtime + RandomFloat(0.5f, 0.75f);
 }
 
 //=========================================================
@@ -732,8 +717,7 @@ NPC_STATE CNPC_Scientist::SelectIdealState ( void )
 				if ( relationship != D_FR || relationship != D_HT && ( !HasCondition( COND_LIGHT_DAMAGE  ) || !HasCondition( COND_HEAVY_DAMAGE ) ) )
 				{
 					// Don't go to combat if you're following the player
-					m_IdealNPCState = NPC_STATE_ALERT;
-					return m_IdealNPCState;
+					return NPC_STATE_ALERT;
 				}
 				StopFollowing();
 			}
@@ -754,22 +738,18 @@ NPC_STATE CNPC_Scientist::SelectIdealState ( void )
 				if ( DisregardEnemy( pEnemy ) )		// After 15 seconds of being hidden, return to alert
 				{
 					// Strip enemy when going to alert
-					m_IdealNPCState = NPC_STATE_ALERT;
 					SetEnemy( NULL );
-					return m_IdealNPCState;
+					return NPC_STATE_ALERT;
 				}
 				// Follow if only scared a little
 				if ( GetFollowTarget() )
 				{
-					m_IdealNPCState = NPC_STATE_ALERT;
-					return m_IdealNPCState;
+					return NPC_STATE_ALERT;
 				}
 
 				if ( HasCondition( COND_SEE_ENEMY ) )
 				{
-					m_flFearTime = gpGlobals->curtime;
-					m_IdealNPCState = NPC_STATE_COMBAT;
-					return m_IdealNPCState;
+					return NPC_STATE_COMBAT;
 				}
 
 			}
@@ -839,7 +819,7 @@ void CNPC_DeadScientist::Spawn( void )
 	engine->PrecacheModel("models/scientist.mdl");
 	SetModel( "models/scientist.mdl" );
 	
-	m_fEffects			= 0;
+	ClearEffects();
 	SetSequence( 0 );
 	m_bloodColor		= BLOOD_COLOR_RED;
 
@@ -886,10 +866,10 @@ LINK_ENTITY_TO_CLASS( monster_sitting_scientist, CNPC_SittingScientist );
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CNPC_SittingScientist )
-	DEFINE_FIELD( CNPC_SittingScientist, m_iHeadTurn, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_SittingScientist, m_flResponseDelay, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iHeadTurn, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flResponseDelay, FIELD_FLOAT ),
 
-	DEFINE_THINKFUNC( CNPC_SittingScientist, SittingThink ),
+	DEFINE_THINKFUNC( SittingThink ),
 END_DATADESC()
 
 
@@ -921,7 +901,7 @@ void CNPC_SittingScientist :: Spawn( )
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= 50;
 	
 	m_bloodColor		= BLOOD_COLOR_RED;
@@ -951,7 +931,7 @@ void CNPC_SittingScientist :: Spawn( )
 
 	NPCInit();
 	
-	SetThink (SittingThink);
+	SetThink (&CNPC_SittingScientist::SittingThink);
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -997,7 +977,7 @@ void CNPC_SittingScientist :: SittingThink( void )
 				SetSequence ( m_baseSequence + SITTING_ANIM_sitlookright );
 		
 			ResetSequenceInfo( );
-			m_flCycle = 0;
+			SetCycle( 0 );
 			SetBoneController( 0, 0 );
 
 			GetExpresser()->Speak( TLK_HELLO );
@@ -1068,7 +1048,7 @@ void CNPC_SittingScientist :: SittingThink( void )
 		}
 
 		ResetSequenceInfo( );
-		m_flCycle = 0;
+		SetCycle( 0 );
 		SetBoneController( 0, m_iHeadTurn );
 	}
 
@@ -1103,7 +1083,7 @@ int CNPC_SittingScientist :: FIdleSpeak ( void )
 	// if there is a friend nearby to speak to, play sentence, set friend's response time, return
 
 	// try to talk to any standing or sitting scientists nearby
-	CBaseEntity *pentFriend = FindNamedEntity( "!nearestfriend" );
+	CBaseEntity *pentFriend = FindNamedEntity( "!friend" ); //"!nearestfriend"
 
 	if (pentFriend && random->RandomInt(0,1))
 	{

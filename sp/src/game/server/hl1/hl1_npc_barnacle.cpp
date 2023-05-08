@@ -60,16 +60,16 @@ void CNPC_Barnacle::InitCustomSchedules(void)
 
 BEGIN_DATADESC( CNPC_Barnacle )
 
-	DEFINE_FIELD( CNPC_Barnacle, m_flAltitude, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Barnacle, m_flKillVictimTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Barnacle, m_cGibs, FIELD_INTEGER ),// barnacle loads up on gibs each time it kills something.
-	DEFINE_FIELD( CNPC_Barnacle, m_fTongueExtended, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Barnacle, m_fLiftingPrey, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Barnacle, m_flTongueAdj, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flAltitude, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flKillVictimTime, FIELD_TIME ),
+	DEFINE_FIELD( m_cGibs, FIELD_INTEGER ),// barnacle loads up on gibs each time it kills something.
+	DEFINE_FIELD( m_fTongueExtended, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fLiftingPrey, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flTongueAdj, FIELD_FLOAT ),
 
 	// Function pointers
-	DEFINE_THINKFUNC( CNPC_Barnacle, BarnacleThink ),
-	DEFINE_THINKFUNC( CNPC_Barnacle, WaitTillDead ),
+	DEFINE_THINKFUNC( BarnacleThink ),
+	DEFINE_THINKFUNC( WaitTillDead ),
 END_DATADESC()
 
 
@@ -131,13 +131,10 @@ void CNPC_Barnacle::Spawn()
 
 	SetActivity ( ACT_IDLE );
 
-	SetThink ( BarnacleThink );
+	SetThink ( &CNPC_Barnacle::BarnacleThink );
 	SetNextThink( gpGlobals->curtime + 0.5f );
 
-	Relink();
-
-	//Do not have a shadow
-	m_fEffects |= EF_NOSHADOW;
+	AddEffects(EF_NOSHADOW);
 }
 
 //-----------------------------------------------------------------------------
@@ -236,7 +233,7 @@ void CNPC_Barnacle::BarnacleThink ( void )
 				m_fLiftingPrey = FALSE;
 
 				CPASAttenuationFilter filter( this );
-				EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_bite3.wav", 1, ATTN_NORM );
+				EmitSound( filter, entindex(), "Barnacle.Bite");
 
 				// Take a while to kill the player
 				m_flKillVictimTime = gpGlobals->curtime + 10;
@@ -269,16 +266,9 @@ void CNPC_Barnacle::BarnacleThink ( void )
 
 			// bite prey every once in a while
 			if ( pVictim && ( random->RandomInt( 0, 49 ) == 0 ) )
-			{
+			{				
 				CPASAttenuationFilter filter( this );
-				
-				
-				switch ( random->RandomInt(0,2) )
-				{
-					case 0:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew1.wav", 1, ATTN_NORM ); break;
-					case 1:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew2.wav", 1, ATTN_NORM );	break;
-					case 2:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew3.wav", 1, ATTN_NORM );	break;
-				}
+				EmitSound( filter, entindex(), "Barnacle.Chew" );
 
 				if ( pVictim )
 				{
@@ -307,13 +297,7 @@ void CNPC_Barnacle::BarnacleThink ( void )
 			m_cGibs--;
 
 			CPASAttenuationFilter filter( this );
-
-			switch ( random->RandomInt(0,2) )
-			{
-				case 0:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew1.wav", 1, ATTN_NORM ); break;
-				case 1:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew2.wav", 1, ATTN_NORM );	break;
-				case 2:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_chew3.wav", 1, ATTN_NORM );	break;
-			}
+			EmitSound( filter, entindex(), "Barnacle.Chew" );
 		}
 
 		pTouchEnt = TongueTouchEnt( &flLength );
@@ -329,7 +313,7 @@ void CNPC_Barnacle::BarnacleThink ( void )
 			if ( pBCC && pBCC->HandleInteraction( g_interactionBarnacleVictimGrab, &vecGrabPos, this ) )
 			{
 				CPASAttenuationFilter filter( this );
-				EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_alert2.wav", 1, ATTN_NORM );
+				EmitSound( filter, entindex(), "Barnacle.Alert" );
 
 				SetSequenceByName ( "attack1" );
 
@@ -383,8 +367,6 @@ void CNPC_Barnacle::Event_Killed( const CTakeDamageInfo &info )
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	m_takedamage		= DAMAGE_NO;
 
-	Relink();
-
 	if ( GetEnemy() != NULL )
 	{
 		CBaseCombatCharacter *pVictim = GetEnemyCombatCharacterPointer();
@@ -396,16 +378,9 @@ void CNPC_Barnacle::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	CGib::SpawnRandomGibs( this, 4, GIB_HUMAN );
-
-	//EmitSound( "NPC_Barnacle.Die" );
-
-	CPASAttenuationFilter filter( this );
 				
-	switch ( random->RandomInt ( 0, 1 ) )
-	{
-		case 0:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_die1.wav", 1, ATTN_NORM );	break;
-		case 1:	EmitSound( filter, entindex(), CHAN_WEAPON, "barnacle/bcl_die3.wav", 1, ATTN_NORM );	break;
-	}
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Barnacle.Die" );
 
 	SetActivity ( ACT_DIESIMPLE );
 	SetBoneController( 0, 0 );
@@ -413,7 +388,7 @@ void CNPC_Barnacle::Event_Killed( const CTakeDamageInfo &info )
 	StudioFrameAdvance();
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
-	SetThink ( WaitTillDead );
+	SetThink ( &CNPC_Barnacle::WaitTillDead );
 }
 
 //-----------------------------------------------------------------------------
@@ -439,15 +414,12 @@ void CNPC_Barnacle::WaitTillDead ( void )
 //=========================================================
 void CNPC_Barnacle::Precache()
 {
-	engine->PrecacheModel("models/barnacle.mdl");
+	PrecacheModel("models/barnacle.mdl");
 
-	enginesound->PrecacheSound("barnacle/bcl_alert2.wav");//happy, lifting food up
-	enginesound->PrecacheSound("barnacle/bcl_bite3.wav");//just got food to mouth
-	enginesound->PrecacheSound("barnacle/bcl_chew1.wav");
-	enginesound->PrecacheSound("barnacle/bcl_chew2.wav");
-	enginesound->PrecacheSound("barnacle/bcl_chew3.wav");
-	enginesound->PrecacheSound("barnacle/bcl_die1.wav" );
-	enginesound->PrecacheSound("barnacle/bcl_die3.wav" );
+	PrecacheScriptSound( "Barnacle.Bite" );
+	PrecacheScriptSound( "Barnacle.Chew" );
+	PrecacheScriptSound( "Barnacle.Alert" );
+	PrecacheScriptSound( "Barnacle.Die" );
 
 	BaseClass::Precache();
 }	

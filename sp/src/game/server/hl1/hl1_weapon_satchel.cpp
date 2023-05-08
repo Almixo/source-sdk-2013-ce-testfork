@@ -38,11 +38,11 @@ IMPLEMENT_SERVERCLASS_ST( CWeaponSatchel, DT_WeaponSatchel )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponSatchel )
-	DEFINE_FIELD( CWeaponSatchel, m_iRadioViewIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( CWeaponSatchel, m_iRadioWorldIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( CWeaponSatchel, m_iSatchelViewIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( CWeaponSatchel, m_iSatchelWorldIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( CWeaponSatchel, m_iChargeReady, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iRadioViewIndex, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iRadioWorldIndex, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iSatchelViewIndex, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iSatchelWorldIndex, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iChargeReady, FIELD_INTEGER ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -374,14 +374,14 @@ extern ConVar sk_plr_dmg_satchel;
 
 
 BEGIN_DATADESC( CSatchelCharge )
-	DEFINE_FIELD( CSatchelCharge, m_flNextBounceSoundTime, FIELD_TIME ),
-	DEFINE_FIELD( CSatchelCharge, m_bInAir, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CSatchelCharge, m_vLastPosition, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_flNextBounceSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_bInAir, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_vLastPosition, FIELD_POSITION_VECTOR ),
 
 	// Function Pointers
-	DEFINE_FUNCTION( CSatchelCharge, SatchelTouch ),
-	DEFINE_FUNCTION( CSatchelCharge, SatchelThink ),
-	DEFINE_FUNCTION( CSatchelCharge, SatchelUse ),
+	DEFINE_ENTITYFUNC( SatchelTouch ),
+	DEFINE_THINKFUNC( SatchelThink ),
+	DEFINE_USEFUNC( SatchelUse ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_satchel, CSatchelCharge );
@@ -407,11 +407,10 @@ void CSatchelCharge::Spawn( void )
 	SetModel( SATCHEL_CHARGE_MODEL );
 
 	UTIL_SetSize( this, Vector( -4, -4, 0), Vector(4, 4, 8) );
-	Relink();
 
-	SetTouch( SatchelTouch );
-	SetUse( SatchelUse );
-	SetThink( SatchelThink );
+	SetTouch( &CSatchelCharge::SatchelTouch );
+	SetUse( &CSatchelCharge::SatchelUse );
+	SetThink( &CSatchelCharge::SatchelThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	m_flDamage		= sk_plr_dmg_satchel.GetFloat();
@@ -436,7 +435,7 @@ void CSatchelCharge::Spawn( void )
 //-----------------------------------------------------------------------------
 void CSatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink( Detonate );
+	SetThink( &CSatchelCharge::Detonate );
 	SetNextThink( gpGlobals->curtime );
 }
 
@@ -546,7 +545,8 @@ void CSatchelCharge::BounceSound( void )
 {
 	if ( gpGlobals->curtime > m_flNextBounceSoundTime )
 	{
-		EmitSound( "SatchelCharge.Bounce" );
+		CPASAttenuationFilter filter(this);
+		EmitSound( filter, entindex(), "SatchelCharge.Bounce" );
 
 		m_flNextBounceSoundTime = gpGlobals->curtime + 0.1;
 	}

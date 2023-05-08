@@ -26,12 +26,7 @@
 
 
 
-LINK_ENTITY_TO_CLASS( hl1_gamerules, CHalfLife1 );
-
-IMPLEMENT_NETWORKCLASS_ALIASED( HalfLife1, DT_HalfLife1)
-
-BEGIN_NETWORK_TABLE( CHalfLife1, DT_HalfLife1 )
-END_NETWORK_TABLE()
+REGISTER_GAMERULES_CLASS( CHalfLife1 );
 
 
 ConVar sk_plr_dmg_crowbar			( "sk_plr_dmg_crowbar",			"0", FCVAR_REPLICATED );
@@ -107,13 +102,13 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
 	{
 	public:
-		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker )
+		virtual bool CanPlayerHearPlayer( CBasePlayer* pListener, CBasePlayer* pTalker, bool& bProximity )
 		{
 			return true;
 		}
 	};
 	CVoiceGameMgrHelper g_VoiceGameMgrHelper;
-	IVoiceGameMgrHelper *g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
+	IVoiceGameMgrHelper* g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
 
 
 	//-----------------------------------------------------------------------------
@@ -134,9 +129,9 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	//			Use engine.Cmd_Argv,  engine.Cmd_Argv, and engine.Cmd_Argc to get 
 	//			pointers the character string command.
 	//-----------------------------------------------------------------------------
-	bool CHalfLife1::ClientCommand(const char *pcmd, CBaseEntity *pEdict )
+	bool CHalfLife1::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	{
-		if( BaseClass::ClientCommand(pcmd, pEdict) )
+		if( BaseClass::ClientCommand( pEdict, args) )
 			return true;
 
 		CHL1_Player *pPlayer = (CHL1_Player *) pEdict;
@@ -170,7 +165,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 		}
 	*/
 
-		if ( pPlayer->ClientCommand( pcmd ) )
+		if ( pPlayer->ClientCommand( args ) )
 			return true;
 			
 		return false;
@@ -233,7 +228,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	//-----------------------------------------------------------------------------
 	void CopyToBodyQue( CBaseAnimating *pCorpse ) 
 	{
-		if ( pCorpse->m_fEffects & EF_NODRAW )
+		if ( pCorpse->GetEffects() & EF_NODRAW )
 			return;
 
 		CCorpse *pHead	= g_pBodyQueueHead;
@@ -572,7 +567,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 		vecSrc.z += 1;// in case grenade is lying on the ground
 
 		// iterate on all entities in the vicinity.
-		for ( CEntitySphereQuery sphere( vecSrc, flRadius ); pEntity = sphere.GetCurrentEntity(); sphere.NextEntity() )
+		for ( CEntitySphereQuery sphere( vecSrc, flRadius ); ( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
 		{
 			if ( pEntity->m_takedamage != DAMAGE_NO )
 			{
@@ -706,22 +701,22 @@ CAmmoDef *GetAmmoDef()
 	{
 		bInitted = true;
 		
-		def.AddAmmoType( "9mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, "sk_plr_dmg_9mm_bullet",	"sk_npc_dmg_9mm_bullet","sk_max_9mm_bullet",	BULLET_IMPULSE(500, 1325) );
-		def.AddAmmoType( "357Round",		DMG_BULLET | DMG_NEVERGIB,					TRACER_NONE, "sk_plr_dmg_357_bullet",	NULL,					"sk_max_357_bullet",	BULLET_IMPULSE(650, 6000) );
-		def.AddAmmoType( "Buckshot",		DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE, "sk_plr_dmg_buckshot",		NULL,					"sk_max_buckshot",		BULLET_IMPULSE(200, 1200) );
-		def.AddAmmoType( "XBowBolt",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_xbow_bolt_plr",NULL,					"sk_max_xbow_bolt",		BULLET_IMPULSE( 200, 1200) );
-		def.AddAmmoType( "MP5_Grenade",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_mp5_grenade",	NULL,					"sk_max_mp5_grenade",	0 );
-		def.AddAmmoType( "RPG_Rocket",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_rpg",			NULL,					"sk_max_rpg_rocket",	0 );
-		def.AddAmmoType( "Uranium",			DMG_ENERGYBEAM,				TRACER_NONE, NULL,						NULL,					"sk_max_uranium",		0 );
-		def.AddAmmoType( "Grenade",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_grenade",		NULL,					"sk_max_grenade",		0 );
-		def.AddAmmoType( "Hornet",			DMG_BULLET,					TRACER_NONE, "sk_plr_dmg_hornet",		"sk_npc_dmg_hornet",	"sk_max_hornet",		BULLET_IMPULSE(100, 1200) );
-		def.AddAmmoType( "Snark",			DMG_SLASH,					TRACER_NONE, "sk_snark_dmg_bite",		NULL,					"sk_max_snark",			0 );
-		def.AddAmmoType( "TripMine",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_tripmine",		NULL,					"sk_max_tripmine",		0 );
-		def.AddAmmoType( "Satchel",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_satchel",		NULL,					"sk_max_satchel",		0 );
+		def.AddAmmoType( "9mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, "sk_plr_dmg_9mm_bullet",	"sk_npc_dmg_9mm_bullet","sk_max_9mm_bullet",	BULLET_IMPULSE(500, 1325), 0 );
+		def.AddAmmoType( "357Round",		DMG_BULLET | DMG_NEVERGIB,					TRACER_NONE, "sk_plr_dmg_357_bullet",	NULL,					"sk_max_357_bullet",	BULLET_IMPULSE(650, 6000), 0 );
+		def.AddAmmoType( "Buckshot",		DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE, "sk_plr_dmg_buckshot",		NULL,					"sk_max_buckshot",		BULLET_IMPULSE(200, 1200), 0 );
+		def.AddAmmoType( "XBowBolt",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_xbow_bolt_plr",NULL,					"sk_max_xbow_bolt",		BULLET_IMPULSE( 200, 1200), 0 );
+		def.AddAmmoType( "MP5_Grenade",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_mp5_grenade",	NULL,					"sk_max_mp5_grenade",	0, 0 );
+		def.AddAmmoType( "RPG_Rocket",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_rpg",			NULL,					"sk_max_rpg_rocket",	0, 0 );
+		def.AddAmmoType( "Uranium",			DMG_ENERGYBEAM,				TRACER_NONE, NULL,						NULL,					"sk_max_uranium",		0, 0 );
+		def.AddAmmoType( "Grenade",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_grenade",		NULL,					"sk_max_grenade",		0, 0 );
+		def.AddAmmoType( "Hornet",			DMG_BULLET,					TRACER_NONE, "sk_plr_dmg_hornet",		"sk_npc_dmg_hornet",	"sk_max_hornet",		BULLET_IMPULSE(100, 1200), 0 );
+		def.AddAmmoType( "Snark",			DMG_SLASH,					TRACER_NONE, "sk_snark_dmg_bite",		NULL,					"sk_max_snark",			0, 0 );
+		def.AddAmmoType( "TripMine",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_tripmine",		NULL,					"sk_max_tripmine",		0, 0 );
+		def.AddAmmoType( "Satchel",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_satchel",		NULL,					"sk_max_satchel",		0, 0 );
 
-		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200) );
+		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
 
-		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,							8,					0 );
+		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,							8,					0, 0 );
 	}
 
 	return &def;

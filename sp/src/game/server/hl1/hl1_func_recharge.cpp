@@ -53,17 +53,17 @@ public:
 
 BEGIN_DATADESC( CRecharge )
 
-	DEFINE_FIELD( CRecharge, m_flNextCharge, FIELD_TIME ),
-	DEFINE_FIELD( CRecharge, m_iReactivate, FIELD_INTEGER),
-	DEFINE_FIELD( CRecharge, m_iJuice, FIELD_INTEGER),
-	DEFINE_FIELD( CRecharge, m_iOn, FIELD_INTEGER),
-	DEFINE_FIELD( CRecharge, m_flSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextCharge, FIELD_TIME ),
+	DEFINE_FIELD( m_iReactivate, FIELD_INTEGER),
+	DEFINE_FIELD( m_iJuice, FIELD_INTEGER),
+	DEFINE_FIELD( m_iOn, FIELD_INTEGER),
+	DEFINE_FIELD( m_flSoundTime, FIELD_TIME ),
 
 	// Function Pointers
-	DEFINE_FUNCTION( CRecharge, Off ),
-	DEFINE_FUNCTION( CRecharge, Recharge ),
+	DEFINE_FUNCTION( Off ),
+	DEFINE_FUNCTION( Recharge ),
 
-	DEFINE_OUTPUT(CRecharge, m_OutRemainingCharge, "OutRemainingCharge"),
+	DEFINE_OUTPUT( m_OutRemainingCharge, "OutRemainingCharge" ),
 
 END_DATADESC()
 
@@ -97,8 +97,7 @@ void CRecharge::Spawn()
 	SetSolid( SOLID_BSP );
 	SetMoveType( MOVETYPE_PUSH );
 
-	Relink();
-	UTIL_SetSize(this, EntitySpaceMins(), EntitySpaceMaxs());
+	UTIL_SetSize(this, CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs());
 	SetModel( STRING( GetModelName() ) );
 	m_iJuice = sk_suitcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
@@ -137,7 +136,7 @@ void CRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	}
 
 	SetNextThink( gpGlobals->curtime + 0.25 );
-	SetThink(Off);
+	SetThink(&CRecharge::Off);
 
 	// Time to recharge yet?
 
@@ -191,7 +190,7 @@ void CRecharge::Recharge(void)
 {
 	m_iJuice = sk_suitcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
-	SetThink( SUB_DoNothing );
+	SetThink( &CRecharge::SUB_DoNothing );
 }
 
 void CRecharge::Off(void)
@@ -207,7 +206,7 @@ void CRecharge::Off(void)
 	if ((!m_iJuice) &&  ( ( m_iReactivate = g_pGameRules->FlHEVChargerRechargeTime() ) > 0) )
 	{
 		SetNextThink( gpGlobals->curtime + m_iReactivate );
-		SetThink(Recharge);
+		SetThink(&CRecharge::Recharge);
 	}
 	else
 		SetThink( NULL );

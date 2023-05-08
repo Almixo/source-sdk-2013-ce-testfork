@@ -50,7 +50,8 @@ void CHealthKit :: Spawn( void )
 //-----------------------------------------------------------------------------
 void CHealthKit::Precache( void )
 {
-	engine->PrecacheModel("models/items/healthkit.mdl");
+	BaseClass::Precache();
+	PrecacheModel("models/items/healthkit.mdl");
 }
 
 
@@ -174,15 +175,15 @@ LINK_ENTITY_TO_CLASS(func_healthcharger, CWallHealth);
 
 BEGIN_DATADESC( CWallHealth )
 
-	DEFINE_FIELD( CWallHealth, m_flNextCharge, FIELD_TIME),
-	DEFINE_FIELD( CWallHealth, m_iReactivate, FIELD_INTEGER),
-	DEFINE_FIELD( CWallHealth, m_iJuice, FIELD_INTEGER),
-	DEFINE_FIELD( CWallHealth, m_iOn, FIELD_INTEGER),
-	DEFINE_FIELD( CWallHealth, m_flSoundTime, FIELD_TIME),
+	DEFINE_FIELD( m_flNextCharge, FIELD_TIME),
+	DEFINE_FIELD( m_iReactivate, FIELD_INTEGER),
+	DEFINE_FIELD( m_iJuice, FIELD_INTEGER),
+	DEFINE_FIELD( m_iOn, FIELD_INTEGER),
+	DEFINE_FIELD( m_flSoundTime, FIELD_TIME),
 
 	// Function Pointers
-	DEFINE_FUNCTION( CWallHealth, Off ),
-	DEFINE_FUNCTION( CWallHealth, Recharge ),
+	DEFINE_FUNCTION( Off ),
+	DEFINE_FUNCTION( Recharge ),
 
 END_DATADESC()
 
@@ -222,9 +223,8 @@ void CWallHealth::Spawn(void)
 	SetSolid( SOLID_BSP );
 	SetMoveType( MOVETYPE_PUSH );
 
-	UTIL_SetSize(this, EntitySpaceMins(), EntitySpaceMaxs());
+	UTIL_SetSize(this, CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs());
 	SetModel( STRING( GetModelName() ) );
-	Relink();
 
 	m_iJuice = sk_healthcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
@@ -286,7 +286,7 @@ void CWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 	}
 
 	SetNextThink( gpGlobals->curtime + 0.25 );
-	SetThink(Off);
+	SetThink(&CWallHealth::Off);
 
 	// Time to recharge yet?
 
@@ -346,7 +346,7 @@ void CWallHealth::Off(void)
 	if ((!m_iJuice) &&  ( ( m_iReactivate = g_pGameRules->FlHealthChargerRechargeTime() ) > 0) )
 	{
 		SetNextThink( gpGlobals->curtime + m_iReactivate );
-		SetThink(Recharge);
+		SetThink(&CWallHealth::Recharge);
 	}
 	else
 		SetThink( NULL );

@@ -97,7 +97,7 @@ void CNPC_Roach::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_YELLOW;
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= 1;
 	m_flFieldOfView		= 0.5;// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -120,11 +120,11 @@ void CNPC_Roach::Spawn()
 //=========================================================
 void CNPC_Roach::Precache()
 {
-	engine->PrecacheModel("models/roach.mdl");
+	PrecacheModel("models/roach.mdl");
 
-	enginesound->PrecacheSound("roach/rch_die.wav");
-	enginesound->PrecacheSound("roach/rch_walk.wav");
-	enginesound->PrecacheSound("roach/rch_smash.wav");
+	PrecacheScriptSound("Roach.Walk");
+	PrecacheScriptSound("Roach.Die");
+	PrecacheScriptSound("Roach.Smash");
 }
 
 float CNPC_Roach::MaxYawSpeed( void )
@@ -304,7 +304,7 @@ void CNPC_Roach :: PickNewDest ( int iCondition )
 	{
 		// every once in a while, a roach will play a skitter sound when they decide to run
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_BODY, "roach/rch_walk.wav", 1.0f, ATTN_NORM, 0, 80 + random->RandomInt( 0, 39 ) );
+		EmitSound( filter, entindex(), "Roach.Walk" );
 	}
 }
 
@@ -330,7 +330,7 @@ void CNPC_Roach::Look ( int iDistance )
 	// Examine all entities within a reasonable radius
 	// !!!PERFORMANCE - let's trivially reject the ent list before radius searching!
 
-	for ( CEntitySphereQuery sphere( GetAbsOrigin(), iDistance ); pSightEnt = sphere.GetCurrentEntity(); sphere.NextEntity() )
+	for ( CEntitySphereQuery sphere( GetAbsOrigin(), iDistance ); ( pSightEnt = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
 	{
 		// only consider ents that can be damaged. !!!temporarily only considering other monsters and clients
 		if (  pSightEnt->IsPlayer() || FBitSet ( pSightEnt->GetFlags(), FL_NPC ) )
@@ -347,7 +347,7 @@ void CNPC_Roach::Look ( int iDistance )
 				case	D_NU:
 					break;
 				default:
-					Msg ( "%s can't asses %s\n", STRING( pev->classname ), STRING( pSightEnt->pev->classname ) );
+					Msg ( "%s can't asses %s\n", GetClassname(), pSightEnt->GetClassname() );
 					break;
 				}
 			}
@@ -437,13 +437,9 @@ void CNPC_Roach::Event_Killed( const CTakeDamageInfo &info )
 	
 	//random sound
 	if ( random->RandomInt( 0,4 ) == 1 )
-	{
-		EmitSound( filter, entindex(), CHAN_VOICE, "roach/rch_die.wav", 0.8f, ATTN_NORM, 0, 80 + random->RandomInt( 0, 39 ) );
-	}
+		EmitSound( filter, entindex(), "Roach.Die" );
 	else
-	{
-		EmitSound( filter, entindex(), CHAN_BODY, "roach/rch_smash.wav", 0.7f, ATTN_NORM, 0, 80 + random->RandomInt( 0, 39 ) );
-	}
+		EmitSound( filter, entindex(), "Roach.Smash" );
 	
 	CSoundEnt::InsertSound ( SOUND_WORLD, GetAbsOrigin(), 128, 1 );
 

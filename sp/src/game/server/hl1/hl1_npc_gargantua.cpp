@@ -41,11 +41,10 @@
 #include	"ammodef.h"
 #include	"shake.h"
 #include	"decals.h"
-#include	"customentity.h"
 #include	"particle_smokegrenade.h"
 #include	"gib.h"
 #include	"func_break.h"
-
+#include	<hl2_shareddefs.h>
 
 extern short	g_sModelIndexFireball;
 int				gGargGibModel;
@@ -98,105 +97,19 @@ enum
 	SCHED_GARG_SWIPE,
 };
 
-const char *CNPC_Gargantua::pAttackHitSounds[] = 
-{
-	"zombie/claw_strike1.wav",
-	"zombie/claw_strike2.wav",
-	"zombie/claw_strike3.wav",
-};
-
-const char *CNPC_Gargantua::pBeamAttackSounds[] = 
-{
-	"garg/gar_flameoff1.wav",
-	"garg/gar_flameon1.wav",
-	"garg/gar_flamerun1.wav",
-};
-
-
-const char *CNPC_Gargantua::pAttackMissSounds[] = 
-{
-	"zombie/claw_miss1.wav",
-	"zombie/claw_miss2.wav",
-};
-
-const char *CNPC_Gargantua::pRicSounds[] = 
-{
-#if 0
-	"weapons/ric1.wav",
-	"weapons/ric2.wav",
-	"weapons/ric3.wav",
-	"weapons/ric4.wav",
-	"weapons/ric5.wav",
-#else
-	"debris/metal4.wav",
-	"debris/metal6.wav",
-	"weapons/ric4.wav",
-	"weapons/ric5.wav",
-#endif
-};
-
-const char *CNPC_Gargantua::pFootSounds[] = 
-{
-	"garg/gar_step1.wav",
-	"garg/gar_step2.wav",
-};
-
-
-const char *CNPC_Gargantua::pIdleSounds[] = 
-{
-	"garg/gar_idle1.wav",
-	"garg/gar_idle2.wav",
-	"garg/gar_idle3.wav",
-	"garg/gar_idle4.wav",
-	"garg/gar_idle5.wav",
-};
-
-
-const char *CNPC_Gargantua::pAttackSounds[] = 
-{
-	"garg/gar_attack1.wav",
-	"garg/gar_attack2.wav",
-	"garg/gar_attack3.wav",
-};
-
-const char *CNPC_Gargantua::pAlertSounds[] = 
-{
-	"garg/gar_alert1.wav",
-	"garg/gar_alert2.wav",
-	"garg/gar_alert3.wav",
-};
-
-const char *CNPC_Gargantua::pPainSounds[] = 
-{
-	"garg/gar_pain1.wav",
-	"garg/gar_pain2.wav",
-	"garg/gar_pain3.wav",
-};
-
-const char *CNPC_Gargantua::pStompSounds[] = 
-{
-	"garg/gar_stomp1.wav",
-};
-
-const char *CNPC_Gargantua::pBreatheSounds[] = 
-{
-	"garg/gar_breathe1.wav",
-	"garg/gar_breathe2.wav",
-	"garg/gar_breathe3.wav",
-};
 
 LINK_ENTITY_TO_CLASS( monster_gargantua, CNPC_Gargantua );
 
 BEGIN_DATADESC( CNPC_Gargantua )
-	DEFINE_FIELD( CNPC_Gargantua, m_pEyeGlow, FIELD_CLASSPTR  ),
-	DEFINE_FIELD( CNPC_Gargantua, m_eyeBrightness, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Gargantua, m_seeTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Gargantua, m_flameTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Gargantua, m_streakTime, FIELD_TIME ),
-	DEFINE_ARRAY( CNPC_Gargantua, m_pFlame, FIELD_CLASSPTR, 4 ),
-	DEFINE_FIELD( CNPC_Gargantua, m_flameX, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Gargantua, m_flameY, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_Gargantua, m_flDmgTime, FIELD_FLOAT ),
+	DEFINE_FIELD( m_pEyeGlow, FIELD_CLASSPTR  ),
+	DEFINE_FIELD( m_eyeBrightness, FIELD_INTEGER ),
+	DEFINE_FIELD( m_seeTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flameTime, FIELD_TIME ),
+	DEFINE_FIELD( m_streakTime, FIELD_TIME ),
+	DEFINE_ARRAY( m_pFlame, FIELD_CLASSPTR, 4 ),
+	DEFINE_FIELD( m_flameX, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flameY, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flDmgTime, FIELD_FLOAT ),
 END_DATADESC()
 
 static void MoveToGround( Vector *position, CBaseEntity *ignore, const Vector &mins, const Vector &maxs )
@@ -255,7 +168,7 @@ CStomp *CStomp::StompCreate( Vector &origin, Vector &end, float speed, CBaseEnti
 void CStomp::Spawn( void )
 {
 	SetNextThink( gpGlobals->curtime );
-	pev->classname = MAKE_STRING("garg_stomp");
+	SetClassname( "garg_stomp" );
 	m_flDmgTime = gpGlobals->curtime;
 
 	m_uiFramerate = 30;
@@ -371,8 +284,6 @@ void CNPC_Gargantua::Spawn()
 	NPCInit();
 
 	BaseClass::Spawn();
-
-	Relink();
 }
 
 //=========================================================
@@ -380,25 +291,23 @@ void CNPC_Gargantua::Spawn()
 //=========================================================
 void CNPC_Gargantua::Precache()
 {
-	engine->PrecacheModel("models/garg.mdl");
-	engine->PrecacheModel( GARG_EYE_SPRITE_NAME );
-	engine->PrecacheModel( GARG_BEAM_SPRITE_NAME );
-	engine->PrecacheModel( GARG_BEAM_SPRITE2 );
+	PrecacheModel("models/garg.mdl");
+	PrecacheModel( GARG_EYE_SPRITE_NAME );
+	PrecacheModel( GARG_BEAM_SPRITE_NAME );
+	PrecacheModel( GARG_BEAM_SPRITE2 );
 	//gStompSprite = PRECACHE_MODEL( GARG_STOMP_SPRITE_NAME );
-	gGargGibModel = engine->PrecacheModel( GARG_GIB_MODEL );
-	enginesound->PrecacheSound( GARG_STOMP_BUZZ_SOUND );
+	gGargGibModel = PrecacheModel( GARG_GIB_MODEL );
 
-	PRECACHE_SOUND_ARRAY(pAttackHitSounds);
-	PRECACHE_SOUND_ARRAY(pBeamAttackSounds);
-	PRECACHE_SOUND_ARRAY(pAttackMissSounds);
-	PRECACHE_SOUND_ARRAY(pRicSounds);
-	PRECACHE_SOUND_ARRAY(pFootSounds);
-	PRECACHE_SOUND_ARRAY(pIdleSounds);
-	PRECACHE_SOUND_ARRAY(pAlertSounds);
-	PRECACHE_SOUND_ARRAY(pPainSounds);
-	PRECACHE_SOUND_ARRAY(pAttackSounds);
-	PRECACHE_SOUND_ARRAY(pStompSounds);
-	PRECACHE_SOUND_ARRAY(pBreatheSounds);
+	PrecacheScriptSound( "Garg.AttackHit" );
+	PrecacheScriptSound( "Garg.AttackMiss" );
+	PrecacheScriptSound( "Garg.Footstep" );
+	PrecacheScriptSound( "Garg.Breath" );
+	PrecacheScriptSound( "Garg.Attack" );
+	PrecacheScriptSound( "Garg.Pain" );
+	PrecacheScriptSound( "Garg.BeamAttackOn" );
+	PrecacheScriptSound( "Garg.BeamAttackRun" );
+	PrecacheScriptSound( "Garg.BeamAttackOff" );
+	PrecacheScriptSound( "Garg.StompSound" );
 }	
 
 Class_T  CNPC_Gargantua::Classify ( void )
@@ -569,10 +478,10 @@ void CNPC_Gargantua::HandleAnimEvent( animevent_t *pEvent )
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - vRight * 100 );
 				}
 
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 50 + random->RandomInt(0,15) );
+				EmitSound( filter, entindex(), "Garg.AttackHit" );
 			}
 			else // Play a random attack miss sound
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt(0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 50 + random->RandomInt(0,15) );
+				EmitSound( filter, entindex(), "Garg.AttackMiss ");
 		}
 		break;
 
@@ -580,7 +489,7 @@ void CNPC_Gargantua::HandleAnimEvent( animevent_t *pEvent )
 	case GARG_AE_LEFT_FOOT:
 
 		UTIL_ScreenShake( GetAbsOrigin(), 4.0, 3.0, 1.0, 1500, SHAKE_START );
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, pFootSounds[ random->RandomInt(0,ARRAYSIZE(pFootSounds)-1) ], 1.0, ATTN_GARG, 0, PITCH_NORM + random->RandomInt(-10,10) );
+		EmitSound( filter, entindex(), "Garg.Footstep" );
 		break;
 
 	case GARG_AE_STOMP:
@@ -589,7 +498,7 @@ void CNPC_Gargantua::HandleAnimEvent( animevent_t *pEvent )
 		break;
 
 	case GARG_AE_BREATHE:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pBreatheSounds[ random->RandomInt(0,ARRAYSIZE(pBreatheSounds)-1) ], 1.0, ATTN_GARG, 0, PITCH_NORM + random->RandomInt(-10,10) );
+		EmitSound( filter, entindex(), "Garg.Breath" );
 		break;
 
 	default:
@@ -641,7 +550,7 @@ void CNPC_Gargantua::StartTask( const Task_t *pTask )
 		if ( random->RandomInt(0,100) < 30 )
 		{
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAttackSounds[ random->RandomInt(0,ARRAYSIZE(pAttackSounds)-1) ], 1.0, ATTN_GARG, 0, PITCH_NORM );
+			EmitSound( filter, entindex(), "Garg.Attack" );
 		}
 			
 		TaskComplete();
@@ -678,7 +587,7 @@ void CNPC_Gargantua::RunTask( const Task_t *pTask )
 			SetRenderColor( 255, 0, 0 , 255 );
 			StopAnimation();
 			SetNextThink( gpGlobals->curtime + 0.15 );
-			SetThink( SUB_Remove );
+			SetThink( &CNPC_Gargantua::SUB_Remove );
 
 			int i;
 		
@@ -702,13 +611,13 @@ void CNPC_Gargantua::RunTask( const Task_t *pTask )
 				pGib->SetAbsVelocity( UTIL_RandomBloodVector() * random->RandomFloat( 300, 500 ) );
 	
 				pGib->SetNextThink( gpGlobals->curtime + 1.25 );
-				pGib->SetThink( SUB_FadeOut );
+				pGib->SetThink( &CNPC_Gargantua::SUB_FadeOut );
 				pGib->m_flModelScale = 10;
 			}
 	
 			Vector vecSize = Vector( 200, 200, 128 );
 			CPVSFilter filter( GetAbsOrigin() );
-			te->BreakModel( filter, 0.0, &GetAbsOrigin(), &vecSize, &vec3_origin, gGargGibModel, 200, 50, 3.0, BREAK_FLESH );
+			te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, gGargGibModel, 200, 50, 3.0, BREAK_FLESH );
 	
 			return;
 		}
@@ -815,8 +724,8 @@ void CNPC_Gargantua::FlameCreate( void )
 	}
 
 	CPASAttenuationFilter filter4( this );
-	enginesound->EmitSound( filter4, entindex(), CHAN_BODY, pBeamAttackSounds[ 1 ], 1, ATTN_NORM, 0, PITCH_NORM );
-	enginesound->EmitSound( filter4, entindex(), CHAN_WEAPON, pBeamAttackSounds[ 2 ], 1, ATTN_NORM, 0, PITCH_NORM );
+	EmitSound( filter4, entindex(), "Garg.BeamAttackOn" );
+	EmitSound( filter4, entindex(), "Garg.BeamAttackRun" );
 }
 
 
@@ -974,7 +883,7 @@ void CNPC_Gargantua::FlameDestroy( void )
 	int i;
 
 	CPASAttenuationFilter filter4( this );
-	enginesound->EmitSound( filter4, entindex(), CHAN_WEAPON, pBeamAttackSounds[ 0 ], 1, ATTN_NORM, 0, PITCH_NORM );
+	EmitSound( filter4, entindex(), "Garg.BeamAttackOff" );
 	
 	for ( i = 0; i < 4; i++ )
 	{
@@ -1004,11 +913,11 @@ void CNPC_Gargantua::EyeUpdate( void )
 		m_pEyeGlow->SetBrightness( UTIL_Approach( m_eyeBrightness, m_pEyeGlow->GetBrightness(), 26 ), 0.5f );
 		if ( m_pEyeGlow->GetBrightness() == 0 )
 		{
-			m_pEyeGlow->m_fEffects |= EF_NODRAW;
+			m_pEyeGlow->AddEffects( EF_NODRAW );
 		}
 		else
 		{
-			m_pEyeGlow->m_fEffects &= ~EF_NODRAW;
+			m_pEyeGlow->RemoveEffects( EF_NODRAW );
 		}
 	}
 }
@@ -1036,7 +945,7 @@ void CNPC_Gargantua::StompAttack( void )
 	CStomp::StompCreate( vecStart, trace.endpos, 0, this );
 	UTIL_ScreenShake( GetAbsOrigin(), 12.0, 100.0, 2.0, 1000, SHAKE_START );
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pStompSounds[ RandomInt(0,ARRAYSIZE(pStompSounds)-1) ], 1.0, ATTN_GARG, 0, PITCH_NORM + RandomInt(-10,10) );
+	EmitSound( filter, entindex(), "Garg.StompSound" );
 
 	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,20), MASK_SOLID, this, COLLISION_GROUP_NONE, &trace );
 	if ( trace.fraction < 1.0 )
@@ -1076,13 +985,13 @@ void CNPC_Gargantua::Event_Killed( const CTakeDamageInfo &info )
 	BaseClass::Event_Killed( info );
 }
 
-void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo subInfo = info;
 
 	if ( !IsAlive() )
 	{
-		BaseClass::TraceAttack( subInfo, vecDir, ptr );
+		BaseClass::TraceAttack( subInfo, vecDir, ptr, pAccumulator );
 		return;
 	}
 
@@ -1092,7 +1001,7 @@ void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vec
 		if ( m_painSoundTime < gpGlobals->curtime )
 		{
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), CHAN_VOICE, pPainSounds[ random->RandomInt(0,ARRAYSIZE(pPainSounds)-1) ], 1, ATTN_GARG );
+			EmitSound( filter, entindex(), "Garg.Pain" );
 
 			m_painSoundTime = gpGlobals->curtime + random->RandomFloat( 2.5, 4 );
 		}
@@ -1115,7 +1024,7 @@ void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vec
 		subInfo.SetDamage( 0 );
 	}
 
-	BaseClass::TraceAttack( subInfo, vecDir, ptr );
+	BaseClass::TraceAttack( subInfo, vecDir, ptr, pAccumulator );
 }
 
 int CNPC_Gargantua::OnTakeDamage_Alive( const CTakeDamageInfo &info )

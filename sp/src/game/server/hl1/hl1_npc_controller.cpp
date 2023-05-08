@@ -150,12 +150,6 @@ public:
 	void AttackSound( void );
 	void DeathSound( void );
 
-	static const char *pAttackSounds[];
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
-	static const char *pPainSounds[];
-	static const char *pDeathSounds[];
-
 	int OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	void Event_Killed( const CTakeDamageInfo &info );
 
@@ -223,13 +217,13 @@ LINK_ENTITY_TO_CLASS( monster_alien_controller, CNPC_Controller );
 
 BEGIN_DATADESC( CNPC_Controller )
 
-	DEFINE_ARRAY( CNPC_Controller, m_pBall, FIELD_CLASSPTR, 2 ),
-	DEFINE_ARRAY( CNPC_Controller, m_iBall, FIELD_INTEGER, 2 ),
-	DEFINE_ARRAY( CNPC_Controller, m_iBallTime, FIELD_TIME, 2 ),
-	DEFINE_ARRAY( CNPC_Controller, m_iBallCurrent, FIELD_INTEGER, 2 ),
-	DEFINE_FIELD( CNPC_Controller, m_vecEstVelocity, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_Controller, m_velocity, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_Controller, m_fInCombat, FIELD_BOOLEAN ),
+	DEFINE_ARRAY( m_pBall, FIELD_CLASSPTR, 2 ),
+	DEFINE_ARRAY( m_iBall, FIELD_INTEGER, 2 ),
+	DEFINE_ARRAY( m_iBallTime, FIELD_TIME, 2 ),
+	DEFINE_ARRAY( m_iBallCurrent, FIELD_INTEGER, 2 ),
+	DEFINE_FIELD( m_vecEstVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_velocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_fInCombat, FIELD_BOOLEAN ),
 
 END_DATADESC()
 
@@ -269,59 +263,24 @@ void CNPC_Controller::Spawn()
 	SetDefaultEyeOffset();
 }
 
-const char *CNPC_Controller::pAttackSounds[] = 
-{
-	"controller/con_attack1.wav",
-	"controller/con_attack2.wav",
-	"controller/con_attack3.wav",
-};
-
-const char *CNPC_Controller::pIdleSounds[] = 
-{
-	"controller/con_idle1.wav",
-	"controller/con_idle2.wav",
-	"controller/con_idle3.wav",
-	"controller/con_idle4.wav",
-	"controller/con_idle5.wav",
-};
-
-const char *CNPC_Controller::pAlertSounds[] = 
-{
-	"controller/con_alert1.wav",
-	"controller/con_alert2.wav",
-	"controller/con_alert3.wav",
-};
-
-const char *CNPC_Controller::pPainSounds[] = 
-{
-	"controller/con_pain1.wav",
-	"controller/con_pain2.wav",
-	"controller/con_pain3.wav",
-};
-
-const char *CNPC_Controller::pDeathSounds[] = 
-{
-	"controller/con_die1.wav",
-	"controller/con_die2.wav",
-};
 
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
 void CNPC_Controller::Precache()
 {
-	engine->PrecacheModel("models/controller.mdl");
+	PrecacheModel("models/controller.mdl");
 
-	PRECACHE_SOUND_ARRAY( pAttackSounds );
-	PRECACHE_SOUND_ARRAY( pIdleSounds );
-	PRECACHE_SOUND_ARRAY( pAlertSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
-	PRECACHE_SOUND_ARRAY( pDeathSounds );
-
-	engine->PrecacheModel( "sprites/xspark4.vmt");
+	PrecacheModel( "sprites/xspark4.vmt");
 
 	UTIL_PrecacheOther( "controller_energy_ball" );	
 	UTIL_PrecacheOther( "controller_head_ball" );
+
+	PrecacheScriptSound( "Controller.Pain" );
+	PrecacheScriptSound( "Controller.Alert" );
+	PrecacheScriptSound( "Controller.Die" );
+	PrecacheScriptSound( "Controller.Idle" );
+	PrecacheScriptSound( "Controller.Attack" );
 }	
 
 //=========================================================
@@ -338,7 +297,7 @@ bool CNPC_Controller::ShouldGib( const CTakeDamageInfo &info )
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
-	if ( ( info.GetDamageType() & DMG_GIB_CORPSE && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
+	if ( (  g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
 		 return true;
 	
 	return false;
@@ -394,32 +353,32 @@ void CNPC_Controller::PainSound( void )
 	if (random->RandomInt(0,5) < 2)
 	{
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pPainSounds ), 1, ATTN_NORM );
+		EmitSound( filter, entindex(), "Controller.Pain" );
 	}
 }
 
 void CNPC_Controller::AlertSound( void )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pAlertSounds ), 1, ATTN_NORM ); 
+	EmitSound( filter, entindex(), "Controller.Alert" ); 
 }
 
 void CNPC_Controller::IdleSound( void )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pIdleSounds ), 1, ATTN_NORM );
+	EmitSound( filter, entindex(), "Controller.Idle" );
 }
 
 void CNPC_Controller::AttackSound( void )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pAttackSounds ), 1, ATTN_NORM );
+	EmitSound( filter, entindex(), "Controller.Attack" );
 }
 
 void CNPC_Controller::DeathSound( void )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pDeathSounds ), 1, ATTN_NORM );
+	EmitSound( filter, entindex(), "Controller.Die" );
 }
 
 //=========================================================
@@ -742,14 +701,14 @@ void CNPC_Controller::RunTask ( const Task_t *pTask )
 				if( HasCondition( COND_CAN_RANGE_ATTACK1 ))
 				{
 					SetActivity( ACT_RANGE_ATTACK1 );
-					m_flCycle = 0;
+					SetCycle( 0 );
 					ResetSequenceInfo( );
 					m_fInCombat = true;
 				}
 				else if( HasCondition( COND_CAN_RANGE_ATTACK2 ) )
 				{
 					SetActivity( ACT_RANGE_ATTACK2 );
-					m_flCycle = 0;
+					SetCycle( 0 );
 					ResetSequenceInfo( );
 					m_fInCombat = true;
 				}
@@ -759,7 +718,7 @@ void CNPC_Controller::RunTask ( const Task_t *pTask )
 					if( IsSequenceFinished() || iFloat != GetSequence() )
 					{
 						SetSequence( iFloat );
-						m_flCycle = 0;
+						SetCycle( 0 );
 						ResetSequenceInfo( );
 					}
 				}
@@ -1070,9 +1029,9 @@ LINK_ENTITY_TO_CLASS( controller_head_ball, CNPC_ControllerHeadBall );
 
 BEGIN_DATADESC( CNPC_ControllerHeadBall )
 
-	DEFINE_THINKFUNC( CNPC_ControllerHeadBall, HuntThink ),
-	DEFINE_THINKFUNC( CNPC_ControllerHeadBall, KillThink ),
-	DEFINE_ENTITYFUNC( CNPC_ControllerHeadBall, BounceTouch ),
+	DEFINE_THINKFUNC( HuntThink ),
+	DEFINE_THINKFUNC( KillThink ),
+	DEFINE_ENTITYFUNC( BounceTouch ),
 
 END_DATADESC()
 
@@ -1108,9 +1067,11 @@ void CNPC_ControllerHeadBall::Spawn( void )
 
 void CNPC_ControllerHeadBall :: Precache( void )
 {
-	engine->PrecacheModel( "sprites/xspark4.vmt");
+	/*engine->PrecacheModel( "sprites/xspark4.vmt");
 	enginesound->PrecacheSound("debris/zap4.wav");
-	enginesound->PrecacheSound("weapons/electro4.wav");
+	enginesound->PrecacheSound("weapons/electro4.wav");*/
+
+	PrecacheModel( "sprites/xspark4.vmt");
 }
 
 extern short		g_sModelIndexLaser;	
@@ -1128,7 +1089,7 @@ void CNPC_ControllerHeadBall :: HuntThink( void  )
 	if (gpGlobals->curtime - m_flSpawnTime > 5 || m_pSprite->GetBrightness() < 64 /*|| GetEnemy() == NULL || m_hOwner == NULL*/ || !IsInWorld() )
 	{
 		SetTouch( NULL );
-		SetThink( KillThink );
+		SetThink( &CNPC_ControllerHeadBall::KillThink );
 		SetNextThink( gpGlobals->curtime );
 		return;
 	}
@@ -1165,11 +1126,11 @@ void CNPC_ControllerHeadBall :: HuntThink( void  )
 
 		}
 
-		UTIL_EmitAmbientSound( this, GetAbsOrigin(), "weapons/electro4.wav", 0.5, SNDLVL_NORM, 0, 100 );
+		UTIL_EmitAmbientSound( entindex(), GetAbsOrigin(), "Controller.ElectroSound", 0.5, SNDLVL_NORM, 0, 100);
 
 		SetNextAttack( gpGlobals->curtime + 3.0 );
 
-		SetThink( KillThink );
+		SetThink( &CNPC_ControllerHeadBall::KillThink );
 		SetNextThink( gpGlobals->curtime + 0.3 );
 	}
 }
@@ -1201,7 +1162,8 @@ void CNPC_ControllerHeadBall::BounceTouch( CBaseEntity *pOther )
 	Vector vecDir = m_vecIdeal;
 	VectorNormalize( vecDir );
 
-	trace_t tr = CBaseEntity::GetTouchTrace( );
+	trace_t tr;
+	tr = GetTouchTrace();
 
 	float n = -DotProduct(tr.plane.normal, vecDir);
 
@@ -1225,8 +1187,8 @@ LINK_ENTITY_TO_CLASS( controller_energy_ball, CNPC_ControllerZapBall );
 
 BEGIN_DATADESC( CNPC_ControllerZapBall )
 
-	DEFINE_THINKFUNC( CNPC_ControllerZapBall, AnimateThink ),
-	DEFINE_ENTITYFUNC( CNPC_ControllerZapBall, ExplodeTouch ),
+	DEFINE_THINKFUNC( AnimateThink ),
+	DEFINE_ENTITYFUNC( ExplodeTouch ),
 
 END_DATADESC()
 
@@ -1268,7 +1230,7 @@ void CNPC_ControllerZapBall::AnimateThink( void  )
 {
 	SetNextThink( gpGlobals->curtime + 0.1 );
 	
-	m_flCycle = ((int)m_flCycle + 1) % 11;
+	SetCycle( ((int)GetCycle() + 1) % 11);
 
 	if (gpGlobals->curtime - m_flSpawnTime > 5 || GetAbsVelocity().Length() < 10)
 	{
@@ -1282,7 +1244,8 @@ void CNPC_ControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 {
 	if (m_takedamage = DAMAGE_YES )
 	{
-		trace_t	tr = GetTouchTrace( );
+		trace_t	tr;
+		tr = GetTouchTrace();
 
 		ClearMultiDamage( );
 
@@ -1306,7 +1269,7 @@ void CNPC_ControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 
 	//	void UTIL_EmitAmbientSound( CBaseEntity *entity, const Vector &vecOrigin, const char *samp, float vol, soundlevel_t soundlevel, int fFlags, int pitch, float soundtime /*= 0.0f*/ )
 
-		UTIL_EmitAmbientSound( this, tr.endpos, "weapons/electro4.wav", 0.3, SNDLVL_NORM, 0, random->RandomInt( 90, 99 ) );
+		UTIL_EmitAmbientSound( entindex(), tr.endpos, "Controller.ElectroSound", 0.3, SNDLVL_NORM, 0, random->RandomInt(90, 99));
 	}
 
 	Kill();

@@ -30,7 +30,7 @@ public:
 	int  RangeAttack1Conditions( float flDot, float flDist );
 
 	int  OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	
 	void StartTask( const Task_t *pTask );
 
@@ -44,11 +44,6 @@ public:
 	void ClearBeams( void );
 
 	void HandleAnimEvent( animevent_t *pEvent );
-
-	static const char *pAttackHitSounds[];
-	static const char *pAttackMissSounds[];
-	static const char *pPainSounds[];
-	static const char *pDeathSounds[];
 	
 	DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();

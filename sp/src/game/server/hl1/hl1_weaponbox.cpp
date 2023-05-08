@@ -37,11 +37,11 @@ LINK_ENTITY_TO_CLASS(weaponbox, CWeaponBox);
 PRECACHE_REGISTER(weaponbox);
 
 BEGIN_DATADESC( CWeaponBox )
-	DEFINE_ARRAY( CWeaponBox, m_rgiszAmmo, FIELD_STRING, MAX_AMMO_SLOTS ),
-	DEFINE_ARRAY( CWeaponBox, m_rgAmmo, FIELD_INTEGER, MAX_AMMO_SLOTS ),
-	DEFINE_FIELD( CWeaponBox, m_cAmmoTypes, FIELD_INTEGER ),
+	DEFINE_ARRAY( m_rgiszAmmo, FIELD_STRING, MAX_AMMO_SLOTS ),
+	DEFINE_ARRAY( m_rgAmmo, FIELD_INTEGER, MAX_AMMO_SLOTS ),
+	DEFINE_FIELD( m_cAmmoTypes, FIELD_INTEGER ),
 
-	DEFINE_FUNCTION( CWeaponBox, BoxTouch ),
+	DEFINE_ENTITYFUNC( BoxTouch ),
 END_DATADESC()
 
 
@@ -68,7 +68,7 @@ void CWeaponBox::Spawn( void )
 	SetModel( WEAPONBOX_MODEL );
 	BaseClass::Spawn();
 
-	SetTouch( BoxTouch );
+	SetTouch( &CWeaponBox::BoxTouch );
 }
 
 

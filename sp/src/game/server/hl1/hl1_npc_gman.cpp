@@ -123,8 +123,6 @@ void CNPC_GMan::Spawn()
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_OPEN_DOORS | bits_CAP_USE_WEAPONS | bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD);
 
 	NPCInit();
-
-	Relink();
 }
 
 //=========================================================

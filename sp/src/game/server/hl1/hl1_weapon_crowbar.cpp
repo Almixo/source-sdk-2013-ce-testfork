@@ -10,7 +10,6 @@
 #include "player.h"
 #include "gamerules.h"
 #include "ammodef.h"
-#include "mathlib.h"
 #include "in_buttons.h"
 #include "soundent.h"
 #include "vstdlib/random.h"
@@ -67,7 +66,7 @@ BEGIN_DATADESC( CWeaponCrowbar )
 //	Activity		m_nHitActivity;
 
 	// Function Pointers
-	DEFINE_FUNCTION( CWeaponCrowbar, Hit ),
+	DEFINE_FUNCTION( Hit ),
 
 END_DATADESC()
 

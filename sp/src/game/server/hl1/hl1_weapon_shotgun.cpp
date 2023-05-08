@@ -101,7 +101,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 	// MUST call sound before removing a round from the clip of a CMachineGun
 	WeaponSound( SINGLE );
 
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -170,9 +170,9 @@ void CWeaponShotgun::SecondaryAttack( void )
 	}
 
 	// MUST call sound before removing a round from the clip of a CMachineGun
-	WeaponSound( DOUBLE );
+	WeaponSound( WPN_DOUBLE );
 
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );

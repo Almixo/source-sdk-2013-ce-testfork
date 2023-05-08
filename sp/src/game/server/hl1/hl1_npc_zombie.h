@@ -33,16 +33,9 @@ public:
 	void IdleSound( void );
 	void AttackSound( void );
 
-	static const char *pAttackSounds[];
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
-	static const char *pPainSounds[];
-	static const char *pAttackHitSounds[];
-	static const char *pAttackMissSounds[];
-
 	// No range attacks
-	BOOL CheckRangeAttack1 ( float flDot, float flDist ) { return FALSE; }
-	BOOL CheckRangeAttack2 ( float flDot, float flDist ) { return FALSE; }
+	bool CheckRangeAttack1 ( float flDot, float flDist ) { return false; }
+	bool CheckRangeAttack2 ( float flDot, float flDist ) { return false; }
 	int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 
 	void RemoveIgnoredConditions ( void );

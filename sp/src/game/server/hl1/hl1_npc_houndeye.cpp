@@ -53,10 +53,10 @@ ConVar sk_houndeye_dmg_blast ( "sk_houndeye_dmg_blast", "15" );
 #define		HOUND_AE_CLOSE_EYE		7
 
 BEGIN_DATADESC( CNPC_Houndeye )
-	DEFINE_FIELD( CNPC_Houndeye, m_iSpriteTexture, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Houndeye, m_fAsleep, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Houndeye, m_fDontBlink, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Houndeye, m_vecPackCenter, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_iSpriteTexture, FIELD_INTEGER ),
+	DEFINE_FIELD( m_fAsleep, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fDontBlink, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_vecPackCenter, FIELD_POSITION_VECTOR ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_houndeye, CNPC_Houndeye );
@@ -117,7 +117,7 @@ void CNPC_Houndeye::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_YELLOW;
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= sk_houndeye_health.GetFloat();
 	m_flFieldOfView		= 0.5;// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -139,33 +139,15 @@ void CNPC_Houndeye::Precache()
 {
 	engine->PrecacheModel("models/houndeye.mdl");
 
-	enginesound->PrecacheSound("houndeye/he_alert1.wav");
-	enginesound->PrecacheSound("houndeye/he_alert2.wav");
-	enginesound->PrecacheSound("houndeye/he_alert3.wav");
-
-	enginesound->PrecacheSound("houndeye/he_die1.wav");
-	enginesound->PrecacheSound("houndeye/he_die2.wav");
-	enginesound->PrecacheSound("houndeye/he_die3.wav");
-
-	enginesound->PrecacheSound("houndeye/he_idle1.wav");
-	enginesound->PrecacheSound("houndeye/he_idle2.wav");
-	enginesound->PrecacheSound("houndeye/he_idle3.wav");
-
-	enginesound->PrecacheSound("houndeye/he_hunt1.wav");
-	enginesound->PrecacheSound("houndeye/he_hunt2.wav");
-	enginesound->PrecacheSound("houndeye/he_hunt3.wav");
-
-	enginesound->PrecacheSound("houndeye/he_pain1.wav");
-	enginesound->PrecacheSound("houndeye/he_pain3.wav");
-	enginesound->PrecacheSound("houndeye/he_pain4.wav");
-	enginesound->PrecacheSound("houndeye/he_pain5.wav");
-
-	enginesound->PrecacheSound("houndeye/he_attack1.wav");
-	enginesound->PrecacheSound("houndeye/he_attack3.wav");
-
-	enginesound->PrecacheSound("houndeye/he_blast1.wav");
-	enginesound->PrecacheSound("houndeye/he_blast2.wav");
-	enginesound->PrecacheSound("houndeye/he_blast3.wav");
+	PrecacheScriptSound( "HoundEye.Idle" );
+	PrecacheScriptSound( "HoundEye.Warn" );
+	PrecacheScriptSound( "HoundEye.Hunt" );
+	PrecacheScriptSound( "HoundEye.Alert" );
+	PrecacheScriptSound( "HoundEye.Die" );
+	PrecacheScriptSound( "HoundEye.Pain" );
+	PrecacheScriptSound( "HoundEye.Anger1" );
+	PrecacheScriptSound( "HoundEye.Anger2" );
+	PrecacheScriptSound( "HoundEye.Sonic" );
 
 	m_iSpriteTexture = engine->PrecacheModel( "sprites/shockwave.vmt" );
 
@@ -183,7 +165,7 @@ int CNPC_Houndeye::RangeAttack1Conditions ( float flDot, float flDist )
 	if (tr.startsolid)
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
-		if (pEntity->Classify() == CLASS_HOUNDEYE)
+		if (pEntity->Classify() == CLASS_ALIEN_MONSTER)
 		{
 			return( COND_NONE );
 		}
@@ -216,18 +198,7 @@ int CNPC_Houndeye::RangeAttack1Conditions ( float flDot, float flDist )
 void CNPC_Houndeye::IdleSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_idle1.wav", 1, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_idle2.wav", 1, ATTN_NORM );	
-		break;
-	case 2:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_idle3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Idle" );	
 }
 
 //=========================================================
@@ -236,15 +207,7 @@ void CNPC_Houndeye::IdleSound ( void )
 void CNPC_Houndeye::WarmUpSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,1) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "houndeye/he_attack1.wav", 0.7, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "houndeye/he_attack3.wav", 0.7, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(),"HoundEye.Warn" );
 }
 
 //=========================================================
@@ -253,18 +216,7 @@ void CNPC_Houndeye::WarmUpSound ( void )
 void CNPC_Houndeye::WarnSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_hunt1.wav", 1, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_hunt2.wav", 1, ATTN_NORM );	
-		break;
-	case 2:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_hunt3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Hunt" );
 }
 
 //=========================================================
@@ -272,23 +224,11 @@ void CNPC_Houndeye::WarnSound ( void )
 //=========================================================
 void CNPC_Houndeye::AlertSound ( void )
 {
-
 	if ( m_pSquad && !m_pSquad->IsLeader( this ) )
 		 return; // only leader makes ALERT sound.
 
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt( 0,2 ) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_alert1.wav", 1, ATTN_NORM );	
-		break;
-	case 1:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_alert2.wav", 1, ATTN_NORM );	
-		break;
-	case 2:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_alert3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Alert" );
 }
 
 //=========================================================
@@ -297,18 +237,7 @@ void CNPC_Houndeye::AlertSound ( void )
 void CNPC_Houndeye::DeathSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_die1.wav", 1, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_die2.wav", 1, ATTN_NORM );	
-		break;
-	case 2:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_die3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Die" );
 }
 
 //=========================================================
@@ -317,18 +246,7 @@ void CNPC_Houndeye::DeathSound ( void )
 void CNPC_Houndeye::PainSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_pain3.wav", 1, ATTN_NORM );	
-		break;
-	case 1:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_pain4.wav", 1, ATTN_NORM );	
-		break;
-	case 2:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_pain5.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Pain" );
 }
 
 //=========================================================
@@ -413,14 +331,14 @@ void CNPC_Houndeye::HandleAnimEvent( animevent_t *pEvent )
 		case HOUND_AE_ANGERSOUND1:
 			{
 				CPASAttenuationFilter filter( this );
-				enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "houndeye/he_pain3.wav", 1, ATTN_NORM);	
+				EmitSound( filter, entindex(), "HoundEye.Anger1" );	
 			}
 			break;
 
 		case HOUND_AE_ANGERSOUND2:
 			{
 				CPASAttenuationFilter filter2( this );
-				enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "houndeye/he_pain1.wav", 1, ATTN_NORM);	
+				EmitSound( filter2, entindex(), "HoundEye.Anger2" );
 			}
 			break;
 
@@ -446,12 +364,7 @@ void CNPC_Houndeye::SonicAttack ( void )
 	float		flDist;
 
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt( 0, 2 ) )
-	{
-	case 0:	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "houndeye/he_blast1.wav", 1, ATTN_NORM);	break;
-	case 1:	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "houndeye/he_blast2.wav", 1, ATTN_NORM);	break;
-	case 2:	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "houndeye/he_blast3.wav", 1, ATTN_NORM);	break;
-	}
+	EmitSound( filter, entindex(), "HoundEye.Sonic");
 
 	CBroadcastRecipientFilter filter2;
 	te->BeamRingPoint( filter2, 0.0, 
@@ -629,7 +542,7 @@ bool CNPC_Houndeye::ShouldGoToIdleState( void )
 		AISquadIter_t iter;
 		for (CAI_BaseNPC *pMember = m_pSquad->GetFirstMember( &iter ); pMember; pMember = m_pSquad->GetNextMember( &iter ) )
 		{
-			if ( pMember != this && pMember->m_pHintNode->HintType() != NO_NODE )
+			if ( pMember != this && pMember->GetHintNode()->HintType() != NO_NODE)
 				 return true;
 		}
 
@@ -686,7 +599,7 @@ void CNPC_Houndeye::SetActivity ( Activity NewActivity )
 		if ( iSequence > ACTIVITY_NOT_AVAILABLE )
 		{
 			SetSequence( iSequence );	// Set to the reset anim (if it's there)
-			m_flCycle		= 0;		// FIX: frame counter shouldn't be reset when its the same activity as before
+			SetCycle( 0 );				// FIX: frame counter shouldn't be reset when its the same activity as before
 			ResetSequenceInfo();
 		}
 	}
@@ -801,7 +714,7 @@ void CNPC_Houndeye::RunTask ( const Task_t *pTask )
 			GetMotor()->SetIdealYawAndUpdate( idealYaw );
 			
 			float life;
-			life = ((255 - m_flCycle) / ( m_flPlaybackRate * m_flPlaybackRate));
+			life = ((255 - GetCycle()) / ( m_flPlaybackRate * m_flPlaybackRate));
 			if (life < 0.1) life = 0.1;
 
 		/*	MessageBegin( MSG_PAS, SVC_TEMPENTITY, GetAbsOrigin() );

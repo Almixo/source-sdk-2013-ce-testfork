@@ -46,13 +46,6 @@ public:
 	DECLARE_DATADESC();
 
 private:
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
-	static const char *pAttackSounds[];
-	static const char *pBiteSounds[];
-	static const char *pDieSounds[];
-	static const char *pPainSounds[];
-
 	Vector m_SaveVelocity;
 	float m_idealDist;
 
@@ -78,7 +71,7 @@ LINK_ENTITY_TO_CLASS( monster_ichthyosaur, CNPC_Ichthyosaur );
 
 BEGIN_DATADESC( CNPC_Ichthyosaur )
 	// Function Pointers
-	DEFINE_ENTITYFUNC( CNPC_Ichthyosaur, BiteTouch ),
+	DEFINE_ENTITYFUNC( BiteTouch ),
 END_DATADESC()
 
 

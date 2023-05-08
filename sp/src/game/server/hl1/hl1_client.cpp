@@ -86,7 +86,7 @@ CBaseEntity* FindEntity( edict_t *pEdict, char *classname)
 	// If no name was given set bits based on the picked
 	if (FStrEq(classname,"")) 
 	{
-		return (FindPickerEntityClass( (CBasePlayer*)pEdict->m_pEnt, classname ));
+		return (FindPickerEntityClass(static_cast<CBasePlayer*>(GetContainingEntity(pEdict)), classname)); //hack!
 	}
 	return NULL;
 }
@@ -137,36 +137,55 @@ void GameStartFrame( void )
 //=========================================================
 // instantiate the proper game rules object
 //=========================================================
-CGameRules *InstallGameRules( void )
+void InstallGameRules( void )
 {
-	engine->ServerCommand( "exec game.cfg\n" );
-	engine->ServerExecute( );
+//	engine->ServerCommand( "exec game.cfg\n" );
+//	engine->ServerExecute( );
+//
+//	// Create the player resource
+//	g_pPlayerResource = (CPlayerResource*)CBaseEntity::Create( "player_manager", vec3_origin, vec3_angle );
+//
+///*
+//	if ( !gpGlobals->deathmatch )
+//	{
+//		// generic half-life
+//		return new CHalfLife1;
+//	}
+//	else
+//	{
+//		if ( teamplay.GetInt() > 0 )
+//		{
+//			// teamplay
+//			return new CTeamplayRules;
+//		}
+//		// vanilla deathmatch
+//		return new CMultiplayRules;
+//	}
+//*/
+//
+//	CHalfLife1 *pEnt = dynamic_cast< CHalfLife1* >( CreateEntityByName( "hl1_gamerules" ) );
+//	if ( !pEnt )
+//		Error( "InstallGameRules: pEnt == NULL" );
+//
+//	return pEnt;
 
-	// Create the player resource
-	g_pPlayerResource = (CPlayerResource*)CBaseEntity::Create( "player_manager", vec3_origin, vec3_angle );
+	engine->ServerCommand("exec game.cfg\n");
+	engine->ServerExecute();
 
-/*
-	if ( !gpGlobals->deathmatch )
+	if (!gpGlobals->deathmatch)
 	{
 		// generic half-life
-		return new CHalfLife1;
+		CreateGameRulesObject("CHalfLife1");
 	}
 	else
 	{
-		if ( teamplay.GetInt() > 0 )
+		if (teamplay.GetInt() > 0)
 		{
 			// teamplay
-			return new CTeamplayRules;
+			CreateGameRulesObject("CTeamplayRules");
 		}
 		// vanilla deathmatch
-		return new CMultiplayRules;
+		CreateGameRulesObject("CMultiplayRules");
 	}
-*/
-
-	CHalfLife1 *pEnt = dynamic_cast< CHalfLife1* >( CreateEntityByName( "hl1_gamerules" ) );
-	if ( !pEnt )
-		Error( "InstallGameRules: pEnt == NULL" );
-
-	return pEnt;
 }
 

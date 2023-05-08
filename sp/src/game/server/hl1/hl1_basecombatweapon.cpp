@@ -11,16 +11,6 @@
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CBaseHL1CombatWeapon::SetObjectCollisionBox( void )
-{
-	ComputeSurroundingBox();
-	SetAbsMins( GetAbsMins() + Vector( -24, -24, 0 ) );
-	SetAbsMaxs( GetAbsMaxs() + Vector( 24, 24, 16 ) );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
 void CBaseHL1CombatWeapon::FallInit( void )
 {
 	SetModel( GetWorldModel() );
@@ -29,11 +19,10 @@ void CBaseHL1CombatWeapon::FallInit( void )
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_TRIGGER );
 	AddSolidFlags( FSOLID_NOT_SOLID );
-	Relink();
 
 	SetPickupTouch();
 	
-	SetThink( FallThink );
+	SetThink( &CBaseHL1CombatWeapon::FallThink );
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }

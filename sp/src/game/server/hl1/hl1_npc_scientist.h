@@ -24,7 +24,7 @@ public:
 	virtual int ObjectCaps( void ) { return UsableNPCObjectCaps(BaseClass::ObjectCaps()); }
 	float	MaxYawSpeed( void );
 
-	bool	OnUpcomingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult );
+	//bool	OnUpcomingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult );
 
 	float	TargetDistance( void );
 

@@ -17,25 +17,25 @@
 
 BEGIN_DATADESC( CBaseNPCMaker )
 
-	DEFINE_KEYFIELD( CBaseNPCMaker, m_iMaxNumNPCs,			FIELD_INTEGER,	"monstercount" ),
-	DEFINE_KEYFIELD( CBaseNPCMaker, m_iMaxLiveChildren,		FIELD_INTEGER,	"MaxLiveChildren" ),
-	DEFINE_KEYFIELD( CBaseNPCMaker, m_flSpawnFrequency,		FIELD_FLOAT,	"delay" ),
-	DEFINE_KEYFIELD( CBaseNPCMaker, m_bDisabled,			FIELD_BOOLEAN,	"StartDisabled" ),
+	DEFINE_KEYFIELD( m_iMaxNumNPCs,			FIELD_INTEGER,	"monstercount" ),
+	DEFINE_KEYFIELD( m_iMaxLiveChildren,		FIELD_INTEGER,	"MaxLiveChildren" ),
+	DEFINE_KEYFIELD( m_flSpawnFrequency,		FIELD_FLOAT,	"delay" ),
+	DEFINE_KEYFIELD( m_bDisabled,			FIELD_BOOLEAN,	"StartDisabled" ),
 
-	DEFINE_FIELD( CBaseNPCMaker, m_cLiveChildren,			FIELD_INTEGER ),
-	DEFINE_FIELD( CBaseNPCMaker, m_flGround,				FIELD_FLOAT ),
+	DEFINE_FIELD( m_cLiveChildren,			FIELD_INTEGER ),
+	DEFINE_FIELD( m_flGround,				FIELD_FLOAT ),
 
 	// Inputs
-	DEFINE_INPUTFUNC( CBaseNPCMaker, FIELD_VOID, "Spawn",	InputSpawnNPC ),
-	DEFINE_INPUTFUNC( CBaseNPCMaker, FIELD_VOID, "Enable",	InputEnable ),
-	DEFINE_INPUTFUNC( CBaseNPCMaker, FIELD_VOID, "Disable",	InputDisable ),
-	DEFINE_INPUTFUNC( CBaseNPCMaker, FIELD_VOID, "Toggle",	InputToggle ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Spawn",	InputSpawnNPC ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Enable",	InputEnable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Disable",	InputDisable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Toggle",	InputToggle ),
 
 	// Outputs
-	DEFINE_OUTPUT( CBaseNPCMaker, m_OnSpawnNPC, "OnSpawnNPC" ),
+	DEFINE_OUTPUT( m_OnSpawnNPC, "OnSpawnNPC" ),
 
 	// Function Pointers
-	DEFINE_THINKFUNC( CBaseNPCMaker, MakerThink ),
+	DEFINE_THINKFUNC( MakerThink ),
 
 END_DATADESC()
 
@@ -58,17 +58,14 @@ void CBaseNPCMaker::Spawn( void )
 	//Start on?
 	if ( m_bDisabled == false )
 	{
-		SetThink ( MakerThink );
+		SetThink ( &CBaseNPCMaker::MakerThink );
 		SetNextThink( gpGlobals->curtime + m_flSpawnFrequency );
 	}
 	else
 	{
 		//wait to be activated.
-		SetThink ( SUB_DoNothing );
+		SetThink ( &CBaseNPCMaker::SUB_DoNothing );
 	}
-
-	// Make sure absorigin is set
-	Relink();
 
 	m_flGround = 0;
 }
@@ -164,7 +161,7 @@ void CBaseNPCMaker::Enable( void )
 		return;
 
 	m_bDisabled = false;
-	SetThink ( MakerThink );
+	SetThink ( &CBaseNPCMaker::MakerThink );
 	SetNextThink( gpGlobals->curtime );
 }
 
@@ -219,12 +216,12 @@ LINK_ENTITY_TO_CLASS( monstermaker, CNPCMaker );
 
 BEGIN_DATADESC( CNPCMaker )
 
-	DEFINE_KEYFIELD( CNPCMaker, m_iszNPCClassname,		FIELD_STRING,	"monstertype" ),
-	DEFINE_KEYFIELD( CNPCMaker, m_ChildTargetName,		FIELD_STRING,	"NPCTargetname" ),
-	DEFINE_KEYFIELD( CNPCMaker, m_SquadName,			FIELD_STRING,	"NPCSquadName" ),
-	DEFINE_KEYFIELD( CNPCMaker, m_spawnEquipment,		FIELD_STRING,	"additionalequipment" ),
-	DEFINE_KEYFIELD( CNPCMaker, m_strHintGroup,			FIELD_STRING,	"NPCHintGroup" ),
-	DEFINE_KEYFIELD( CNPCMaker, m_RelationshipString,	FIELD_STRING,	"Relationship" ),
+	DEFINE_KEYFIELD( m_iszNPCClassname,		FIELD_STRING,	"monstertype" ),
+	DEFINE_KEYFIELD( m_ChildTargetName,		FIELD_STRING,	"NPCTargetname" ),
+	DEFINE_KEYFIELD( m_SquadName,			FIELD_STRING,	"NPCSquadName" ),
+	DEFINE_KEYFIELD( m_spawnEquipment,		FIELD_STRING,	"additionalequipment" ),
+	DEFINE_KEYFIELD( m_strHintGroup,			FIELD_STRING,	"NPCHintGroup" ),
+	DEFINE_KEYFIELD( m_RelationshipString,	FIELD_STRING,	"Relationship" ),
 
 END_DATADESC()
 
@@ -364,8 +361,8 @@ LINK_ENTITY_TO_CLASS( npc_template_maker, CTemplateNPCMaker );
 
 BEGIN_DATADESC( CTemplateNPCMaker )
 
-	DEFINE_KEYFIELD( CTemplateNPCMaker, m_iszTemplateName, FIELD_STRING, "TemplateName" ),
-	DEFINE_FIELD( CTemplateNPCMaker, m_iszTemplateData, FIELD_STRING ),
+	DEFINE_KEYFIELD( m_iszTemplateName, FIELD_STRING, "TemplateName" ),
+	DEFINE_FIELD( m_iszTemplateData, FIELD_STRING ),
 
 END_DATADESC()
 

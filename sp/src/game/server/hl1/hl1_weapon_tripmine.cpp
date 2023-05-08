@@ -276,21 +276,21 @@ private:
 LINK_ENTITY_TO_CLASS( monster_tripmine, CTripmineGrenade );
 
 BEGIN_DATADESC( CTripmineGrenade )
-	DEFINE_FIELD( CTripmineGrenade, m_flPowerUp,	FIELD_TIME ),
-	DEFINE_FIELD( CTripmineGrenade, m_vecDir,		FIELD_VECTOR ),
-	DEFINE_FIELD( CTripmineGrenade, m_vecEnd,		FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CTripmineGrenade, m_flBeamLength, FIELD_FLOAT ),
-	DEFINE_FIELD( CTripmineGrenade, m_hBeam,		FIELD_EHANDLE ),
-	DEFINE_FIELD( CTripmineGrenade, m_hRealOwner,	FIELD_EHANDLE ),
-	DEFINE_FIELD( CTripmineGrenade, m_hStuckOn,		FIELD_EHANDLE ),
-	DEFINE_FIELD( CTripmineGrenade, m_posStuckOn,	FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CTripmineGrenade, m_angStuckOn,	FIELD_VECTOR ),
+	DEFINE_FIELD( m_flPowerUp,	FIELD_TIME ),
+	DEFINE_FIELD( m_vecDir,		FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecEnd,		FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_flBeamLength, FIELD_FLOAT ),
+	DEFINE_FIELD( m_hBeam,		FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hRealOwner,	FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hStuckOn,		FIELD_EHANDLE ),
+	DEFINE_FIELD( m_posStuckOn,	FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_angStuckOn,	FIELD_VECTOR ),
 
 	// Function Pointers
-	DEFINE_FUNCTION( CTripmineGrenade, WarningThink ),
-	DEFINE_FUNCTION( CTripmineGrenade, PowerupThink ),
-	DEFINE_FUNCTION( CTripmineGrenade, BeamBreakThink ),
-	DEFINE_FUNCTION( CTripmineGrenade, DelayDeathThink ),
+	DEFINE_THINKFUNC( WarningThink ),
+	DEFINE_THINKFUNC( PowerupThink ),
+	DEFINE_THINKFUNC( BeamBreakThink ),
+	DEFINE_THINKFUNC( DelayDeathThink ),
 END_DATADESC()
 
 
@@ -309,13 +309,12 @@ void CTripmineGrenade :: Spawn( void )
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	SetModel( TRIPMINE_MODEL );
 
-	m_flCycle	= 0;
+	SetCycle( 0 );
 	SetSequence( SelectWeightedSequence( ACT_TRIPMINE_WORLD ) );
 	ResetSequenceInfo();
 	m_flPlaybackRate = 0;
 	
 	UTIL_SetSize( this, Vector( -8, -8, -8), Vector(8, 8, 8) );
-	Relink();
 
 	m_flDamage	= sk_plr_dmg_tripmine.GetFloat();
 	m_DmgRadius	= m_flDamage * 2.5;
@@ -331,7 +330,7 @@ void CTripmineGrenade :: Spawn( void )
 		m_flPowerUp = gpGlobals->curtime + 2.5;
 	}
 	
-	SetThink( PowerupThink );
+	SetThink( &CTripmineGrenade::PowerupThink );
 	SetNextThink( gpGlobals->curtime + 0.2 );
 
 	m_takedamage = DAMAGE_YES;
@@ -340,9 +339,10 @@ void CTripmineGrenade :: Spawn( void )
 
 	if ( GetOwnerEntity() != NULL )
 	{
+		CPASAttenuationFilter filter(this);
 		// play deploy sound
-		EmitSound( "TripmineGrenade.Deploy" );
-		EmitSound( "TripmineGrenade.Charge" );
+		EmitSound( filter, entindex(), "TripmineGrenade.Deploy" );
+		EmitSound( filter, entindex(), "TripmineGrenade.Charge" );
 
 		m_hRealOwner = GetOwnerEntity();
 	}
@@ -361,7 +361,7 @@ void CTripmineGrenade :: Precache( void )
 void CTripmineGrenade :: WarningThink( void  )
 {
 	// set to power up
-	SetThink( PowerupThink );
+	SetThink( &CTripmineGrenade::PowerupThink );
 	SetNextThink( gpGlobals->curtime + 1.0f );
 }
 
@@ -393,7 +393,7 @@ void CTripmineGrenade :: PowerupThink( void  )
 		{
 			StopSound( "TripmineGrenade.Deploy" );
 			StopSound( "TripmineGrenade.Charge" );
-			SetThink( SUB_Remove );
+			SetThink( &CTripmineGrenade::SUB_Remove );
 			SetNextThink( gpGlobals->curtime + 0.1f );
 //			ALERT( at_console, "WARNING:Tripmine at %.0f, %.0f, %.0f removed\n", pev->origin.x, pev->origin.y, pev->origin.z );
 			KillBeam();
@@ -407,7 +407,7 @@ void CTripmineGrenade :: PowerupThink( void  )
 		CBaseEntity *pMine = Create( "weapon_tripmine", GetAbsOrigin() + m_vecDir * 24, GetAbsAngles() );
 		pMine->AddSpawnFlags( SF_NORESPAWN );
 
-		SetThink( SUB_Remove );
+		SetThink( &CTripmineGrenade::SUB_Remove );
 		SetNextThink( gpGlobals->curtime + 0.1f );
 		KillBeam();
 		return;
@@ -417,7 +417,6 @@ void CTripmineGrenade :: PowerupThink( void  )
 	{
 		MakeBeam( );
 		RemoveSolidFlags( FSOLID_NOT_SOLID );
-		Relink();
 
 		m_bIsLive = true;
 
@@ -448,7 +447,7 @@ void CTripmineGrenade :: MakeBeam( void )
 	m_flBeamLength = tr.fraction;
 
 	// set to follow laser spot
-	SetThink( BeamBreakThink );
+	SetThink( &CTripmineGrenade::BeamBreakThink );
 
 	SetNextThink( gpGlobals->curtime + 1.0f );
 
@@ -516,12 +515,12 @@ int CTripmineGrenade::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	{
 		// disable
 		// Create( "weapon_tripmine", GetLocalOrigin() + m_vecDir * 24, GetAngles() );
-		SetThink( SUB_Remove );
+		SetThink( &CTripmineGrenade::SUB_Remove );
 		SetNextThink( gpGlobals->curtime + 0.1f );
 		KillBeam();
 		return 0;
 	}
-	return BaseClass::OnTakeDamage_Alive( info );
+	return BaseClass::OnTakeDamage( info );
 }
 
 void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
@@ -534,7 +533,7 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 		SetOwnerEntity( info.GetAttacker() );
 	}
 
-	SetThink( DelayDeathThink );
+	SetThink( &CTripmineGrenade::DelayDeathThink );
 	SetNextThink( gpGlobals->curtime + random->RandomFloat( 0.1, 0.3 ) );
 
 	StopSound( "TripmineGrenade.Charge" );

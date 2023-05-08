@@ -182,55 +182,55 @@ protected:
 
 BEGIN_DATADESC( CFuncTank )
 
-	DEFINE_KEYFIELD( CFuncTank, m_yawRate, FIELD_FLOAT, "yawrate" ),
-	DEFINE_KEYFIELD( CFuncTank, m_yawRange, FIELD_FLOAT, "yawrange" ),
-	DEFINE_KEYFIELD( CFuncTank, m_yawTolerance, FIELD_FLOAT, "yawtolerance" ),
-	DEFINE_KEYFIELD( CFuncTank, m_pitchRate, FIELD_FLOAT, "pitchrate" ),
-	DEFINE_KEYFIELD( CFuncTank, m_pitchRange, FIELD_FLOAT, "pitchrange" ),
-	DEFINE_KEYFIELD( CFuncTank, m_pitchTolerance, FIELD_FLOAT, "pitchtolerance" ),
-	DEFINE_KEYFIELD( CFuncTank, m_fireRate, FIELD_FLOAT, "firerate" ),
-	DEFINE_KEYFIELD( CFuncTank, m_persist, FIELD_FLOAT, "persistence" ),
-	DEFINE_KEYFIELD( CFuncTank, m_persist2, FIELD_FLOAT, "persistence2" ),
-	DEFINE_KEYFIELD( CFuncTank, m_minRange, FIELD_FLOAT, "minRange" ),
-	DEFINE_KEYFIELD( CFuncTank, m_maxRange, FIELD_FLOAT, "maxRange" ),
-	DEFINE_KEYFIELD( CFuncTank, m_spriteScale, FIELD_FLOAT, "spritescale" ),
-	DEFINE_KEYFIELD( CFuncTank, m_iszSpriteSmoke, FIELD_STRING, "spritesmoke" ),
-	DEFINE_KEYFIELD( CFuncTank, m_iszSpriteFlash, FIELD_STRING, "spriteflash" ),
-	DEFINE_KEYFIELD( CFuncTank, m_bulletType, FIELD_INTEGER, "bullet" ),
-	DEFINE_KEYFIELD( CFuncTank, m_spread, FIELD_INTEGER, "firespread" ),
-	DEFINE_KEYFIELD( CFuncTank, m_iBulletDamage, FIELD_INTEGER, "bullet_damage" ),
-	DEFINE_KEYFIELD( CFuncTank, m_iszMaster, FIELD_STRING, "master" ),
-	DEFINE_KEYFIELD( CFuncTank, m_soundStartRotate, FIELD_SOUNDNAME, "rotatestartsound" ),
-	DEFINE_KEYFIELD( CFuncTank, m_soundStopRotate, FIELD_SOUNDNAME, "rotatestopsound" ),
-	DEFINE_KEYFIELD( CFuncTank, m_soundLoopRotate, FIELD_SOUNDNAME, "rotatesound" ),
-	DEFINE_KEYFIELD( CFuncTank, m_iszControlVolume, FIELD_STRING, "control_volume" ),
+	DEFINE_KEYFIELD( m_yawRate, FIELD_FLOAT, "yawrate" ),
+	DEFINE_KEYFIELD( m_yawRange, FIELD_FLOAT, "yawrange" ),
+	DEFINE_KEYFIELD( m_yawTolerance, FIELD_FLOAT, "yawtolerance" ),
+	DEFINE_KEYFIELD( m_pitchRate, FIELD_FLOAT, "pitchrate" ),
+	DEFINE_KEYFIELD( m_pitchRange, FIELD_FLOAT, "pitchrange" ),
+	DEFINE_KEYFIELD( m_pitchTolerance, FIELD_FLOAT, "pitchtolerance" ),
+	DEFINE_KEYFIELD( m_fireRate, FIELD_FLOAT, "firerate" ),
+	DEFINE_KEYFIELD( m_persist, FIELD_FLOAT, "persistence" ),
+	DEFINE_KEYFIELD( m_persist2, FIELD_FLOAT, "persistence2" ),
+	DEFINE_KEYFIELD( m_minRange, FIELD_FLOAT, "minRange" ),
+	DEFINE_KEYFIELD( m_maxRange, FIELD_FLOAT, "maxRange" ),
+	DEFINE_KEYFIELD( m_spriteScale, FIELD_FLOAT, "spritescale" ),
+	DEFINE_KEYFIELD( m_iszSpriteSmoke, FIELD_STRING, "spritesmoke" ),
+	DEFINE_KEYFIELD( m_iszSpriteFlash, FIELD_STRING, "spriteflash" ),
+	DEFINE_KEYFIELD( m_bulletType, FIELD_INTEGER, "bullet" ),
+	DEFINE_KEYFIELD( m_spread, FIELD_INTEGER, "firespread" ),
+	DEFINE_KEYFIELD( m_iBulletDamage, FIELD_INTEGER, "bullet_damage" ),
+	DEFINE_KEYFIELD( m_iszMaster, FIELD_STRING, "master" ),
+	DEFINE_KEYFIELD( m_soundStartRotate, FIELD_SOUNDNAME, "rotatestartsound" ),
+	DEFINE_KEYFIELD( m_soundStopRotate, FIELD_SOUNDNAME, "rotatestopsound" ),
+	DEFINE_KEYFIELD( m_soundLoopRotate, FIELD_SOUNDNAME, "rotatesound" ),
+	DEFINE_KEYFIELD( m_iszControlVolume, FIELD_STRING, "control_volume" ),
 	
-	DEFINE_FIELD( CFuncTank, m_yawCenter, FIELD_FLOAT ),
-	DEFINE_FIELD( CFuncTank, m_pitchCenter, FIELD_FLOAT ),
-	DEFINE_FIELD( CFuncTank, m_fireLast, FIELD_TIME ),
-	DEFINE_FIELD( CFuncTank, m_lastSightTime, FIELD_TIME ),
-	DEFINE_FIELD( CFuncTank, m_barrelPos, FIELD_VECTOR ),
-	DEFINE_FIELD( CFuncTank, m_sightOrigin, FIELD_VECTOR ),
-	DEFINE_FIELD( CFuncTank, m_pController, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CFuncTank, m_vecControllerUsePos, FIELD_VECTOR ),
-	DEFINE_FIELD( CFuncTank, m_flNextAttack, FIELD_TIME ),
-	DEFINE_FIELD( CFuncTank, m_targetEntityName, FIELD_STRING ),
-	DEFINE_FIELD( CFuncTank, m_vTargetPosition, FIELD_VECTOR ),
-	DEFINE_FIELD( CFuncTank, m_persist2burst, FIELD_FLOAT),
-	//DEFINE_FIELD( CFuncTank, m_parentMatrix, FIELD_MATRIX ), // DON'T SAVE
+	DEFINE_FIELD( m_yawCenter, FIELD_FLOAT ),
+	DEFINE_FIELD( m_pitchCenter, FIELD_FLOAT ),
+	DEFINE_FIELD( m_fireLast, FIELD_TIME ),
+	DEFINE_FIELD( m_lastSightTime, FIELD_TIME ),
+	DEFINE_FIELD( m_barrelPos, FIELD_VECTOR ),
+	DEFINE_FIELD( m_sightOrigin, FIELD_VECTOR ),
+	DEFINE_FIELD( m_pController, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_vecControllerUsePos, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flNextAttack, FIELD_TIME ),
+	DEFINE_FIELD( m_targetEntityName, FIELD_STRING ),
+	DEFINE_FIELD( m_vTargetPosition, FIELD_VECTOR ),
+	DEFINE_FIELD( m_persist2burst, FIELD_FLOAT),
+	//DEFINE_FIELD( m_parentMatrix, FIELD_MATRIX ), // DON'T SAVE
 
 	// Inputs
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_VOID, "Activate", InputActivate ),
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_VOID, "Deactivate", InputDeactivate ),
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_FLOAT, "SetFireRate", InputSetFireRate ),
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_VECTOR, "SetTargetPosition", InputSetTargetPosition ),
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_STRING, "SetTargetEntityName", InputSetTargetEntityName ),
-	DEFINE_INPUTFUNC( CFuncTank, FIELD_EHANDLE, "SetTargetEntity", InputSetTargetEntity ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Activate", InputActivate ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Deactivate", InputDeactivate ),
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetFireRate", InputSetFireRate ),
+	DEFINE_INPUTFUNC( FIELD_VECTOR, "SetTargetPosition", InputSetTargetPosition ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetTargetEntityName", InputSetTargetEntityName ),
+	DEFINE_INPUTFUNC( FIELD_EHANDLE, "SetTargetEntity", InputSetTargetEntity ),
 
 	// Outputs
-	DEFINE_OUTPUT(CFuncTank, m_OnFire,			"OnFire"),
-	DEFINE_OUTPUT(CFuncTank, m_OnLoseTarget,	"OnLoseTarget"),
-	DEFINE_OUTPUT(CFuncTank, m_OnAquireTarget,	"OnAquireTarget"),
+	DEFINE_OUTPUT( m_OnFire, "OnFire" ),
+	DEFINE_OUTPUT( m_OnLoseTarget, "OnLoseTarget" ),
+	DEFINE_OUTPUT( m_OnAquireTarget, "OnAquireTarget" ),
 
 END_DATADESC()
 
@@ -486,8 +486,6 @@ void CFuncTank::TraceAttack( CBaseEntity *pAttacker, float flDamage, const Vecto
 			}
 
 			SetLocalAngles( angles );
-
-			UTIL_Relink(this);
 		}
 	}
 }
@@ -663,7 +661,7 @@ bool CFuncTank::StartControl( CBasePlayer *pController )
 		m_pController->GetActiveWeapon()->Holster();
 	}
 
-	m_pController->m_Local.m_iHideHUD |= HIDEHUD_WEAPONS;
+	m_pController->m_Local.m_iHideHUD |= HIDEHUD_WEAPONSELECTION;
 	m_vecControllerUsePos = m_pController->GetLocalOrigin();
 	
 	SetNextThink( gpGlobals->curtime + 0.1f );
@@ -680,7 +678,7 @@ void CFuncTank::StopControl()
 	if ( m_pController->GetActiveWeapon() )
 		m_pController->GetActiveWeapon()->Deploy();
 
-	m_pController->m_Local.m_iHideHUD &= ~HIDEHUD_WEAPONS;
+	m_pController->m_Local.m_iHideHUD &= ~HIDEHUD_WEAPONSELECTION;
 	SetNextThink( TICK_NEVER_THINK );
 	m_pController = NULL;
 
@@ -1118,15 +1116,29 @@ void CFuncTank::StartRotSound( void )
 	
 	if ( m_soundLoopRotate != NULL_STRING )
 	{
-		CPASAttenuationFilter filter( this );
+		CPASAttenuationFilter filter(this);
 		filter.MakeReliable();
-		EmitSound( filter, entindex(), CHAN_STATIC, (char*)STRING(m_soundLoopRotate), 0.85, ATTN_NORM );
+
+		EmitSound_t ep;
+		ep.m_nChannel = CHAN_STATIC;
+		ep.m_pSoundName = (char*)STRING(m_soundLoopRotate);
+		ep.m_flVolume = 0.85f;
+		ep.m_SoundLevel = SNDLVL_NORM;
+
+		EmitSound(filter, entindex(), ep);
 	}
 	
 	if ( m_soundStartRotate != NULL_STRING )
 	{
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_BODY, (char*)STRING(m_soundStartRotate), 1.0, ATTN_NORM);
+
+		EmitSound_t ep;
+		ep.m_nChannel = CHAN_BODY;
+		ep.m_pSoundName = (char*)STRING(m_soundStartRotate);
+		ep.m_flVolume = 1.0f;
+		ep.m_SoundLevel = SNDLVL_NORM;
+
+		EmitSound( filter, entindex(), ep );
 	}
 }
 
@@ -1141,8 +1153,15 @@ void CFuncTank::StopRotSound( void )
 		}
 		if ( m_soundStopRotate != NULL_STRING )
 		{
-			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), CHAN_BODY, (char*)STRING(m_soundStopRotate), 1.0, ATTN_NORM);
+			CPASAttenuationFilter filter(this);
+
+			EmitSound_t ep;
+			ep.m_nChannel = CHAN_BODY;
+			ep.m_pSoundName = (char*)STRING(m_soundStopRotate);
+			ep.m_flVolume = 1.0f;
+			ep.m_SoundLevel = SNDLVL_NORM;
+
+			EmitSound(filter, entindex(), ep);
 		}
 	}
 	m_spawnflags &= ~SF_TANK_SOUNDON;
@@ -1210,12 +1229,12 @@ LINK_ENTITY_TO_CLASS( func_tankpulselaser, CFuncTankPulseLaser );
 
 BEGIN_DATADESC( CFuncTankPulseLaser )
 
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_flPulseSpeed,	 FIELD_FLOAT,		"PulseSpeed" ),
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_flPulseWidth,	 FIELD_FLOAT,		"PulseWidth" ),
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_flPulseColor,	 FIELD_COLOR32,		"PulseColor" ),
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_flPulseLife,	 FIELD_FLOAT,		"PulseLife" ),
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_flPulseLag,		 FIELD_FLOAT,		"PulseLag" ),
-	DEFINE_KEYFIELD( CFuncTankPulseLaser, m_sPulseFireSound, FIELD_SOUNDNAME,	"PulseFireSound" ),
+	DEFINE_KEYFIELD( m_flPulseSpeed,	FIELD_FLOAT,		"PulseSpeed" ),
+	DEFINE_KEYFIELD( m_flPulseWidth,	FIELD_FLOAT,		"PulseWidth" ),
+	DEFINE_KEYFIELD( m_flPulseColor,	FIELD_COLOR32,		"PulseColor" ),
+	DEFINE_KEYFIELD( m_flPulseLife,		FIELD_FLOAT,		"PulseLife" ),
+	DEFINE_KEYFIELD( m_flPulseLag,		FIELD_FLOAT,		"PulseLag" ),
+	DEFINE_KEYFIELD( m_sPulseFireSound,	FIELD_SOUNDNAME,	"PulseFireSound" ),
 
 END_DATADESC()
 
@@ -1267,8 +1286,15 @@ void CFuncTankPulseLaser::Fire( int bulletCount, const Vector &barrelEnd, const 
 
 		if ( m_sPulseFireSound != NULL_STRING )
 		{
-			CPASAttenuationFilter filter( this, 0.6f );
-			EmitSound( filter, entindex(), CHAN_WEAPON, STRING(m_sPulseFireSound), 1.0, 0.6 );
+			CPASAttenuationFilter filter(this, 0.6f);
+
+			EmitSound_t ep;
+			ep.m_nChannel = CHAN_WEAPON;
+			ep.m_pSoundName = (char*)STRING(m_sPulseFireSound);
+			ep.m_flVolume = 1.0f;
+			ep.m_SoundLevel = ATTN_TO_SNDLVL(0.6);
+
+			EmitSound(filter, entindex(), ep);
 		}
 
 	}
@@ -1298,10 +1324,10 @@ LINK_ENTITY_TO_CLASS( func_tanklaser, CFuncTankLaser );
 
 BEGIN_DATADESC( CFuncTankLaser )
 
-	DEFINE_KEYFIELD( CFuncTankLaser, m_iszLaserName, FIELD_STRING, "laserentity" ),
+	DEFINE_KEYFIELD( m_iszLaserName, FIELD_STRING, "laserentity" ),
 
-	DEFINE_FIELD( CFuncTankLaser, m_pLaser, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CFuncTankLaser, m_laserTime, FIELD_TIME ),
+	DEFINE_FIELD( m_pLaser, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_laserTime, FIELD_TIME ),
 
 END_DATADESC()
 
@@ -1436,13 +1462,13 @@ LINK_ENTITY_TO_CLASS( func_tankmortar, CFuncTankMortar );
 
 BEGIN_DATADESC( CFuncTankMortar )
 
-	DEFINE_KEYFIELD( CFuncTankMortar, m_Magnitude, FIELD_INTEGER, "iMagnitude" ),
-	DEFINE_KEYFIELD( CFuncTankMortar, m_fireDelay, FIELD_FLOAT, "firedelay" ),
-	DEFINE_KEYFIELD( CFuncTankMortar, m_fireStartSound, FIELD_STRING, "firestartsound" ),
-	DEFINE_KEYFIELD( CFuncTankMortar, m_fireEndSound, FIELD_STRING, "fireendsound" ),
+	DEFINE_KEYFIELD( m_Magnitude, FIELD_INTEGER, "iMagnitude" ),
+	DEFINE_KEYFIELD( m_fireDelay, FIELD_FLOAT, "firedelay" ),
+	DEFINE_KEYFIELD( m_fireStartSound, FIELD_STRING, "firestartsound" ),
+	DEFINE_KEYFIELD( m_fireEndSound, FIELD_STRING, "fireendsound" ),
 
 	// Inputs
-	DEFINE_INPUTFUNC( CFuncTankMortar, FIELD_VOID, "ShootGun", InputShootGun ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "ShootGun", InputShootGun ),
 
 END_DATADESC()
 
@@ -1494,7 +1520,14 @@ void CFuncTankMortar::FiringSequence( const Vector &barrelEnd, const Vector &for
 			if ( m_fireStartSound != NULL_STRING )
 			{
 				CPASAttenuationFilter filter( this );
-				EmitSound( filter, entindex(), CHAN_WEAPON, STRING(m_fireStartSound), 1.0, ATTN_NORM );
+
+				EmitSound_t ep;
+				ep.m_nChannel = CHAN_WEAPON;
+				ep.m_pSoundName = (char*)STRING(m_fireStartSound);
+				ep.m_flVolume = 1.0f;
+				ep.m_SoundLevel = SNDLVL_NORM;
+
+				EmitSound( filter, entindex(), ep );
 			}
 
 			if ( m_fireDelay != 0 )
@@ -1519,7 +1552,14 @@ void CFuncTankMortar::Fire( int bulletCount, const Vector &barrelEnd, const Vect
 	if ( m_fireEndSound != NULL_STRING )
 	{
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_WEAPON, STRING(m_fireEndSound), 1.0, ATTN_NORM );
+		
+		EmitSound_t ep;
+		ep.m_nChannel = CHAN_WEAPON;
+		ep.m_pSoundName = STRING(m_fireEndSound);
+		ep.m_flVolume = 1.0f;
+		ep.m_SoundLevel = SNDLVL_NORM;
+
+		EmitSound( filter, entindex(), ep );
 	}
 
 	trace_t tr;
@@ -1552,7 +1592,7 @@ LINK_ENTITY_TO_CLASS( func_tankphyscannister, CFuncTankPhysCannister );
 
 BEGIN_DATADESC( CFuncTankPhysCannister )
 
-	DEFINE_KEYFIELD( CFuncTankPhysCannister, m_iszBarrelVolume, FIELD_STRING, "barrel_volume" ),
+	DEFINE_KEYFIELD( m_iszBarrelVolume, FIELD_STRING, "barrel_volume" ),
 
 END_DATADESC()
 

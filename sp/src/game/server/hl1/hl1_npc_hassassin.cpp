@@ -123,18 +123,18 @@ public:
 LINK_ENTITY_TO_CLASS( monster_human_assassin, CNPC_HAssassin );
 
 BEGIN_DATADESC( CNPC_HAssassin )
-	DEFINE_FIELD( CNPC_HAssassin, m_flLastShot, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_HAssassin, m_flDiviation, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLastShot, FIELD_TIME ),
+	DEFINE_FIELD( m_flDiviation, FIELD_FLOAT ),
 
-	DEFINE_FIELD( CNPC_HAssassin, m_flNextJump, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_HAssassin, m_vecJumpVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flNextJump, FIELD_TIME ),
+	DEFINE_FIELD( m_vecJumpVelocity, FIELD_VECTOR),
 
-	DEFINE_FIELD( CNPC_HAssassin, m_flNextGrenadeCheck, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_HAssassin, m_vecTossVelocity, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_HAssassin, m_fThrowGrenade, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
+	DEFINE_FIELD( m_vecTossVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_fThrowGrenade, FIELD_BOOLEAN ),
 
-	DEFINE_FIELD( CNPC_HAssassin, m_iTargetRanderamt, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_HAssassin, m_iFrustration, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iTargetRanderamt, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iFrustration, FIELD_INTEGER ),
 END_DATADESC()
 
 //=========================================================
@@ -155,7 +155,7 @@ void CNPC_HAssassin::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_RED;
-    m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= sk_hassassin_health.GetFloat();
 	m_flFieldOfView		= VIEW_FIELD_WIDE; // indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -180,21 +180,13 @@ void CNPC_HAssassin::Precache()
 {
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
 
-	engine->PrecacheModel("models/hassassin.mdl");
-
-	enginesound->PrecacheSound("weapons/pl_gun1.wav");
-	enginesound->PrecacheSound("weapons/pl_gun2.wav");
-
-	enginesound->PrecacheSound("debris/beamstart1.wav");
+	PrecacheModel("models/hassassin.mdl");
 
 	UTIL_PrecacheOther( "npc_handgrenade" );
 
-	enginesound->PrecacheSound("player/pl_step1.wav");
-	enginesound->PrecacheSound("player/pl_step2.wav");
-	enginesound->PrecacheSound("player/pl_step3.wav");
-	enginesound->PrecacheSound("player/pl_step4.wav");
-
-//	m_iShell = PRECACHE_MODEL ("models/shell.mdl");// brass shell
+	PrecacheScriptSound( "HAssassin.Shot" );
+	PrecacheScriptSound( "HAssassin.Beamsound" );
+	PrecacheScriptSound( "HAssassin.Footstep" );
 }
 
 int CNPC_HAssassin::GetSoundInterests( void )
@@ -356,12 +348,12 @@ void CNPC_HAssassin::RunTask ( const Task_t *pTask )
 			else if ( HasCondition ( COND_SEE_ENEMY ))
 			{
 				SetActivity( ACT_ASSASSIN_FLY_ATTACK );
-				m_flCycle = 0;
+				SetCycle( 0 );
 			}
 			else
 			{
 				SetActivity( ACT_ASSASSIN_FLY_DOWN );
-				m_flCycle = 0;
+				SetCycle( 0 );
 			}
 						
 			ResetSequenceInfo( );
@@ -522,7 +514,6 @@ void CNPC_HAssassin::HandleAnimEvent( animevent_t *pEvent )
 			pGrenade->SetAbsVelocity( m_vecTossVelocity );
 			pGrenade->m_flDetonateTime = gpGlobals->curtime + 2.0;
 			pGrenade->Spawn( );
-			pGrenade->SetOwner( this );
 			pGrenade->SetOwnerEntity( this );
 			pGrenade->SetGravity( 0.5 );
 
@@ -580,24 +571,16 @@ void CNPC_HAssassin::Shoot ( void )
 	AngleVectors( GetAbsAngles(), &vForward, &vRight, &vUp );
 
 	Vector	vecShellVelocity = vRight * random->RandomFloat(40,90) + vUp * random->RandomFloat(75,200) + vForward * random->RandomFloat(-40, 40);
-	//EjectBrass ( pev->origin + gpGlobals->v_up * 32 + gpGlobals->v_forward * 12, vecShellVelocity, pev->angles.y, m_iShell, TE_BOUNCE_SHELL); 
+	//EjectBrass ( pev->origin + gpGlobals->v_up * 32 + gpGlobals->v_forward * 12, vecShellVelocity, pev->angles.y, m_iShell, TE_BOUNCE_SHELL);
+	//EjectShell( GetAbsOrigin() + vUp * 32 + vForward * 12, vecShellVelocity, GetAbsAngles().y, 0 );
 	FireBullets( 1, vecShootOrigin, vecShootDir, Vector( m_flDiviation, m_flDiviation, m_flDiviation ), 2048, m_iAmmoType ); // shoot +-8 degrees
 
 	//NDebugOverlay::Line( vecShootOrigin, vecShootOrigin + vecShootDir * 2048, 255, 0, 0, true, 2.0 );
 
 	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "HAssassin.Shot" );
 
-	switch( random->RandomInt( 0, 1 ))
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "weapons/pl_gun1.wav", random->RandomFloat(0.6, 0.8), ATTN_NORM );
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "weapons/pl_gun2.wav", random->RandomFloat(0.6, 0.8), ATTN_NORM );
-		break;
-	}
-
-	m_fEffects |= EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 
 	VectorAngles( vecShootDir, vAngles );
 	SetPoseParameter( "shoot", vecShootDir.x );
@@ -679,7 +662,7 @@ void CNPC_HAssassin::RunAI( void )
 	{
 		if ( GetRenderColor().a == 255)
 		{
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "debris/beamstart1.wav", 0.2, ATTN_NORM );
+			EmitSound( filter, entindex(), "HAssassin.Beamsound" );
 		}
 
 		SetRenderColorA( max( GetRenderColor().a - 50, m_iTargetRanderamt ) );
@@ -694,17 +677,11 @@ void CNPC_HAssassin::RunAI( void )
 
 	if ( GetActivity() == ACT_RUN || GetActivity() == ACT_WALK)
 	{
-		static int iStep = 0;
+		static bool iStep = false;
 		iStep = ! iStep;
 		if (iStep)
 		{
-			switch( random->RandomInt( 0, 3 ) )
-			{
-			case 0:	enginesound->EmitSound( filter, entindex(), CHAN_BODY, "player/pl_step1.wav", 0.5, ATTN_NORM );	break;
-			case 1:	enginesound->EmitSound( filter, entindex(), CHAN_BODY, "player/pl_step3.wav", 0.5, ATTN_NORM );	break;
-			case 2:	enginesound->EmitSound( filter, entindex(), CHAN_BODY, "player/pl_step2.wav", 0.5, ATTN_NORM );	break;
-			case 3:	enginesound->EmitSound( filter, entindex(), CHAN_BODY, "player/pl_step4.wav", 0.5, ATTN_NORM );	break;
-			}
+			EmitSound( filter, entindex(), "HAssassin.Footstep" );	
 		}
 	}
 }

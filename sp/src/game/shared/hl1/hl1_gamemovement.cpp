@@ -17,7 +17,6 @@
 #include <stdarg.h>
 #include "movevars_shared.h"
 #include "engine/IEngineTrace.h"
-#include "SoundEmitterSystemBase.h"
 #include "decals.h"
 #include "tier0/vprof.h"
 #include "hl1_gamemovement.h"
@@ -28,11 +27,10 @@ static CHL1GameMovement g_GameMovement;
 IGameMovement *g_pGameMovement = ( IGameMovement * )&g_GameMovement;
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CGameMovement, IGameMovement, INTERFACENAME_GAMEMOVEMENT, g_GameMovement );
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL1GameMovement::CheckJumpButton( void )
+bool CHL1GameMovement::CheckJumpButton( void )
 {
 	m_pHL1Player = ToHL1Player( player );
 
@@ -41,7 +39,7 @@ void CHL1GameMovement::CheckJumpButton( void )
 	if (m_pHL1Player->pl.deadflag)
 	{
 		mv->m_nOldButtons |= IN_JUMP ;	// don't jump again until released
-		return;
+		return false;
 	}
 
 	// See if we are waterjumping.  If so, decrement count and return.
@@ -51,7 +49,7 @@ void CHL1GameMovement::CheckJumpButton( void )
 		if (m_pHL1Player->m_flWaterJumpTime < 0)
 			m_pHL1Player->m_flWaterJumpTime = 0;
 		
-		return;
+		return false;
 	}
 
 	// If we are in the water most of the way...
@@ -73,30 +71,32 @@ void CHL1GameMovement::CheckJumpButton( void )
 			PlaySwimSound();
 		}
 
-		return;
+		return false;
 	}
 
 	// No more effect
  	if (m_pHL1Player->GetGroundEntity() == NULL)
 	{
 		mv->m_nOldButtons |= IN_JUMP;
-		return;		// in air, so no effect
+		return false;		// in air, so no effect
 	}
 
 	if ( mv->m_nOldButtons & IN_JUMP )
-		return;		// don't pogo stick
+		return false;		// don't pogo stick
 
 	// In the air now.
     m_pHL1Player->SetGroundEntity( (CBaseEntity *)NULL );
 	
-	PlayStepSound( m_pSurfaceData, 1.0, true );
-	
+	Vector vecOrigin = mv->GetAbsOrigin();
+
+	m_pHL1Player->PlayStepSound( vecOrigin, player->GetSurfaceData(), 1.0, true);
+
 	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
 
 	float flGroundFactor = 1.0f;
-	if (m_pSurfaceData)
+	if (player->GetSurfaceData())
 	{
-		flGroundFactor = m_pSurfaceData->jumpFactor; 
+		flGroundFactor = player->GetSurfaceData()->game.jumpFactor; // 1.0f
 	}
 
 	// Acclerate upward
@@ -139,4 +139,5 @@ void CHL1GameMovement::CheckJumpButton( void )
 
 	// Flag that we jumped.
 	mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+	return true;
 }

@@ -68,8 +68,8 @@ public:
 };
 
 BEGIN_DATADESC( CNPC_FlockingFlyerFlock )
-	DEFINE_FIELD( CNPC_FlockingFlyerFlock, m_cFlockSize, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_FlockingFlyerFlock, m_flFlockRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_cFlockSize, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flFlockRadius, FIELD_FLOAT ),
 END_DATADESC()
 
 class CNPC_FlockingFlyer : public CHL1BaseNPC
@@ -120,22 +120,22 @@ public:
 };
 
 BEGIN_DATADESC( CNPC_FlockingFlyer )
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_pSquadLeader, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_pSquadNext, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_fTurning, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_fCourseAdjust, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_fPathBlocked, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_vecReferencePoint, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_vecAdjustedVelocity, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_flGoalSpeed, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_flLastBlockedTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_flFakeBlockedTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_FlockingFlyer, m_flAlertTime, FIELD_TIME ),
-	DEFINE_THINKFUNC( CNPC_FlockingFlyer, IdleThink ),
-	DEFINE_THINKFUNC( CNPC_FlockingFlyer, Start ),
-	DEFINE_THINKFUNC( CNPC_FlockingFlyer, FlockLeaderThink ),
-	DEFINE_THINKFUNC( CNPC_FlockingFlyer, FlockFollowerThink ),
-	DEFINE_THINKFUNC( CNPC_FlockingFlyer, FallHack ),
+	DEFINE_FIELD( m_pSquadLeader, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_pSquadNext, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_fTurning, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fCourseAdjust, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_fPathBlocked, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_vecReferencePoint, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecAdjustedVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flGoalSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLastBlockedTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flFakeBlockedTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flAlertTime, FIELD_TIME ),
+	DEFINE_THINKFUNC( IdleThink ),
+	DEFINE_THINKFUNC( Start ),
+	DEFINE_THINKFUNC( FlockLeaderThink ),
+	DEFINE_THINKFUNC( FlockFollowerThink ),
+	DEFINE_THINKFUNC( FallHack ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_flyer, CNPC_FlockingFlyer );
@@ -169,7 +169,7 @@ void CNPC_FlockingFlyerFlock::Spawn( void )
 	SpawnFlock();
 
 
-	SetThink( SUB_Remove );
+	SetThink( &CNPC_FlockingFlyerFlock::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -217,8 +217,8 @@ void CNPC_FlockingFlyerFlock::SpawnFlock( void )
 		pBoid->SetAbsVelocity( Vector ( 0, 0, 0 ) );
 		pBoid->SetAbsAngles( GetAbsAngles() );
 		
-		pBoid->m_flCycle = 0;
-		pBoid->SetThink( CNPC_FlockingFlyer::IdleThink );
+		pBoid->SetCycle( 0 );
+		pBoid->SetThink( &CNPC_FlockingFlyer::IdleThink );
 		pBoid->SetNextThink( gpGlobals->curtime + 0.2 );
 
 		if ( pBoid != pLeader ) 
@@ -231,11 +231,11 @@ void CNPC_FlockingFlyerFlock::SpawnFlock( void )
 
 void CNPC_FlockingFlyerFlock::PrecacheFlockSounds( void )
 {
-	enginesound->PrecacheSound("boid/boid_alert1.wav" );
-	enginesound->PrecacheSound("boid/boid_alert2.wav" );
+	//enginesound->PrecacheSound("boid/boid_alert1.wav" );
+	//enginesound->PrecacheSound("boid/boid_alert2.wav" );
 
-	enginesound->PrecacheSound("boid/boid_idle1.wav" );
-	enginesound->PrecacheSound("boid/boid_idle2.wav" );
+	//enginesound->PrecacheSound("boid/boid_idle1.wav" );
+	//enginesound->PrecacheSound("boid/boid_idle2.wav" );
 }
 
 //=========================================================
@@ -245,9 +245,9 @@ void CNPC_FlockingFlyer::Spawn( )
 	Precache( );
 	SpawnCommonCode();
 	
-	m_flCycle = 0;
+	SetCycle( 0 );
 	SetNextThink( gpGlobals->curtime + 0.1f );
-	SetThink( IdleThink );
+	SetThink( &CNPC_FlockingFlyer::IdleThink );
 }
 
 //=========================================================
@@ -255,7 +255,7 @@ void CNPC_FlockingFlyer::Spawn( )
 void CNPC_FlockingFlyer::SpawnCommonCode( )
 {
 	m_lifeState		= LIFE_ALIVE;
-	pev->classname	= MAKE_STRING("monster_flyer");
+	SetClassname( "monster_flyer" );
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_FLY );
@@ -291,7 +291,7 @@ void CNPC_FlockingFlyer :: IdleThink( void )
 	// see if there's a client in the same pvs as the monster
 	if ( !FNullEnt( UTIL_FindClientInPVS( edict() ) ) )
 	{
-		SetThink( Start );
+		SetThink( &CNPC_FlockingFlyer::Start );
 		SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 }
@@ -429,7 +429,7 @@ void CNPC_FlockingFlyer::Start( void )
 
 	if ( IsLeader() )
 	{
-		SetThink( FlockLeaderThink );
+		SetThink( &CNPC_FlockingFlyer::FlockLeaderThink );
 	}
 	else
 	{
@@ -753,7 +753,7 @@ void CNPC_FlockingFlyer::FlockFollowerThink( void )
 	if ( IsLeader() || !InSquad() )
 	{
 		// the leader has been killed and this flyer suddenly finds himself the leader. 
-		SetThink ( FlockLeaderThink );
+		SetThink ( &CNPC_FlockingFlyer::FlockLeaderThink );
 		return;
 	}
 
@@ -841,12 +841,12 @@ void CNPC_FlockingFlyer::Event_Killed( const CTakeDamageInfo &info )
 	m_lifeState = LIFE_DEAD;
 
 	m_flPlaybackRate = 0;
-	m_fEffects = EF_NOINTERP;
+	AddEffects(EF_NOINTERP);
 
 	UTIL_SetSize( this, Vector(0,0,0), Vector(0,0,0) );
 	SetMoveType( MOVETYPE_FLYGRAVITY );
 
-	SetThink ( FallHack );
+	SetThink ( &CNPC_FlockingFlyer::FallHack );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 

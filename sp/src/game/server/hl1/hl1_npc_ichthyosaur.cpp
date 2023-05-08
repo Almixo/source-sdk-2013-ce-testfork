@@ -20,7 +20,6 @@
 #include "soundenvelope.h"
 #include "shake.h"
 #include "ndebugoverlay.h"
-#include "splash.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "hl1_npc_ichthyosaur.h"
@@ -38,44 +37,6 @@ enum IchthyosaurMoveType_t
 	ICH_MOVETYPE_ARRIVE		// Slow down and stop at target.
 };
 
-const char *CNPC_Ichthyosaur::pIdleSounds[] = 
-{
-	"ichy/ichy_idle1.wav",
-	"ichy/ichy_idle2.wav",
-	"ichy/ichy_idle3.wav",
-	"ichy/ichy_idle4.wav",
-};
-
-const char *CNPC_Ichthyosaur::pAlertSounds[] = 
-{
-	"ichy/ichy_alert2.wav",
-	"ichy/ichy_alert3.wav",
-};
-
-const char *CNPC_Ichthyosaur::pAttackSounds[] = 
-{
-	"ichy/ichy_attack1.wav",
-	"ichy/ichy_attack2.wav",
-};
-
-const char *CNPC_Ichthyosaur::pBiteSounds[] = 
-{
-	"ichy/ichy_bite1.wav",
-	"ichy/ichy_bite2.wav",
-};
-
-const char *CNPC_Ichthyosaur::pPainSounds[] = 
-{
-	"ichy/ichy_pain2.wav",
-	"ichy/ichy_pain3.wav",
-	"ichy/ichy_pain5.wav",
-};
-
-const char *CNPC_Ichthyosaur::pDieSounds[] = 
-{
-	"ichy/ichy_die2.wav",
-	"ichy/ichy_die4.wav",
-};
 
 enum
 {
@@ -180,16 +141,16 @@ AI_END_CUSTOM_NPC()
 //=========================================================
 void CNPC_Ichthyosaur::Precache()
 {
-	engine->PrecacheModel("models/icky.mdl");
+	PrecacheModel("models/icky.mdl");
 
-	engine->PrecacheModel("sprites/lgtning.vmt");
+	PrecacheMaterial("sprites/lgtning.vmt");
 
-	PRECACHE_SOUND_ARRAY( pIdleSounds );
-	PRECACHE_SOUND_ARRAY( pAlertSounds );
-	PRECACHE_SOUND_ARRAY( pAttackSounds );
-	PRECACHE_SOUND_ARRAY( pBiteSounds );
-	PRECACHE_SOUND_ARRAY( pDieSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
+	PrecacheScriptSound("Ichthyosaur.Bite");
+	PrecacheScriptSound("Ichthyosaur.Alert");
+	PrecacheScriptSound("Ichthyosaur.Pain");
+	PrecacheScriptSound("Ichthyosaur.Die");
+	PrecacheScriptSound("Ichthyosaur.Idle");
+	PrecacheScriptSound("Ichthyosaur.Attack");
 
 	BaseClass::Precache();
 }
@@ -223,7 +184,7 @@ void CNPC_Ichthyosaur::Spawn( void )
 	SetDistLook( 1024 );
 
 	
-	SetTouch( BiteTouch );
+	SetTouch( &CNPC_Ichthyosaur::BiteTouch );
 //	SetUse( CombatUse ); 
 
 	m_idealDist = 384;
@@ -546,7 +507,7 @@ void CNPC_Ichthyosaur::HandleAnimEvent( animevent_t *pEvent )
 				}
 			}
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pBiteSounds[ RandomInt(0,ARRAYSIZE(pBiteSounds)-1)], 1.0, ATTN_NORM );
+			EmitSound( filter, entindex(), "Ichthyosaur.Bite" );
 
 			bDidAttack = TRUE;
 		}

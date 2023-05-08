@@ -108,14 +108,6 @@ public:
 
 	void Spawn( void );
 	void Precache( void );
-
-	static const char *pAttackHitSounds[];
-	static const char *pAttackMissSounds[];
-	static const char *pAttackSounds[];
-	static const char *pDieSounds[];
-	static const char *pPainSounds[];
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
 	
 	float	MaxYawSpeed( void );
 	Class_T Classify ( void ){ return CLASS_ALIEN_MILITARY;	}
@@ -141,12 +133,6 @@ public:
 	int TranslateSchedule( int scheduleType ); //GetScheduleOfType
 	int SelectSchedule( void ); // GetSchedule
 
-	void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector( -32, -32, 0 ) );
-		SetAbsMaxs( GetAbsOrigin() + Vector( 32, 32, 85 ) );
-	}
-
 	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
 	int		IRelationPriority( CBaseEntity *pTarget );
 /*
@@ -171,65 +157,13 @@ public:
 LINK_ENTITY_TO_CLASS( monster_alien_grunt, CNPC_AlienGrunt );
 
 BEGIN_DATADESC( CNPC_AlienGrunt )
-	DEFINE_FIELD( CNPC_AlienGrunt, m_fCanHornetAttack, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_AlienGrunt, m_flNextHornetAttackCheck, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_AlienGrunt, m_flNextPainTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_AlienGrunt, m_flNextSpeakTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_AlienGrunt, m_flNextWordTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_AlienGrunt, m_iLastWord, FIELD_INTEGER ),
+	DEFINE_FIELD( m_fCanHornetAttack, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flNextHornetAttackCheck, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextPainTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextSpeakTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextWordTime, FIELD_TIME ),
+	DEFINE_FIELD( m_iLastWord, FIELD_INTEGER ),
 END_DATADESC()
-
-const char *CNPC_AlienGrunt::pAttackHitSounds[] = 
-{
-	"zombie/claw_strike1.wav",
-	"zombie/claw_strike2.wav",
-	"zombie/claw_strike3.wav",
-};
-
-const char *CNPC_AlienGrunt::pAttackMissSounds[] = 
-{
-	"zombie/claw_miss1.wav",
-	"zombie/claw_miss2.wav",
-};
-
-const char *CNPC_AlienGrunt::pAttackSounds[] =
-{
-	"agrunt/ag_attack1.wav",
-	"agrunt/ag_attack2.wav",
-	"agrunt/ag_attack3.wav",
-};
-
-const char *CNPC_AlienGrunt::pDieSounds[] =
-{
-	"agrunt/ag_die1.wav",
-	"agrunt/ag_die4.wav",
-	"agrunt/ag_die5.wav",
-};
-
-const char *CNPC_AlienGrunt::pPainSounds[] =
-{
-	"agrunt/ag_pain1.wav",
-	"agrunt/ag_pain2.wav",
-	"agrunt/ag_pain3.wav",
-	"agrunt/ag_pain4.wav",
-	"agrunt/ag_pain5.wav",
-};
-
-const char *CNPC_AlienGrunt::pIdleSounds[] =
-{
-	"agrunt/ag_idle1.wav",
-	"agrunt/ag_idle2.wav",
-	"agrunt/ag_idle3.wav",
-	"agrunt/ag_idle4.wav",
-};
-
-const char *CNPC_AlienGrunt::pAlertSounds[] =
-{
-	"agrunt/ag_alert1.wav",
-	"agrunt/ag_alert3.wav",
-	"agrunt/ag_alert4.wav",
-	"agrunt/ag_alert5.wav",
-};
 
 int CNPC_AlienGrunt::IRelationPriority( CBaseEntity *pTarget )
 {
@@ -256,7 +190,7 @@ void CNPC_AlienGrunt::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_GREEN;
-	m_fEffects			= 0;
+	ClearEffects();
 	m_iHealth			= sk_agrunt_health.GetFloat();
 	m_flFieldOfView		= 0.2;// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -288,37 +222,18 @@ void CNPC_AlienGrunt::Spawn()
 //=========================================================
 void CNPC_AlienGrunt::Precache()
 {
-	int i;
-
 	engine->PrecacheModel("models/agrunt.mdl");
 
-	for ( i = 0; i < ARRAYSIZE( pAttackHitSounds ); i++ )
-		enginesound->PrecacheSound((char *)pAttackHitSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pAttackMissSounds ); i++ )
-		enginesound->PrecacheSound((char *)pAttackMissSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pIdleSounds ); i++ )
-		enginesound->PrecacheSound((char *)pIdleSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pDieSounds ); i++ )
-		enginesound->PrecacheSound((char *)pDieSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pPainSounds ); i++ )
-		enginesound->PrecacheSound((char *)pPainSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pAttackSounds ); i++ )
-		enginesound->PrecacheSound((char *)pAttackSounds[i]);
-
-	for ( i = 0; i < ARRAYSIZE( pAlertSounds ); i++ )
-		enginesound->PrecacheSound((char *)pAlertSounds[i]);
-
-	enginesound->PrecacheSound( "player/pl_ladder1.wav" );
-	enginesound->PrecacheSound( "player/pl_ladder2.wav" );
-	enginesound->PrecacheSound( "player/pl_ladder3.wav" );
-	enginesound->PrecacheSound( "player/pl_ladder4.wav" );
-
-	enginesound->PrecacheSound( "hassault/hw_shoot1.wav" );
+	PrecacheScriptSound( "Weapon_Hornetgun.Single" );
+	PrecacheScriptSound( "AlienGrunt.LeftFoot" );
+	PrecacheScriptSound( "AlienGrunt.RightFoot" );
+	PrecacheScriptSound( "AlienGrunt.AttackHit" );
+	PrecacheScriptSound( "AlienGrunt.AttackMiss" );
+	PrecacheScriptSound( "AlienGrunt.Die" );
+	PrecacheScriptSound( "AlienGrunt.Alert" );
+	PrecacheScriptSound( "AlienGrunt.Attack" );
+	PrecacheScriptSound( "AlienGrunt.Pain" );
+	PrecacheScriptSound( "AlienGrunt.Idle" );
 
 	iAgruntMuzzleFlash = engine->PrecacheModel( "sprites/muz4.vmt" );
 
@@ -390,7 +305,7 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 				vecDirToEnemy = vForward;
 			}
 
-			m_fEffects = EF_MUZZLEFLASH;
+			DoMuzzleFlash();
 
 			// make angles +-180
 			if (angDir.x > 180)
@@ -430,22 +345,14 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 		// left foot
 		{
 			CPASAttenuationFilter filter2( this );
-			switch ( random->RandomInt(0,1) )
-			{
-			case 0:	enginesound->EmitSound( filter2, entindex(), CHAN_BODY, "player/pl_ladder2.wav", 1, ATTN_NORM, 0, 70 );	break;
-			case 1:	enginesound->EmitSound( filter2, entindex(), CHAN_BODY, "player/pl_ladder4.wav", 1, ATTN_NORM, 0, 70 );	break;
-			}
+			EmitSound( filter2, entindex(), "AlienGrunt.LeftFoot" );
 		}
 		break;
 	case AGRUNT_AE_RIGHT_FOOT:
 		// right foot
 		{
 			CPASAttenuationFilter filter3( this );
-			switch ( random->RandomInt(0,1))
-			{
-			case 0:	enginesound->EmitSound( filter3, entindex(), CHAN_BODY, "player/pl_ladder1.wav", 1, ATTN_NORM, 0, 70 );	break;
-			case 1:	enginesound->EmitSound( filter3, entindex(), CHAN_BODY, "player/pl_ladder3.wav", 1, ATTN_NORM, 0 ,70);	break;
-			}
+			EmitSound( filter3, entindex(), "AlienGrunt.RightFoot" );
 		}
 		break;
 
@@ -474,17 +381,17 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() + vRight * 250 );
 				}
 
-				enginesound->EmitSound(filter4, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound(filter4, entindex(), "AlienGrunt.AttackHit" );
 
 				Vector vecArmPos;
 				QAngle angArmAng;
 				GetAttachment( 0, vecArmPos, angArmAng );
-				SpawnBlood(vecArmPos, pHurt->BloodColor(), 25);// a little surface blood.
+				SpawnBlood(vecArmPos, g_vecAttackDir, pHurt->BloodColor(), 25);// a little surface blood.
 			}
 			else
 			{
 				// Play a random attack miss sound
-				enginesound->EmitSound(filter4, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt(0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound(filter4, entindex(), "AlienGrunt.AttackMiss" );
 			}
 		}
 		break;
@@ -513,17 +420,17 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() + vRight * -250 );
 				}
 
-				enginesound->EmitSound( filter5, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter5, entindex(), "AlienGrunt.AttackHit" );
 
 				Vector vecArmPos;
 				QAngle angArmAng;
 				GetAttachment( 0, vecArmPos, angArmAng );
-				SpawnBlood(vecArmPos, pHurt->BloodColor(), 25);// a little surface blood.
+				SpawnBlood(vecArmPos, g_vecAttackDir, pHurt->BloodColor(), 25);// a little surface blood.
 			}
 			else
 			{
 				// Play a random attack miss sound
-				enginesound->EmitSound( filter5, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt(0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+				EmitSound( filter5, entindex(), "AlienGrunt.AttackMiss" );
 			}
 		}
 		break;
@@ -543,7 +450,7 @@ void CNPC_AlienGrunt::DeathSound ( void )
 	StopTalking();
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pDieSounds[ random->RandomInt(0,ARRAYSIZE(pDieSounds)-1)], 1.0, ATTN_NORM );
+	EmitSound( filter, entindex(), "AlienGrunt.Die" );
 }
 
 //=========================================================
@@ -554,7 +461,7 @@ void CNPC_AlienGrunt::AlertSound ( void )
 	StopTalking();
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAlertSounds[random->RandomInt(0,ARRAYSIZE(pAlertSounds)-1)], 1.0, ATTN_NORM );
+	EmitSound( filter, entindex(), "AlienGrunt.Alert" );
 }
 
 //=========================================================
@@ -565,7 +472,7 @@ void CNPC_AlienGrunt::AttackSound ( void )
 	StopTalking();
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAttackSounds[random->RandomInt(0,ARRAYSIZE(pAttackSounds)-1)], 1.0, ATTN_NORM );
+	EmitSound( filter, entindex(), "AlienGrunt.Attack" );
 }
 
 //=========================================================
@@ -583,7 +490,7 @@ void CNPC_AlienGrunt::PainSound ( void )
 	StopTalking();
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pPainSounds[random->RandomInt(0,ARRAYSIZE(pPainSounds)-1)], 1.0, ATTN_NORM );
+	EmitSound( filter, entindex(),"AlienGrunt.Pain" );
 }
 
 //=========================================================
@@ -624,18 +531,9 @@ void CNPC_AlienGrunt::PrescheduleThink ( void )
 	{
 		if ( m_flNextWordTime < gpGlobals->curtime )
 		{
-			int num = -1;
-
-			do
-			{
-				num = random->RandomInt( 0,ARRAYSIZE(pIdleSounds)-1 );
-			} while( num == m_iLastWord );
-
-			m_iLastWord = num;
-
 			// play a new sound
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pIdleSounds[ num ], 1.0, ATTN_NORM );
+			EmitSound( filter, entindex(), "AlienGrunt.Idle" );
 
 			// is this word our last?
 			if ( random->RandomInt( 1, 10 ) <= 1 )
@@ -998,7 +896,7 @@ void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &ve
 	}
 	else
 	{
-		SpawnBlood( ptr->endpos, BloodColor(), flDamage);// a little surface blood.
+		SpawnBlood( ptr->endpos, g_vecAttackDir, BloodColor(), flDamage);// a little surface blood.
 		TraceBleed( flDamage, vecDir, ptr, ainfo.GetDamageType() );
 	}
 

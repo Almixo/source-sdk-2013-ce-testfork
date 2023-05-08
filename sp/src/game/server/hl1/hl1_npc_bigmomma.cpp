@@ -123,9 +123,9 @@ public:
 LINK_ENTITY_TO_CLASS( bmortar, CBMortar );
 
 BEGIN_DATADESC( CBMortar )
-	DEFINE_FIELD( CBMortar, m_maxFrame, FIELD_INTEGER ),
-	DEFINE_FIELD( CBMortar, m_flDmgTime, FIELD_FLOAT ),
-	DEFINE_FUNCTION( CBMortar, Animate ),
+	DEFINE_FIELD( m_maxFrame, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flDmgTime, FIELD_FLOAT ),
+	DEFINE_FUNCTION( Animate ),
 END_DATADESC()
 
 
@@ -162,12 +162,12 @@ public:
 LINK_ENTITY_TO_CLASS( info_bigmomma, CInfoBM );
 
 BEGIN_DATADESC( CInfoBM )
-	DEFINE_FIELD( CInfoBM, m_flRadius, FIELD_FLOAT ),
-	DEFINE_FIELD( CInfoBM, m_flDelay, FIELD_FLOAT ),
-	DEFINE_KEYFIELD( CInfoBM, m_iszReachTarget, FIELD_STRING, "reachtarget" ),
-	DEFINE_KEYFIELD( CInfoBM, m_iszReachSequence, FIELD_STRING, "reachsequence" ),
-	DEFINE_KEYFIELD( CInfoBM, m_iszPreSequence, FIELD_STRING, "presequence" ),
-	DEFINE_OUTPUT( CInfoBM, m_OnAnimationEvent, "OnAnimationEvent" ),
+	DEFINE_FIELD( m_flRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flDelay, FIELD_FLOAT ),
+	DEFINE_KEYFIELD( m_iszReachTarget, FIELD_STRING, "reachtarget" ),
+	DEFINE_KEYFIELD( m_iszReachSequence, FIELD_STRING, "reachsequence" ),
+	DEFINE_KEYFIELD( m_iszPreSequence, FIELD_STRING, "presequence" ),
+	DEFINE_OUTPUT( m_OnAnimationEvent, "OnAnimationEvent" ),
 END_DATADESC()
 
 
@@ -211,19 +211,9 @@ public:
 
 	void Spawn( void );
 	void Precache( void );
-
-	static const char *pChildDieSounds[];
-	static const char *pSackSounds[];
-	static const char *pDeathSounds[];
-	static const char *pAttackSounds[];
-	static const char *pAttackHitSounds[];
-	static const char *pBirthSounds[];
-	static const char *pAlertSounds[];
-	static const char *pPainSounds[];
-	static const char *pFootSounds[];
 	
 	Class_T	Classify( void ) { return CLASS_ALIEN_MONSTER; };
-	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int	OnTakeDamage( const CTakeDamageInfo &info );
 	void HandleAnimEvent( animevent_t *pEvent );
 	void LayHeadcrab( void );
@@ -329,12 +319,6 @@ public:
 		m_crabCount = 0;
 	}
 
-	virtual void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector( -95, -95, 0 ) );
-		SetAbsMaxs( GetAbsOrigin() + Vector( 95, 95, 190 ) );
-	}
-
 	int SelectSchedule( void );
 	void StartTask( const Task_t *pTask );
 	void RunTask( const Task_t *pTask );
@@ -378,77 +362,18 @@ private:
 
 
 BEGIN_DATADESC( CNPC_BigMomma )
-	DEFINE_FIELD( CNPC_BigMomma, m_nodeTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_BigMomma, m_crabTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_BigMomma, m_mortarTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_BigMomma, m_painSoundTime, FIELD_TIME ),
-	DEFINE_KEYFIELD( CNPC_BigMomma, m_iszNetName, FIELD_STRING, "netname" ),
-	DEFINE_FIELD( CNPC_BigMomma, m_flWait, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_BigMomma, m_iszTarget, FIELD_STRING ),
+	DEFINE_FIELD( m_nodeTime, FIELD_TIME ),
+	DEFINE_FIELD( m_crabTime, FIELD_TIME ),
+	DEFINE_FIELD( m_mortarTime, FIELD_TIME ),
+	DEFINE_FIELD( m_painSoundTime, FIELD_TIME ),
+	DEFINE_KEYFIELD( m_iszNetName, FIELD_STRING, "netname" ),
+	DEFINE_FIELD( m_flWait, FIELD_TIME ),
+	DEFINE_FIELD( m_iszTarget, FIELD_STRING ),
 END_DATADESC()
 
 
 LINK_ENTITY_TO_CLASS ( monster_bigmomma, CNPC_BigMomma );
 
-const char *CNPC_BigMomma::pChildDieSounds[] = 
-{
-	"gonarch/gon_childdie1.wav",
-	"gonarch/gon_childdie2.wav",
-	"gonarch/gon_childdie3.wav",
-};
-
-const char *CNPC_BigMomma::pSackSounds[] = 
-{
-	"gonarch/gon_sack1.wav",
-	"gonarch/gon_sack2.wav",
-	"gonarch/gon_sack3.wav",
-};
-
-const char *CNPC_BigMomma::pDeathSounds[] = 
-{
-	"gonarch/gon_die1.wav",
-};
-
-const char *CNPC_BigMomma::pAttackSounds[] = 
-{
-	"gonarch/gon_attack1.wav",
-	"gonarch/gon_attack2.wav",
-	"gonarch/gon_attack3.wav",
-};
-const char *CNPC_BigMomma::pAttackHitSounds[] = 
-{
-	"zombie/claw_strike1.wav",
-	"zombie/claw_strike2.wav",
-	"zombie/claw_strike3.wav",
-};
-
-const char *CNPC_BigMomma::pBirthSounds[] = 
-{
-	"gonarch/gon_birth1.wav",
-	"gonarch/gon_birth2.wav",
-	"gonarch/gon_birth3.wav",
-};
-
-const char *CNPC_BigMomma::pAlertSounds[] = 
-{
-	"gonarch/gon_alert1.wav",
-	"gonarch/gon_alert2.wav",
-	"gonarch/gon_alert3.wav",
-};
-
-const char *CNPC_BigMomma::pPainSounds[] = 
-{
-	"gonarch/gon_pain2.wav",
-	"gonarch/gon_pain4.wav",
-	"gonarch/gon_pain5.wav",
-};
-
-const char *CNPC_BigMomma::pFootSounds[] = 
-{
-	"gonarch/gon_step1.wav",
-	"gonarch/gon_step2.wav",
-	"gonarch/gon_step3.wav",
-};
 
 //=========================================================
 // Spawn
@@ -498,26 +423,25 @@ void CNPC_BigMomma::Precache()
 {
 	engine->PrecacheModel("models/big_mom.mdl");
 
-	PRECACHE_SOUND_ARRAY( pChildDieSounds );
-	PRECACHE_SOUND_ARRAY( pSackSounds );
-	PRECACHE_SOUND_ARRAY( pDeathSounds );
-	PRECACHE_SOUND_ARRAY( pAttackSounds );
-	PRECACHE_SOUND_ARRAY( pAttackHitSounds );
-	PRECACHE_SOUND_ARRAY( pBirthSounds );
-	PRECACHE_SOUND_ARRAY( pAlertSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
-	PRECACHE_SOUND_ARRAY( pFootSounds );
+	PrecacheScriptSound( "BigMomma.Pain" );
+	PrecacheScriptSound( "BigMomma.Attack" );
+	PrecacheScriptSound( "BigMomma.AttackHit" );
+	PrecacheScriptSound( "BigMomma.Alert" );
+	PrecacheScriptSound( "BigMomma.Birth" );
+	PrecacheScriptSound( "BigMomma.Sack" );
+	PrecacheScriptSound( "BigMomma.Die" );
+	PrecacheScriptSound( "BigMomma.FootstepLeft" );
+	PrecacheScriptSound( "BigMomma.FootstepRight" );
+	PrecacheScriptSound( "BigMomma.LayHeadcrab" );
+	PrecacheScriptSound( "BigMomma.ChildDie" );
+	PrecacheScriptSound( "BigMomma.LaunchMortar" );
 
 	UTIL_PrecacheOther( BIG_CHILDCLASS );
 
 	// TEMP: Squid
-	engine->PrecacheModel("sprites/mommaspit.vmt");// spit projectile.
-	gSpitSprite = engine->PrecacheModel("sprites/mommaspout.vmt");// client side spittle.
-	gSpitDebrisSprite = engine->PrecacheModel("sprites/mommablob.vmt" );
-
-	enginesound->PrecacheSound( "bullchicken/bc_acid1.wav" );
-	enginesound->PrecacheSound( "bullchicken/bc_spithit1.wav" );
-	enginesound->PrecacheSound( "bullchicken/bc_spithit2.wav" );
+	PrecacheModel("sprites/mommaspit.vmt");// spit projectile.
+	gSpitSprite = PrecacheModel("sprites/mommaspout.vmt");// client side spittle.
+	gSpitDebrisSprite = PrecacheModel("sprites/mommablob.vmt" );
 }
 
 //=========================================================
@@ -603,7 +527,7 @@ void CNPC_BigMomma::NodeReach( void )
 }
 
 
-void CNPC_BigMomma::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CNPC_BigMomma::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo dmgInfo = info;
 	float flDamage = dmgInfo.GetDamage();
@@ -630,20 +554,18 @@ void CNPC_BigMomma::TraceAttack( const CTakeDamageInfo &info, const Vector &vecD
 	}
 	else 
 	{
-		SpawnBlood( ptr->endpos + ptr->plane.normal * 15, m_bloodColor, 100 );
+		SpawnBlood( ptr->endpos + ptr->plane.normal * 15, g_vecAttackDir, m_bloodColor, 100 );
 
 		if ( gpGlobals->curtime > m_painSoundTime )
 		{
 			m_painSoundTime = gpGlobals->curtime + RandomInt(1, 3);
 						
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pPainSounds ), 1.0f, ATTN_NORM, 0, 100 );
-			
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pPainSounds[ random->RandomInt(0,ARRAYSIZE(pPainSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Pain" );
 		}
 	}
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 
@@ -757,7 +679,7 @@ void CNPC_BigMomma::StartTask( const Task_t *pTask )
 				{
 					SetIdealActivity( ACT_DO_NOT_DISTURB );
 					SetSequence( iSequence );
-					m_flCycle = 0.0f;
+					SetCycle( 0 );
 
 					ResetSequenceInfo();
 					//Msg( "BM: Sequence %s %f\n", GetNodeSequence(), gpGlobals->curtime );
@@ -818,7 +740,7 @@ void CNPC_BigMomma::StartTask( const Task_t *pTask )
 		// Play an attack sound here
 
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_VOICE, RANDOM_SOUND_ARRAY( pAttackSounds ), 1.0f, ATTN_NORM, 0, PITCH_NORM );
+		EmitSound( filter, entindex(), "BigMomma.Attack" );
 
 		BaseClass::StartTask( pTask );
 		}
@@ -967,46 +889,44 @@ void CNPC_BigMomma::HandleAnimEvent( animevent_t *pEvent )
 				}
 
 				pHurt->RemoveFlag( FL_ONGROUND );
-				enginesound->EmitSound( filter, entindex(), CHAN_BODY, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + RandomInt(-5,5) );
+				EmitSound( filter, entindex(), "BigMomma.AttackHit" );
 			}
 		}
 		break;
 		
 		case BIG_AE_SCREAM:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pAlertSounds[ random->RandomInt(0,ARRAYSIZE(pAlertSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Alert" );
 			break;
 		
 		case BIG_AE_PAIN_SOUND:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pPainSounds[ random->RandomInt(0,ARRAYSIZE(pPainSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Pain" );
 			break;
 		
 		case BIG_AE_ATTACK_SOUND:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pAttackSounds[ random->RandomInt(0,ARRAYSIZE(pAttackSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Attack" );
 			break;
 
 		case BIG_AE_BIRTH_SOUND:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pBirthSounds[ random->RandomInt(0,ARRAYSIZE(pBirthSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Birth" );
 			break;
 
 		case BIG_AE_SACK:
 			if ( RandomInt(0,100) < 30 )
-			{
-				enginesound->EmitSound( filter, entindex(), CHAN_BODY, pSackSounds[ random->RandomInt(0,ARRAYSIZE(pSackSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
-			}
+				EmitSound( filter, entindex(), "BigMomma.Sack" );
 			break;
 
 		case BIG_AE_DEATHSOUND:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pDeathSounds[ random->RandomInt(0,ARRAYSIZE(pDeathSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.Die" );
 			break;
 
 		case BIG_AE_STEP1:		// Footstep left
 		case BIG_AE_STEP3:		// Footstep back left
-			enginesound->EmitSound( filter, entindex(), CHAN_ITEM, pFootSounds[ random->RandomInt(0,ARRAYSIZE(pFootSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.FootstepLeft" );
 			break;
 
 		case BIG_AE_STEP4:		// Footstep back right
 		case BIG_AE_STEP2:		// Footstep right
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, pFootSounds[ random->RandomInt(0,ARRAYSIZE(pFootSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+			EmitSound( filter, entindex(), "BigMomma.FootstepRight" );
 			break;
 
 		case BIG_AE_MORTAR_ATTACK1:
@@ -1068,7 +988,7 @@ void CNPC_BigMomma::LayHeadcrab( void )
 	UTIL_DecalTrace( &tr, "Splash" );
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pBirthSounds[ random->RandomInt(0,ARRAYSIZE(pBirthSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+	EmitSound(filter, entindex(), "BigMomma.Birth"); //LayHeadcrab
 	m_crabCount++;
 }
 
@@ -1082,9 +1002,7 @@ void CNPC_BigMomma::DeathNotice( CBaseEntity *pevChild )
 	{
 		// Make the "my baby's dead" noise!
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_WEAPON, RANDOM_SOUND_ARRAY( pChildDieSounds ), 1.0f, ATTN_NORM, 0, PITCH_NORM );
-
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pBirthSounds[ random->RandomInt(0,ARRAYSIZE(pBirthSounds)-1) ], 1.0, ATTN_NORM, 0, 100 );
+		EmitSound( filter, entindex(), "BigMomma.ChildDie" );
 	}
 }
 
@@ -1097,7 +1015,7 @@ void CNPC_BigMomma::LaunchMortar( void )
 	startPos.z += 180;
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pSackSounds[ random->RandomInt(0,ARRAYSIZE(pSackSounds)-1) ], 1.0, ATTN_NORM, 0, 100 + random->RandomInt(-5,5) );
+	EmitSound( filter, entindex(), "BigMomma.LaunchMortar" );
 	CBMortar *pBomb = CBMortar::Shoot( this, startPos, m_vTossDir );
 	pBomb->SetGravity( 1.0 );
 	MortarSpray( startPos, Vector(0,0,10), gSpitSprite, 24 );
@@ -1319,7 +1237,7 @@ void CBMortar::Touch( CBaseEntity *pOther )
 
 	CBaseEntity *pOwner = GetOwnerEntity();
 
-	RadiusDamage( CTakeDamageInfo( this, pOwner, sk_bigmomma_dmg_blast.GetFloat(), DMG_ACID ), GetAbsOrigin(), sk_bigmomma_radius_blast.GetFloat(), CLASS_NONE );
+	RadiusDamage( CTakeDamageInfo( this, pOwner, sk_bigmomma_dmg_blast.GetFloat(), DMG_ACID ), GetAbsOrigin(), sk_bigmomma_radius_blast.GetFloat(), CLASS_NONE, this );
 		
 	UTIL_Remove( pSprite );
 	UTIL_Remove( this );

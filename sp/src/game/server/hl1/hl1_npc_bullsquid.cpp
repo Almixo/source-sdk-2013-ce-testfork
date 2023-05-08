@@ -122,8 +122,8 @@ private:
 LINK_ENTITY_TO_CLASS( squidspit, CSquidSpit );
 
 BEGIN_DATADESC( CSquidSpit )
-	DEFINE_FIELD( CSquidSpit, m_nSquidSpitSprite, FIELD_INTEGER ),
-	DEFINE_FIELD( CSquidSpit, m_hSprite, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_nSquidSpitSprite, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hSprite, FIELD_EHANDLE ),
 END_DATADESC()
 
 
@@ -162,8 +162,6 @@ void CSquidSpit::Shoot( CBaseEntity *pOwner, Vector vecStart, Vector vecVelocity
 	pSpit->SetAbsVelocity( vecVelocity );
 	pSpit->SetOwnerEntity( pOwner );
 
-	UTIL_Relink( pSpit );
-
 	CSprite *pSprite = (CSprite*)pSpit->GetSprite();
 
 	if ( pSprite )
@@ -173,7 +171,6 @@ void CSquidSpit::Shoot( CBaseEntity *pOwner, Vector vecStart, Vector vecVelocity
 
 		pSprite->SetScale( 0.5 );
 		pSprite->SetTransparency( pSpit->m_nRenderMode, pSpit->m_clrRender->r, pSpit->m_clrRender->g, pSpit->m_clrRender->b, pSpit->m_clrRender->a, pSpit->m_nRenderFX );
-		pSprite->Relink();
 	}
 
 
@@ -236,9 +233,9 @@ void CSquidSpit::Touch ( CBaseEntity *pOther )
 
 
 BEGIN_DATADESC( CNPC_Bullsquid )
-	DEFINE_FIELD( CNPC_Bullsquid, m_fCanThreatDisplay, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CNPC_Bullsquid, m_flLastHurtTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Bullsquid, m_flNextSpitTime, FIELD_TIME ),
+	DEFINE_FIELD( m_fCanThreatDisplay, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flLastHurtTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flNextSpitTime, FIELD_TIME ),
 END_DATADESC()
 
 //=========================================================
@@ -281,41 +278,17 @@ void CNPC_Bullsquid::Precache()
 {
 	BaseClass::Precache();
 	
-	engine->PrecacheModel("models/bullsquid.mdl");
+	PrecacheModel("models/bullsquid.mdl");
 	
-	engine->PrecacheModel("sprites/bigspit.vmt");// spit projectile.
-	
-	enginesound->PrecacheSound("zombie/claw_miss2.wav");// because we use the basemonster SWIPE animation event
+	PrecacheModel("sprites/bigspit.vmt");// spit projectile.
 
-	enginesound->PrecacheSound("bullchicken/bc_attack2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_attack3.wav");
-	
-	enginesound->PrecacheSound("bullchicken/bc_die1.wav");
-	enginesound->PrecacheSound("bullchicken/bc_die2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_die3.wav");
-	
-	enginesound->PrecacheSound("bullchicken/bc_idle1.wav");
-	enginesound->PrecacheSound("bullchicken/bc_idle2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_idle3.wav");
-	enginesound->PrecacheSound("bullchicken/bc_idle4.wav");
-	enginesound->PrecacheSound("bullchicken/bc_idle5.wav");
-	
-	enginesound->PrecacheSound("bullchicken/bc_pain1.wav");
-	enginesound->PrecacheSound("bullchicken/bc_pain2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_pain3.wav");
-	enginesound->PrecacheSound("bullchicken/bc_pain4.wav");
-	
-	enginesound->PrecacheSound("bullchicken/bc_attackgrowl.wav");
-	enginesound->PrecacheSound("bullchicken/bc_attackgrowl2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_attackgrowl3.wav");
-
-	enginesound->PrecacheSound("bullchicken/bc_acid1.wav");
-
-	enginesound->PrecacheSound("bullchicken/bc_bite2.wav");
-	enginesound->PrecacheSound("bullchicken/bc_bite3.wav");
-
-	enginesound->PrecacheSound("bullchicken/bc_spithit1.wav");
-	enginesound->PrecacheSound("bullchicken/bc_spithit2.wav");
+	PrecacheScriptSound( "Bullsquid.Idle" );
+	PrecacheScriptSound( "Bullsquid.Pain" );
+	PrecacheScriptSound( "Bullsquid.Alert" );
+	PrecacheScriptSound( "Bullsquid.Die" );
+	PrecacheScriptSound( "Bullsquid.Attack" );
+	PrecacheScriptSound( "Bullsquid.Bite" );
+	PrecacheScriptSound( "Bullsquid.Growl" );
 }
 
 
@@ -347,24 +320,7 @@ Class_T	CNPC_Bullsquid::Classify( void )
 void CNPC_Bullsquid::IdleSound ( void )
 {
 	CPASAttenuationFilter filter( this, SQUID_ATTN_IDLE );
-	switch ( random->RandomInt(0,4) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle1.wav", 1, SQUID_ATTN_IDLE );	
-		break;
-	case 1:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle2.wav", 1, SQUID_ATTN_IDLE );	
-		break;
-	case 2:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle3.wav", 1, SQUID_ATTN_IDLE );	
-		break;
-	case 3:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle4.wav", 1, SQUID_ATTN_IDLE );	
-		break;
-	case 4:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle5.wav", 1, SQUID_ATTN_IDLE );	
-		break;
-	}
+	EmitSound( filter, entindex(), "Bullsquid.Idle" );	
 }
 
 //=========================================================
@@ -372,24 +328,8 @@ void CNPC_Bullsquid::IdleSound ( void )
 //=========================================================
 void CNPC_Bullsquid::PainSound ( void )
 {
-	int iPitch = random->RandomInt( 85, 120 );
-
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt( 0, 3 ) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_pain1.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	case 1:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_pain2.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	case 2:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_pain3.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	case 3:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_pain4.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	}
+	EmitSound( filter, entindex(), "Bullsquid.Pain" );	
 }
 
 //=========================================================
@@ -397,18 +337,8 @@ void CNPC_Bullsquid::PainSound ( void )
 //=========================================================
 void CNPC_Bullsquid::AlertSound ( void )
 {
-	int iPitch = random->RandomInt( 140, 160 );
-
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt ( 0, 1  ) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle1.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_idle2.wav", 1, ATTN_NORM, 0, iPitch );	
-		break;
-	}
+	EmitSound( filter, entindex(), "Bullsquid.Alert" );	
 }
 
 //=========================================================
@@ -417,18 +347,7 @@ void CNPC_Bullsquid::AlertSound ( void )
 void CNPC_Bullsquid::DeathSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,2) )
-	{
-	case 0:	
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_die1.wav", 1, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_die2.wav", 1, ATTN_NORM );	
-		break;
-	case 2:
-		enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_die3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "Bullsquid.Die" );	
 }
 
 //=========================================================
@@ -437,15 +356,7 @@ void CNPC_Bullsquid::DeathSound ( void )
 void CNPC_Bullsquid::AttackSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	switch ( random->RandomInt(0,1) )
-	{
-	case 0:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "bullchicken/bc_attack2.wav", 1, ATTN_NORM );	
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "bullchicken/bc_attack3.wav", 1, ATTN_NORM );	
-		break;
-	}
+	EmitSound( filter, entindex(), "Bullsquid.Attack" );	
 }
 
 //=========================================================
@@ -565,8 +476,6 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 
 		case BSQUID_AE_THROW:
 			{
-				int iPitch;
-
 				// squid throws its prey IF the prey is a client. 
 				CBaseEntity *pHurt = CheckTraceHullAttack( 70, Vector(-16,-16,-16), Vector(16,16,16), 0, 0 );
 
@@ -574,17 +483,8 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 				if ( pHurt )
 				{
 					// croonchy bite sound
-					iPitch = random->RandomFloat( 90, 110 );
 					CPASAttenuationFilter filter( this );
-					switch ( random->RandomInt( 0, 1 ) )
-					{
-					case 0:
-						enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "bullchicken/bc_bite2.wav", 1, ATTN_NORM, 0, iPitch );	
-						break;
-					case 1:
-						enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "bullchicken/bc_bite3.wav", 1, ATTN_NORM, 0, iPitch );	
-						break;
-					}
+					EmitSound( filter, entindex(), "Bullsquid.Bite" );	
 
 					// screeshake transforms the viewmodel as well as the viewangle. No problems with seeing the ends of the viewmodels.
 					UTIL_ScreenShake( pHurt->GetAbsOrigin(), 25.0, 1.5, 0.7, 2, SHAKE_START );
@@ -1003,18 +903,7 @@ void CNPC_Bullsquid::StartTask ( const Task_t *pTask )
 	case TASK_MELEE_ATTACK2:
 		{
 			CPASAttenuationFilter filter( this );
-			switch ( random->RandomInt ( 0, 2 ) )
-			{
-			case 0:	
-				enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_attackgrowl.wav", 1, ATTN_NORM );		
-				break;
-			case 1:	
-				enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_attackgrowl2.wav", 1, ATTN_NORM );	
-				break;
-			case 2:	
-				enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "bullchicken/bc_attackgrowl3.wav", 1, ATTN_NORM );	
-				break;
-			}
+			EmitSound( filter, entindex(), "Bullsquid.Growl" );	
 
 			BaseClass::StartTask ( pTask );
 			break;
@@ -1096,15 +985,13 @@ NPC_STATE CNPC_Bullsquid::SelectIdealState ( void )
 			{
 				// if the squid has a headcrab enemy and something hurts it, it's going to forget about the crab for a while.
 				SetEnemy( NULL );
-				m_IdealNPCState = NPC_STATE_ALERT;
+				return NPC_STATE_ALERT;
 			}
 			break;
 		}
 	}
 
-	m_IdealNPCState = BaseClass::SelectIdealState();
-
-	return m_IdealNPCState;
+	return BaseClass::SelectIdealState();
 }
 
 

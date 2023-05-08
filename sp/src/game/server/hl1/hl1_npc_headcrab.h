@@ -37,13 +37,6 @@ public:
 
 	virtual int		GetVoicePitch( void ) { return 100; }
 	virtual float	GetSoundVolue( void ) { return 1.0; }
-	
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
-	static const char *pPainSounds[];
-	static const char *pAttackSounds[];
-	static const char *pDeathSounds[];
-	static const char *pBiteSounds[];
 
 	int	m_nGibCount;
 

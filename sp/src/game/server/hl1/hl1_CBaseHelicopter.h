@@ -42,13 +42,7 @@ public:
 	int  BloodColor( void ) { return DONT_BLEED; }
 	void GibMonster( void );
 
-	void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector( -300, -300, -172) );
-		SetAbsMaxs( GetAbsOrigin() + Vector(300, 300, 8) );
-	}
-
-	Class_T Classify ( void ) { return CLASS_COMBINE; }
+	Class_T Classify ( void ) { return CLASS_HUMAN_MILITARY; }
 
 	void CallDyingThink( void ) { DyingThink(); }
 

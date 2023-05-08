@@ -43,43 +43,17 @@ ConVar	sk_islave_dmg_zap( "sk_islave_dmg_zap","15");
 LINK_ENTITY_TO_CLASS( monster_alien_slave, CNPC_Vortigaunt );
 
 BEGIN_DATADESC( CNPC_Vortigaunt )
-	DEFINE_FIELD( CNPC_Vortigaunt, m_iBravery, FIELD_INTEGER ),
-	DEFINE_ARRAY( CNPC_Vortigaunt, m_pBeam, FIELD_CLASSPTR, VORTIGAUNT_MAX_BEAMS ),
-	DEFINE_FIELD( CNPC_Vortigaunt, m_iBeams, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Vortigaunt, m_flNextAttack, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_Vortigaunt, m_iVoicePitch, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_Vortigaunt, m_hDead, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_iBravery, FIELD_INTEGER ),
+	DEFINE_ARRAY( m_pBeam, FIELD_CLASSPTR, VORTIGAUNT_MAX_BEAMS ),
+	DEFINE_FIELD( m_iBeams, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flNextAttack, FIELD_TIME ),
+	DEFINE_FIELD( m_iVoicePitch, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hDead, FIELD_EHANDLE ),
 END_DATADESC()
 
 enum
 {
 	SCHED_VORTIGAUNT_ATTACK = LAST_SHARED_SCHEDULE,
-};
-
-
-const char *CNPC_Vortigaunt::pAttackHitSounds[] = 
-{
-	"zombie/claw_strike1.wav",
-	"zombie/claw_strike2.wav",
-	"zombie/claw_strike3.wav",
-};
-
-const char *CNPC_Vortigaunt::pAttackMissSounds[] = 
-{
-	"zombie/claw_miss1.wav",
-	"zombie/claw_miss2.wav",
-};
-
-const char *CNPC_Vortigaunt::pPainSounds[] = 
-{
-	"aslave/slv_pain1.wav",
-	"aslave/slv_pain2.wav",
-};
-
-const char *CNPC_Vortigaunt::pDeathSounds[] = 
-{
-	"aslave/slv_die1.wav",
-	"aslave/slv_die2.wav",
 };
 
 //=========================================================
@@ -100,7 +74,7 @@ void CNPC_Vortigaunt::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_GREEN;
-	m_fEffects			= 0;
+	ClearEffects();
     m_iHealth			= sk_islave_health.GetFloat();
 	//pev->view_ofs		= VEC_VIEW;// position of the eyes relative to monster's origin.
 	m_flFieldOfView		= VIEW_FIELD_WIDE;
@@ -131,20 +105,15 @@ void CNPC_Vortigaunt::Precache()
 {
 	BaseClass::Precache();
 
-	engine->PrecacheModel("models/islave.mdl");
-	engine->PrecacheModel("sprites/lgtning.vmt");
-	enginesound->PrecacheSound("debris/zap1.wav");
-	enginesound->PrecacheSound("debris/zap4.wav");
-	enginesound->PrecacheSound("weapons/electro4.wav");
-	enginesound->PrecacheSound("hassault/hw_shoot1.wav");
-	enginesound->PrecacheSound("zombie/zo_pain2.wav");
-	enginesound->PrecacheSound("headcrab/hc_headbite.wav");
-	enginesound->PrecacheSound("weapons/cbar_miss1.wav");
+	PrecacheModel("models/islave.mdl");
+	PrecacheModel("sprites/lgtning.vmt");
 
-	PRECACHE_SOUND_ARRAY( pAttackHitSounds );
-	PRECACHE_SOUND_ARRAY( pAttackMissSounds );
-	PRECACHE_SOUND_ARRAY( pPainSounds );
-	PRECACHE_SOUND_ARRAY( pDeathSounds );
+	PrecacheScriptSound("Vortigaunt.Pain");
+	PrecacheScriptSound("Vortigaunt.Die");
+	PrecacheScriptSound("Vortigaunt.AttackHit");
+	PrecacheScriptSound("Vortigaunt.AttackMiss");
+	PrecacheScriptSound("Vortigaunt.ZapPowerup");
+	PrecacheScriptSound("Vortigaunt.ZapShoot");
 }
 
 //-----------------------------------------------------------------------------
@@ -210,7 +179,14 @@ void CNPC_Vortigaunt::PainSound( void )
 	if ( random->RandomInt( 0, 2 ) == 0)
 	{
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pPainSounds[ random->RandomInt(0,ARRAYSIZE(pPainSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+		CSoundParameters params;
+		if ( GetParametersForSound( "Vortigaunt.Pain", params, NULL ) )
+		{
+			EmitSound_t ep( params );
+			params.pitch = m_iVoicePitch;
+
+			EmitSound( filter, entindex(), ep );
+		}
 	}
 }
 
@@ -221,7 +197,14 @@ void CNPC_Vortigaunt::PainSound( void )
 void CNPC_Vortigaunt::DeathSound( void )
 {
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pDeathSounds[ random->RandomInt(0,ARRAYSIZE(pDeathSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+	CSoundParameters params;
+	if ( GetParametersForSound( "Vortigaunt.Die", params, NULL ) )
+	{
+		EmitSound_t ep( params );
+		params.pitch = m_iVoicePitch;
+
+		EmitSound( filter, entindex(), ep );
+	}
 }
 
 int CNPC_Vortigaunt::GetSoundInterests ( void )
@@ -287,11 +270,27 @@ void CNPC_Vortigaunt::HandleAnimEvent( animevent_t *pEvent )
 					 pHurt->ViewPunch( QAngle( 5, 0, -18 ) );
 			
 				// Play a random attack hit sound
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+				CSoundParameters params;
+				if ( GetParametersForSound( "Vortigaunt.AttackHit", params, NULL ) )
+				{
+					EmitSound_t ep( params );
+					params.pitch = m_iVoicePitch;
+
+					EmitSound( filter, entindex(), ep );
+				}
 			}
 			else
+			{
 				// Play a random attack miss sound
-				enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt(0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+				CSoundParameters params;
+				if ( GetParametersForSound( "Vortigaunt.AttackMiss", params, NULL ) )
+				{
+					EmitSound_t ep( params );
+					params.pitch = m_iVoicePitch;
+
+					EmitSound( filter, entindex(), ep );
+				}
+			}
 		}
 		break;
 
@@ -304,10 +303,26 @@ void CNPC_Vortigaunt::HandleAnimEvent( animevent_t *pEvent )
 				if ( pHurt->GetFlags() & ( FL_NPC | FL_CLIENT ) )
 					 pHurt->ViewPunch( QAngle( 5, 0, 18 ) );
 
-				enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, pAttackHitSounds[ random->RandomInt(0,ARRAYSIZE(pAttackHitSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+				CSoundParameters params;
+				if ( GetParametersForSound( "Vortigaunt.AttackHit", params, NULL ) )
+				{
+					EmitSound_t ep( params );
+					params.pitch = m_iVoicePitch;
+
+					EmitSound( filter2, entindex(), ep );
+				}
 			}
 			else
-				enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, pAttackMissSounds[ random->RandomInt(0,ARRAYSIZE(pAttackMissSounds)-1) ], 1.0, ATTN_NORM, 0, m_iVoicePitch );
+			{
+				CSoundParameters params;
+				if ( GetParametersForSound( "Vortigaunt.AttackMiss", params, NULL ) )
+				{
+					EmitSound_t ep( params );
+					params.pitch = m_iVoicePitch;
+
+					EmitSound( filter2, entindex(), ep );
+				}
+			}
 		}
 		break;
 
@@ -336,7 +351,13 @@ void CNPC_Vortigaunt::HandleAnimEvent( animevent_t *pEvent )
 			}
 
 			CPASAttenuationFilter filter3( this );
-			enginesound->EmitSound( filter3, entindex(), CHAN_WEAPON, "debris/zap4.wav", 1, ATTN_NORM, 0, 100 + m_iBeams * 10 );
+			CSoundParameters params;
+			if ( GetParametersForSound( "Vortigaunt.ZapPowerup", params, NULL ) )
+			{
+				EmitSound_t ep( params );
+				ep.m_nPitch = 100 + m_iBeams * 10;
+				EmitSound( filter3, entindex(), ep );
+			}
 
 // Huh?  Model doesn't have multiple texturegroups, commented this out.  -LH
 //			m_nSkin = m_iBeams / 2;
@@ -371,7 +392,7 @@ void CNPC_Vortigaunt::HandleAnimEvent( animevent_t *pEvent )
 			ZapBeam( 1 );
 
 			CPASAttenuationFilter filter4( this );
-			enginesound->EmitSound( filter4, entindex(), CHAN_WEAPON, "hassault/hw_shoot1.wav", 1, ATTN_NORM, 0, random->RandomInt( 130, 160 ) );
+			EmitSound( filter4, entindex(), "Vortigaunt.ZapShoot" );
 			ApplyMultiDamage();
 
 			m_flNextAttack = gpGlobals->curtime + random->RandomFloat( 0.5, 4.0 );
@@ -432,12 +453,12 @@ int CNPC_Vortigaunt::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 }
 
 
-void CNPC_Vortigaunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CNPC_Vortigaunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	if ( info.GetDamageType() & DMG_SHOCK )
 		 return;
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //=========================================================

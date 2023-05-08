@@ -22,7 +22,7 @@
 #include "shake.h"
 #include "beam_shared.h"
 #include "beam_flags.h"
-#include "SoundEmitterSystemBase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "soundenvelope.h"
 
 
@@ -88,14 +88,14 @@ IMPLEMENT_SERVERCLASS_ST( CWeaponEgon, DT_WeaponEgon )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponEgon )
-	DEFINE_FIELD( CWeaponEgon, m_fireState, FIELD_INTEGER ),
-	DEFINE_FIELD( CWeaponEgon, m_flAmmoUseTime, FIELD_TIME ),
-	DEFINE_FIELD( CWeaponEgon, m_flShakeTime, FIELD_TIME ),
-	DEFINE_FIELD( CWeaponEgon, m_flStartFireTime, FIELD_TIME ),
-	DEFINE_FIELD( CWeaponEgon, m_flDmgTime, FIELD_TIME ),
-	DEFINE_FIELD( CWeaponEgon, m_hSprite, FIELD_EHANDLE ),
-	DEFINE_FIELD( CWeaponEgon, m_hBeam, FIELD_EHANDLE ),
-	DEFINE_FIELD( CWeaponEgon, m_hNoise, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_fireState, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flAmmoUseTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flShakeTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flStartFireTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flDmgTime, FIELD_TIME ),
+	DEFINE_FIELD( m_hSprite, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hBeam, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hNoise, FIELD_EHANDLE ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -291,7 +291,7 @@ void CWeaponEgon::Fire( const Vector &vecOrigSrc, const Vector &vecDir )
 		if ( g_pGameRules->IsMultiplayer() )
 		{
 			// radius damage a little more potent in multiplayer.
-			RadiusDamage( CTakeDamageInfo( this, pPlayer, sk_plr_dmg_egon_wide.GetFloat() / 4, DMG_ENERGYBEAM | DMG_BLAST | DMG_ALWAYSGIB ), tr.endpos, 128, CLASS_NONE );
+			RadiusDamage( CTakeDamageInfo( this, pPlayer, sk_plr_dmg_egon_wide.GetFloat() / 4, DMG_ENERGYBEAM | DMG_BLAST | DMG_ALWAYSGIB ), tr.endpos, 128, CLASS_NONE, this );
 		}
 
 		if ( !pPlayer->IsAlive() )
@@ -344,13 +344,13 @@ void CWeaponEgon::UpdateEffect( const Vector &startPoint, const Vector &endPoint
 	if ( m_hBeam )
 	{
 		m_hBeam->SetStartPos( endPoint );
-		UTIL_Relink( m_hBeam );
+		m_hBeam->RelinkBeam();
 	}
 
 	if ( m_hSprite )
 	{
 		m_hSprite->SetAbsOrigin( endPoint );
-		UTIL_Relink( m_hSprite );
+		m_hBeam->RelinkBeam();
 
 		m_hSprite->m_flFrame += 8 * gpGlobals->frametime;
 		if ( m_hSprite->m_flFrame > m_hSprite->Frames() )
@@ -360,7 +360,7 @@ void CWeaponEgon::UpdateEffect( const Vector &startPoint, const Vector &endPoint
 	if ( m_hNoise )
 	{
 		m_hNoise->SetStartPos( endPoint );
-		UTIL_Relink( m_hNoise );
+		m_hNoise->RelinkBeam();
 	}
 }
 

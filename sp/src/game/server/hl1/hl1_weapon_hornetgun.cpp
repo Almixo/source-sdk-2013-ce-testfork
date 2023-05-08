@@ -58,8 +58,8 @@ IMPLEMENT_SERVERCLASS_ST( CWeaponHgun, DT_WeaponHgun )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponHgun )
-	DEFINE_FIELD( CWeaponHgun, m_flRechargeTime,	FIELD_TIME ),
-	DEFINE_FIELD( CWeaponHgun, m_iFirePhase,		FIELD_INTEGER ),
+	DEFINE_FIELD( m_flRechargeTime,	FIELD_TIME ),
+	DEFINE_FIELD( m_iFirePhase,		FIELD_INTEGER ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ void CWeaponHgun::PrimaryAttack( void )
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -150,7 +150,7 @@ void CWeaponHgun::SecondaryAttack( void )
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );

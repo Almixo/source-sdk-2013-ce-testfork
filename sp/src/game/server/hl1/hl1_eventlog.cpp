@@ -17,7 +17,7 @@ public:
 	virtual ~CHL1EventLog() {};
 
 public:
-	bool PrintEvent( KeyValues * event )	// overwrite virual function
+	bool PrintEvent( IGameEvent * event )	// overwrite virual function
 	{
 		if ( BaseClass::PrintEvent( event ) )
 		{
@@ -34,7 +34,7 @@ public:
 
 protected:
 
-	bool PrintHL1Event( KeyValues * event )	// print Mod specific logs
+	bool PrintHL1Event( IGameEvent * event )	// print Mod specific logs
 	{
 	//	const char * name = event->GetName() + Q_strlen("hl1_"); // remove prefix
 

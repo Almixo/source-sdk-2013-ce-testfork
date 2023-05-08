@@ -34,8 +34,8 @@
 
 BEGIN_DATADESC( CHL1NPCTalker )
 
-	DEFINE_ENTITYFUNC( CHL1NPCTalker, Touch ),
-	DEFINE_FIELD( CHL1NPCTalker, m_bInBarnacleMouth,	FIELD_BOOLEAN ),
+	DEFINE_ENTITYFUNC( Touch ),
+	DEFINE_FIELD( m_bInBarnacleMouth,	FIELD_BOOLEAN ),
 
 END_DATADESC()
 
@@ -89,7 +89,7 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 			if ( pTask->iTask == TASK_TALKER_CLIENT_STARE )
 			{
 				// fail out if the player looks away or moves away.
-				if ( ( pPlayer->GetAbsOrigin() - GetAbsOrigin() ).Length2D() > TLK_STARE_DIST )
+				if ( ( pPlayer->GetAbsOrigin() - GetAbsOrigin() ).Length2D() > TALKER_STARE_DIST )
 				{
 					// player moved away.
 					TaskFail( NO_TASK_FAILURE );
@@ -203,7 +203,7 @@ bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
-	if ( ( info.GetDamageType() & DMG_GIB_CORPSE && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
+	if ( ( g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
 		 return true;
 	
 	return false;
@@ -250,7 +250,7 @@ bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseComb
 	if (interactionType == g_interactionBarnacleVictimDangle)
 	{
 		// Force choosing of a new schedule
-		ClearSchedule();
+		ClearSchedule( "NPC talker being eaten by a barnacle" );
 		m_bInBarnacleMouth	= true;
 		return true;
 	}
@@ -259,7 +259,15 @@ bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseComb
 		SetState ( NPC_STATE_IDLE );
 
 		CPASAttenuationFilter filter( this );
-		EmitSound( filter, entindex(), CHAN_VOICE, "barney/ba_close.wav", 1, SNDLVL_TALKING, 0, GetExpresser()->GetVoicePitch());
+		CSoundParameters params;
+
+		if ( GetParametersForSound( "Barney.Close", params, NULL ) )
+		{
+			EmitSound_t ep( params );
+			ep.m_nPitch = GetExpresser()->GetVoicePitch();
+
+			EmitSound( filter, entindex(), ep );
+		}
 
 		m_bInBarnacleMouth	= false;
 		SetAbsVelocity( vec3_origin );
@@ -276,11 +284,13 @@ bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseComb
 		if ( GetState() == NPC_STATE_SCRIPT )
 		{
 			 m_hCine->CancelScript();
-			 ClearSchedule();
+			 ClearSchedule( "idk man... hl1_npc_talker.cpp line 277+" );
 		}
 
 		SetState( NPC_STATE_PRONE );
-		PainSound();
+		
+		CTakeDamageInfo info;
+		PainSound( info );
 		return true;
 	}
 	return false;
@@ -324,7 +334,7 @@ void CHL1NPCTalker::StopFollowing( void )
 	{
 		if ( !HasSpawnFlags( SF_NPC_GAG ) )
 		{
-			Speak( TLK_UNUSE );
+			Speak( TLK_STOPFOLLOW );
 			SetSpeechTarget( GetFollowTarget() );
 		}
 	}
@@ -332,14 +342,14 @@ void CHL1NPCTalker::StopFollowing( void )
 	BaseClass::StopFollowing();
 }
 
-void CHL1NPCTalker::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CHL1NPCTalker::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
 	{
 		UTIL_BloodSpray( ptr->endpos, vecDir, BloodColor(), 4, FX_BLOODSPRAY_ALL );	
 	}
 
-	BaseClass::TraceAttack( info, vecDir, ptr );
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 void CHL1NPCTalker::FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

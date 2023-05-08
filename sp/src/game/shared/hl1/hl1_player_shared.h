@@ -10,6 +10,8 @@
 #pragma once
 #endif
 
+//fuck no
+
 // Shared header file for players
 #if defined( CLIENT_DLL )
 #define CHL1_Player C_BaseHLPlayer	//FIXME: Lovely naming job between server and client here...

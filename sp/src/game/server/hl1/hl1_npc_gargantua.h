@@ -24,14 +24,8 @@ public:
 	void StartTask( const Task_t *pTask );
 	void RunTask ( const Task_t *pTask );
 
-	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &info );
-	
-	virtual void SetObjectCollisionBox( void )
-	{
-		SetAbsMins( GetAbsOrigin() + Vector( -80, -80, 0 ) );
-		SetAbsMaxs( GetAbsOrigin() + Vector( 80, 80, 214 ) );
-	}
 	
 /*	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType );
@@ -64,18 +58,6 @@ public:
 	DECLARE_DATADESC();
 
 private:
-	static const char *pAttackHitSounds[];
-	static const char *pBeamAttackSounds[];
-	static const char *pAttackMissSounds[];
-	static const char *pRicSounds[];
-	static const char *pFootSounds[];
-	static const char *pIdleSounds[];
-	static const char *pAlertSounds[];
-	static const char *pPainSounds[];
-	static const char *pAttackSounds[];
-	static const char *pStompSounds[];
-	static const char *pBreatheSounds[];
-
 	CBaseEntity* GargantuaCheckTraceHullAttack(float flDist, int iDamage, int iDmgType);
 
 	CSprite		*m_pEyeGlow;		// Glow around the eyes

@@ -34,7 +34,6 @@ class CHalfLife1 : public CSingleplayRules
 public:
 
 	DECLARE_CLASS( CHalfLife1, CSingleplayRules );
-	DECLARE_NETWORKCLASS();
 
 	
 	// Client/server shared implementation.
@@ -50,7 +49,7 @@ public:
 	CHalfLife1();
 	virtual ~CHalfLife1() {}
 
-	virtual bool			ClientCommand( const char *pcmd, CBaseEntity *pEdict );
+	virtual bool			ClientCommand( CBaseEntity *pEdict, const CCommand &args );
 	virtual void			PlayerSpawn( CBasePlayer *pPlayer );
 
 	virtual void			InitDefaultAIRelationships( void );

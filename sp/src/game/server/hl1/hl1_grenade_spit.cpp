@@ -26,8 +26,8 @@ ConVar sk_bullsquid_dmg_spit ( "sk_bullsquid_dmg_spit", "0" );
 BEGIN_DATADESC( CGrenadeSpit )
 
 	// Function pointers
-	DEFINE_FUNCTION( CGrenadeSpit, SpitThink ),
-	DEFINE_FUNCTION( CGrenadeSpit, GrenadeSpitTouch ),
+	DEFINE_THINKFUNC( SpitThink ),
+	DEFINE_ENTITYFUNC( GrenadeSpitTouch ),
 
 END_DATADESC()
 
@@ -48,9 +48,9 @@ void CGrenadeSpit::Spawn( void )
 	SetRenderColor( 255, 255, 255, 255 );
 	m_nRenderFX		= kRenderFxNone;
 
-	SetThink( SpitThink );
-	SetUse( DetonateUse ); 
-	SetTouch( GrenadeSpitTouch );
+	SetThink( &CGrenadeSpit::SpitThink );
+	SetUse( &CGrenadeSpit::DetonateUse ); 
+	SetTouch( &CGrenadeSpit::GrenadeSpitTouch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	m_flDamage		= sk_bullsquid_dmg_spit.GetFloat();
@@ -118,7 +118,7 @@ void CGrenadeSpit::GrenadeSpitTouch( CBaseEntity *pOther )
 	}
 	else
 	{
-		RadiusDamage ( CTakeDamageInfo( this, GetOwner(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE );
+		RadiusDamage ( CTakeDamageInfo( this, GetOwnerEntity(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, 0 );
 	}
 
 	Detonate();
@@ -151,11 +151,13 @@ void CGrenadeSpit::Detonate(void)
 
 void CGrenadeSpit::Precache( void )
 {
-	m_nSquidSpitSprite = engine->PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+	BaseClass::Precache();
 
-	engine->PrecacheModel("models/spitball_large.mdl"); 
-	engine->PrecacheModel("models/spitball_medium.mdl"); 
-	engine->PrecacheModel("models/spitball_small.mdl"); 
+	m_nSquidSpitSprite = PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+
+	PrecacheModel("models/spitball_large.mdl"); 
+	PrecacheModel("models/spitball_medium.mdl"); 
+	PrecacheModel("models/spitball_small.mdl"); 
 }
 
 

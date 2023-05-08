@@ -140,57 +140,57 @@ public:
 BEGIN_DATADESC( CNPC_BaseTurret )
 
 	//FIELDS
-	DEFINE_FIELD( CNPC_BaseTurret, m_flMaxSpin, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iSpin, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flMaxSpin, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iSpin, FIELD_INTEGER ),
 
-	DEFINE_FIELD( CNPC_BaseTurret, m_pEyeGlow, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_eyeBrightness, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iDeployHeight, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iRetractHeight, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iMinPitch, FIELD_INTEGER ),
+	DEFINE_FIELD( m_pEyeGlow, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_eyeBrightness, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iDeployHeight, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iRetractHeight, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iMinPitch, FIELD_INTEGER ),
 
-	DEFINE_FIELD( CNPC_BaseTurret, m_fTurnRate, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iOn, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_fBeserk, FIELD_INTEGER ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_iAutoStart, FIELD_INTEGER ),
+	DEFINE_FIELD( m_fTurnRate, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iOn, FIELD_INTEGER ),
+	DEFINE_FIELD( m_fBeserk, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAutoStart, FIELD_INTEGER ),
 
-	DEFINE_FIELD( CNPC_BaseTurret, m_vecLastSight, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_flLastSight, FIELD_TIME ),
+	DEFINE_FIELD( m_vecLastSight, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_flLastSight, FIELD_TIME ),
 
-	DEFINE_FIELD( CNPC_BaseTurret, m_flStartYaw, FIELD_FLOAT ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_vecCurAngles, FIELD_VECTOR ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_vecGoalAngles, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flStartYaw, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecCurAngles, FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecGoalAngles, FIELD_VECTOR ),
 
-	DEFINE_FIELD( CNPC_BaseTurret, m_flPingTime, FIELD_TIME ),
-	DEFINE_FIELD( CNPC_BaseTurret, m_flSpinUpTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flPingTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flSpinUpTime, FIELD_TIME ),
 
 	//KEYFIELDS
-	DEFINE_KEYFIELD( CNPC_BaseTurret, m_flMaxWait, FIELD_FLOAT, "maxsleep" ),
-	DEFINE_KEYFIELD( CNPC_BaseTurret, m_iOrientation, FIELD_INTEGER, "orientation" ),
-	DEFINE_KEYFIELD( CNPC_BaseTurret, m_iSearchSpeed, FIELD_INTEGER, "searchspeed" ),
-	DEFINE_KEYFIELD( CNPC_BaseTurret, m_iBaseTurnRate, FIELD_INTEGER, "turnrate" ),
+	DEFINE_KEYFIELD( m_flMaxWait, FIELD_FLOAT, "maxsleep" ),
+	DEFINE_KEYFIELD( m_iOrientation, FIELD_INTEGER, "orientation" ),
+	DEFINE_KEYFIELD( m_iSearchSpeed, FIELD_INTEGER, "searchspeed" ),
+	DEFINE_KEYFIELD( m_iBaseTurnRate, FIELD_INTEGER, "turnrate" ),
 	
 	//Use
-	DEFINE_USEFUNC( CNPC_BaseTurret, TurretUse ),
+	DEFINE_USEFUNC( TurretUse ),
 
 	//Thinks
-	DEFINE_THINKFUNC( CNPC_BaseTurret, ActiveThink ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, SearchThink ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, AutoSearchThink ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, TurretDeath ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, SpinDownCall ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, SpinUpCall ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, Deploy ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, Retire ),
-	DEFINE_THINKFUNC( CNPC_BaseTurret, Initialize ),
+	DEFINE_THINKFUNC( ActiveThink ),
+	DEFINE_THINKFUNC( SearchThink ),
+	DEFINE_THINKFUNC( AutoSearchThink ),
+	DEFINE_THINKFUNC( TurretDeath ),
+	DEFINE_THINKFUNC( SpinDownCall ),
+	DEFINE_THINKFUNC( SpinUpCall ),
+	DEFINE_THINKFUNC( Deploy ),
+	DEFINE_THINKFUNC( Retire ),
+	DEFINE_THINKFUNC( Initialize ),
 
 	//Inputs
-	DEFINE_INPUTFUNC( CNPC_BaseTurret, FIELD_VOID, "Activate",	InputActivate ),
-	DEFINE_INPUTFUNC( CNPC_BaseTurret, FIELD_VOID, "Deactivate",	InputDeactivate ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Activate",	InputActivate ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Deactivate",	InputDeactivate ),
 
 	//Outputs
-	DEFINE_OUTPUT( CNPC_BaseTurret, m_OnActivate,	"OnActivate"),
-	DEFINE_OUTPUT( CNPC_BaseTurret, m_OnDeactivate,	"OnDeactivate"),
+	DEFINE_OUTPUT( m_OnActivate,	"OnActivate"),
+	DEFINE_OUTPUT( m_OnDeactivate,	"OnDeactivate"),
 
 END_DATADESC()
 
@@ -201,7 +201,7 @@ void CNPC_BaseTurret::Spawn()
 	SetNextThink( gpGlobals->curtime + 1 );
 	SetMoveType( MOVETYPE_FLY );
 	SetSequence( 0 );
-	m_flCycle			= 0;
+	SetCycle( 0 );
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	m_takedamage		= DAMAGE_YES;
@@ -229,7 +229,7 @@ void CNPC_BaseTurret::Spawn()
 	if ( GetSpawnFlags() & SF_MONSTER_TURRET_STARTINACTIVE )
 	{
 		 SetTurretAnim( TURRET_ANIM_RETIRE );
-		 m_flCycle = 0.0f;
+		 SetCycle( 0 );
 		 m_flPlaybackRate = 0.0f;
 	}
 }
@@ -239,17 +239,12 @@ void CNPC_BaseTurret::Precache()
 {
 	m_iAmmoType = GetAmmoDef()->Index("12mmRound");	
 
-	enginesound->PrecacheSound ("turret/tu_fire1.wav");
-	enginesound->PrecacheSound ("turret/tu_ping.wav");
-	enginesound->PrecacheSound ("turret/tu_active2.wav");
-	enginesound->PrecacheSound ("turret/tu_die.wav");
-	enginesound->PrecacheSound ("turret/tu_die2.wav");
-	enginesound->PrecacheSound ("turret/tu_die3.wav");
-	enginesound->PrecacheSound ("turret/tu_deploy.wav");
-	enginesound->PrecacheSound ("turret/tu_spinup.wav");
-	enginesound->PrecacheSound ("turret/tu_spindown.wav");
-	enginesound->PrecacheSound ("turret/tu_search.wav");
-	enginesound->PrecacheSound ("turret/tu_alert.wav");
+	PrecacheScriptSound( "Turret.Alert" );
+	PrecacheScriptSound( "Turret.Die" );
+	PrecacheScriptSound( "Turret.Deploy" );
+	PrecacheScriptSound( "Turret.Undeploy" );
+	PrecacheScriptSound( "Turret.Ping" );
+	PrecacheScriptSound( "Turret.Shoot" );
 }
 
 Class_T CNPC_BaseTurret::Classify( void )
@@ -411,19 +406,19 @@ void CNPC_BaseTurret::SetTurretAnim( TURRET_ANIM anim )
 		case TURRET_ANIM_SPIN:
 			if (GetSequence() != TURRET_ANIM_FIRE && GetSequence() != TURRET_ANIM_SPIN)
 			{
-				m_flCycle = 0;
+				SetCycle( 0 );
 			}
 			break;
 		case TURRET_ANIM_RETIRE:
-			m_flCycle				= 1.0;
+			SetCycle( 1 );
 			m_flPlaybackRate		= -1.0;	//play the animation backwards
 			break;
 		case TURRET_ANIM_DIE:
-			m_flCycle				= 0.0;
+			SetCycle( 0 );
 			m_flPlaybackRate		= 1.0;
 			break;
 		default:
-			m_flCycle = 0;
+			SetCycle( 0 );
 			break;
 		}
 
@@ -476,7 +471,7 @@ void CNPC_BaseTurret::Initialize(void)
 	}
 	else
 	{
-		SetThink( SUB_DoNothing ); 
+		SetThink( &CNPC_BaseTurret::SUB_DoNothing ); 
 	}
 }
 
@@ -765,7 +760,7 @@ void CNPC_BaseTurret::AutoSearchThink(void)
 	{
 		SetThink(&CNPC_BaseTurret::Deploy);
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_alert.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
+		EmitSound( filter, entindex(), "Turret.Alert" );
 	}
 
 	SetEnemy( pEnemy );
@@ -786,22 +781,9 @@ void CNPC_BaseTurret::TurretDeath(void)
 		m_lifeState = LIFE_DEAD;
 
 		CPASAttenuationFilter filter( this );
-
-		switch( random->RandomInt(0,2) )
-		{
-		case 0: 
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-			break;
-		case 1:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die2.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-			break;
-		case 2:
-		default:
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die3.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-			break;
-		}
+		EmitSound( filter, entindex(), "Turret.Die" );
 	
-		enginesound->StopSound( entindex(), CHAN_STATIC, "turret/tu_active2.wav" );
+		StopSound( entindex(), "Turret.Spinup" );
 
 		if (m_iOrientation == TURRET_ORIENTATION_FLOOR)
 			m_vecGoalAngles.x = -14;
@@ -818,9 +800,9 @@ void CNPC_BaseTurret::TurretDeath(void)
 	if (m_flDamageTime + random->RandomFloat( 0, 2 ) > gpGlobals->curtime)
 	{
 		// lots of smoke
-		Vector pos( random->RandomFloat( GetAbsMins().x, GetAbsMaxs().x ),
-			     random->RandomFloat( GetAbsMins().y, GetAbsMaxs().y ),
-				 GetAbsOrigin().z );
+		Vector pos;
+		CollisionProp()->RandomPointInBounds( vec3_origin, Vector( 1, 1, 1 ), &pos );
+		pos.z = CollisionProp()->GetCollisionOrigin().z;
 		
 		CBroadcastRecipientFilter filter;
 		te->Smoke( filter, 0.0, &pos,
@@ -831,7 +813,8 @@ void CNPC_BaseTurret::TurretDeath(void)
 	
 	if (m_flDamageTime + random->RandomFloat( 0, 5 ) > gpGlobals->curtime)
 	{
-		Vector vecSrc = Vector( random->RandomFloat( GetAbsMins().x, GetAbsMaxs().x ), random->RandomFloat( GetAbsMins().y, GetAbsMaxs().y ), random->RandomFloat( GetAbsMins().z, GetAbsMaxs().z ) );
+		Vector vecSrc;
+		CollisionProp()->RandomPointInBounds( vec3_origin, Vector( 1, 1, 1 ), &vecSrc );
 		g_pEffects->Sparks( vecSrc );
 	}
 
@@ -855,7 +838,7 @@ void CNPC_BaseTurret::Deploy(void)
 		m_iOn = 1;
 		SetTurretAnim(TURRET_ANIM_DEPLOY);
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_deploy.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
+		EmitSound( filter, entindex(), "Turret.Deploy" );
 		m_OnActivate.FireOutput(this, this);
 	}
 
@@ -869,7 +852,6 @@ void CNPC_BaseTurret::Deploy(void)
 		curmins.z = -m_iDeployHeight;
 
 		SetCollisionBounds( curmins, curmaxs );
-		Relink();
 
 		m_vecCurAngles.x = 0;
 
@@ -917,11 +899,11 @@ void CNPC_BaseTurret::Retire(void)
 		{
 			SetTurretAnim(TURRET_ANIM_RETIRE);
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_deploy.wav", TURRET_MACHINE_VOLUME, ATTN_NORM, 0, 120 );
+			EmitSound( filter, entindex(), "Turret.Deploy" );
 			m_OnDeactivate.FireOutput(this, this);
 		}
 		//else if (IsSequenceFinished()) 
-		else if( GetSequence() == TURRET_ANIM_RETIRE && m_flCycle <= 0.0 )
+		else if( GetSequence() == TURRET_ANIM_RETIRE && GetCycle() <= 0.0 )
 		{	
 			m_iOn = 0;
 			m_flLastSight = 0;
@@ -936,8 +918,6 @@ void CNPC_BaseTurret::Retire(void)
 
 			SetCollisionBounds( curmins, curmaxs );
 
-			Relink();
-
 			if (m_iAutoStart)
 			{
 				SetThink(&CNPC_BaseTurret::AutoSearchThink);	
@@ -945,7 +925,7 @@ void CNPC_BaseTurret::Retire(void)
 			}
 			else
 			{
-				SetThink( SUB_DoNothing );
+				SetThink( &CNPC_BaseTurret::SUB_DoNothing );
 			}
 		}
 	}
@@ -966,7 +946,7 @@ void CNPC_BaseTurret::Ping(void)
 	{
 		m_flPingTime = gpGlobals->curtime + 1;
 		CPASAttenuationFilter filter( this );
-		enginesound->EmitSound( filter, entindex(), CHAN_ITEM, "turret/tu_ping.wav", 1, ATTN_NORM );
+		EmitSound( filter, entindex(), "Turret.Ping" );
 
 		EyeOn( );
 	}
@@ -1231,11 +1211,10 @@ void CNPC_Turret::Spawn()
 void CNPC_Turret::Precache()
 {
 	CNPC_BaseTurret::Precache( );
-	engine->PrecacheModel ("models/turret.mdl");	
-	engine->PrecacheModel (TURRET_GLOW_SPRITE);
+	PrecacheModel ("models/turret.mdl");	
+	PrecacheModel (TURRET_GLOW_SPRITE);
 
-	engine->PrecacheModel( "sprites/xspark4.vmt" );
-
+	PrecacheModel( "sprites/xspark4.vmt" );
 	//precache sounds
 }
 
@@ -1245,9 +1224,9 @@ void CNPC_Turret::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
 
 	FireBullets( 1, vecSrc, vecDirToEnemy, TURRET_SPREAD, TURRET_RANGE, m_iAmmoType, 1 );
 
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "turret/tu_fire1.wav", TURRET_MACHINE_VOLUME, 0.6 );
+	EmitSound( filter, entindex(), "Turret.Shoot" );
 
-	m_fEffects |= EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 }
 
 void CNPC_Turret::SpinUpCall(void)
@@ -1264,7 +1243,7 @@ void CNPC_Turret::SpinUpCall(void)
 		{
 			SetNextThink( gpGlobals->curtime + 1.0 );	//spinup delay
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_spinup.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
+			EmitSound( filter, entindex(), "Turret.Shoot" );
 			m_iStartSpin = 1;
 			m_flPlaybackRate = 0.1;
 		}
@@ -1273,7 +1252,7 @@ void CNPC_Turret::SpinUpCall(void)
 		{
 			SetNextThink( gpGlobals->curtime + 0.1 );// retarget delay
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_STATIC, "turret/tu_active2.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
+			EmitSound( filter, entindex(), "Turret.Spinup" );
 			SetThink(&CNPC_BaseTurret::ActiveThink);
 			m_iStartSpin = 0;
 			m_iSpin = 1;
@@ -1300,8 +1279,8 @@ void CNPC_Turret::SpinDownCall(void)
 
 		if ( m_flPlaybackRate == 1.0)
 		{
-			enginesound->StopSound( entindex(), CHAN_WEAPON, "turret/tu_active2.wav" );
-			enginesound->EmitSound( filter, entindex(), CHAN_ITEM, "turret/tu_spindown.wav", TURRET_MACHINE_VOLUME, ATTN_NORM, 0, PITCH_NORM + random->RandomInt(-10,10) );
+			StopSound( entindex(), "Turret.Spinup" );
+			EmitSound( filter, entindex(), "Turret.SpinDownCall" );
 		}
 		m_flPlaybackRate -= 0.02;
 		if (m_flPlaybackRate <= 0)
@@ -1346,10 +1325,7 @@ void CNPC_MiniTurret::Precache()
 
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
 
-	engine->PrecacheModel ("models/miniturret.mdl");	
-	enginesound->PrecacheSound("weapons/hks1.wav");
-	enginesound->PrecacheSound("weapons/hks2.wav");
-	enginesound->PrecacheSound("weapons/hks3.wav");
+	PrecacheModel ("models/miniturret.mdl");	
 }
 
 void CNPC_MiniTurret::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
@@ -1358,9 +1334,9 @@ void CNPC_MiniTurret::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
 
 	CPASAttenuationFilter filter( this );
 
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "turret/tu_fire1.wav", TURRET_MACHINE_VOLUME, 1 );
+	EmitSound( filter, entindex(), "Turret.Shoot" );
 	
-	m_fEffects |= EF_MUZZLEFLASH;
+	DoMuzzleFlash();
 }
 
 //=========================================================
@@ -1384,7 +1360,7 @@ public:
 };
 
 BEGIN_DATADESC( CNPC_Sentry )
-	DEFINE_ENTITYFUNC( CNPC_Sentry, SentryTouch ),
+	DEFINE_ENTITYFUNC( SentryTouch ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_sentry, CNPC_Sentry );
@@ -1395,10 +1371,7 @@ void CNPC_Sentry::Precache()
 
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
 
-	engine->PrecacheModel ("models/sentry.mdl");
-	enginesound->PrecacheSound("weapons/hks1.wav");
-	enginesound->PrecacheSound("weapons/hks2.wav");
-	enginesound->PrecacheSound("weapons/hks3.wav");
+	PrecacheModel ("models/sentry.mdl");
 }
 
 void CNPC_Sentry::Spawn()
@@ -1417,7 +1390,7 @@ void CNPC_Sentry::Spawn()
 	BaseClass::Spawn();
 
 	SetSequence( TURRET_ANIM_RETIRE );
-	m_flCycle = 0.0;
+	SetCycle( 0 );
 	m_flPlaybackRate = 0.0;
 
 	m_iRetractHeight = 64;
@@ -1438,21 +1411,9 @@ void CNPC_Sentry::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
 
 	CPASAttenuationFilter filter( this );
 
-	switch(random->RandomInt(0,2))
-	{
-	case 0: 
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "weapons/hks1.wav", TURRET_MACHINE_VOLUME, 1 );
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "weapons/hks2.wav", TURRET_MACHINE_VOLUME, 1 );
-		break;
-	case 2:
-	default:
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "weapons/hks3.wav", TURRET_MACHINE_VOLUME, 1 );
-		break;
-	}
+	EmitSound( filter, entindex(), "Sentry.Shoot" );
 
-	SETBITS( m_fEffects, EF_MUZZLEFLASH );
+	DoMuzzleFlash();
 }
 
 int CNPC_Sentry::OnTakeDamage_Alive(const CTakeDamageInfo &info)
@@ -1473,22 +1434,9 @@ int CNPC_Sentry::OnTakeDamage_Alive(const CTakeDamageInfo &info)
 void CNPC_Sentry::Event_Killed( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Sentry.Die" );
 
-	switch( random->RandomInt(0,2) )
-	{
-	case 0: 
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-		break;
-	case 1:
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die2.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-		break;
-	case 2:
-	default:
-		enginesound->EmitSound( filter, entindex(), CHAN_BODY, "turret/tu_die3.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
-		break;
-	}
-
-	enginesound->StopSound( entindex(), CHAN_STATIC, "turret/tu_active2.wav" );
+	StopSound( entindex(), "Turret.Spinup" );
 
 	SetSolidFlags( FSOLID_NOT_STANDABLE );
 

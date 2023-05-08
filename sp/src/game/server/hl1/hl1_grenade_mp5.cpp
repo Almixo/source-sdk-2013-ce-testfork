@@ -28,7 +28,7 @@ BEGIN_DATADESC( CGrenadeMP5 )
 //	float				 m_fSpawnTime;
 
 	// Function pointers
-	DEFINE_FUNCTION( CGrenadeMP5, GrenadeMP5Touch ),
+	DEFINE_ENTITYFUNC( GrenadeMP5Touch ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( grenade_mp5, CGrenadeMP5 );
@@ -44,8 +44,8 @@ void CGrenadeMP5::Spawn( void )
 	UTIL_SetSize(this, Vector(-3, -3, -3), Vector(3, 3, 3));
 //	UTIL_SetSize(this, Vector(0, 0, 0), Vector(0, 0, 0));
 
-	SetUse( DetonateUse );
-	SetTouch( GrenadeMP5Touch );
+	SetUse( &CGrenadeMP5::DetonateUse );
+	SetTouch( &CGrenadeMP5::GrenadeMP5Touch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	m_flDamage		= sk_plr_dmg_mp5_grenade.GetFloat();
@@ -84,7 +84,7 @@ void CGrenadeMP5::GrenadeMP5Touch( CBaseEntity *pOther )
 		// If I'm not live, only blow up if I'm hitting an chacter that
 		// is not the owner of the weapon
 		CBaseCombatCharacter *pBCC = ToBaseCombatCharacter( pOther );
-		if (pBCC && GetOwner() != pBCC)
+		if (pBCC && GetOwnerEntity() != pBCC)
 		{
 			m_bIsLive = true;
 			Detonate();
@@ -130,16 +130,10 @@ void CGrenadeMP5::Detonate(void)
 
 	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
-	RadiusDamage ( CTakeDamageInfo( this, GetOwner(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_flDamage * 2.5, CLASS_NONE );
+	RadiusDamage ( CTakeDamageInfo( this, GetOwnerEntity(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_flDamage * 2.5, CLASS_NONE, 0 );
 
 	CPASAttenuationFilter filter2( this );
-
-	switch ( random->RandomInt( 0, 2 ) )
-	{
-		case 0: enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "weapons/debris1.wav", 0.55, ATTN_NORM );	break;
-		case 1: enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "weapons/debris2.wav", 0.55, ATTN_NORM );	break;
-		case 2: enginesound->EmitSound( filter2, entindex(), CHAN_VOICE, "weapons/debris3.wav", 0.55, ATTN_NORM );	break;
-	}
+	EmitSound( filter2, entindex(), "GrenadeMP5.Detonate" );
 
 	if ( GetWaterLevel() == 0 )
 	{
@@ -156,5 +150,8 @@ void CGrenadeMP5::Detonate(void)
 
 void CGrenadeMP5::Precache( void )
 {
-	engine->PrecacheModel( "models/grenade.mdl" ); 
+	BaseClass::Precache();
+
+	PrecacheModel( "models/grenade.mdl" );
+	PrecacheScriptSound( "GrenadeMP5.Detonate" );
 }

@@ -22,11 +22,6 @@
 //-----------------------------------------------------------------------------
 // CWeapon357
 //-----------------------------------------------------------------------------
-
-
-extern int g_iWeaponCheat;
-
-
 class CWeapon357 : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeapon357, CBaseHL1CombatWeapon );
@@ -127,7 +122,7 @@ void CWeapon357::PrimaryAttack( void )
 	}
 
 	WeaponSound( SINGLE );
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -164,7 +159,7 @@ void CWeapon357::SecondaryAttack( void )
 	if ( !g_pGameRules->IsMultiplayer() )
 	{
 		// unless we have cheats on
-		if ( g_iWeaponCheat == 0 )
+		if ( sv_cheats->GetBool() )
 		{
 			return;
 		}
@@ -226,13 +221,13 @@ void CWeapon357::ToggleZoom( void )
 
 	if ( m_fInZoom )
 	{
-		pPlayer->m_Local.m_iFOV = 0;
+		pPlayer->SetFOV(this, 0);
 		m_fInZoom = false;
 		pPlayer->ShowViewModel( true );
 	}
 	else
 	{
-		pPlayer->m_Local.m_iFOV = 40;
+		pPlayer->SetFOV(this, 40);
 		m_fInZoom = true;
 		pPlayer->ShowViewModel( false );
 	}

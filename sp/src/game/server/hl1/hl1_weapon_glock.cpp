@@ -112,7 +112,7 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 
 	WeaponSound( SINGLE );
 
-	pPlayer->m_fEffects |= EF_MUZZLEFLASH;
+	pPlayer->DoMuzzleFlash();
 
 	m_iClip1--;
 
