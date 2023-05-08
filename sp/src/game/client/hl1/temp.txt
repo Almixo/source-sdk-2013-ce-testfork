@@ -1,0 +1,19 @@
+ Volume in drive C has no label.
+ Volume Serial Number is 90F6-AA0A
+
+ Directory of C:\Users\Alex\ALEX\SDK\sdk-2013-ce-hl1-2003\sp\src\game\client\hl1
+
+08. 05. 2023  12:15    <DIR>          .
+08. 05. 2023  12:15    <DIR>          ..
+06. 05. 2023  21:09             1ÿ906 hl1_clientmode.cpp
+06. 05. 2023  21:09             2ÿ318 hl1_c_beamfollow.cpp
+06. 05. 2023  21:09               406 hl1_c_player.cpp
+06. 05. 2023  21:09               749 hl1_c_player.h
+06. 05. 2023  21:09             1ÿ031 hl1_c_rpg_rocket.cpp
+06. 05. 2023  21:09             5ÿ403 hl1_c_stickybolt.cpp
+06. 05. 2023  21:09             1ÿ703 hl1_c_weapon__stubs.cpp
+06. 05. 2023  21:09             7ÿ448 hl1_fx_gibs.cpp
+06. 05. 2023  21:09             1ÿ106 hl1_fx_impacts.cpp
+08. 05. 2023  12:15                 0 temp.txt
+              10 File(s)         22ÿ070 bytes
+               2 Dir(s)  134ÿ079ÿ455ÿ232 bytes free

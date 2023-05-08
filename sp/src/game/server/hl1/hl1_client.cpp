@@ -55,6 +55,18 @@ void ClientPutInServer( edict_t *pEdict, const char *playername )
 	pPlayer->Spawn();
 }
 
+void ClientActive(edict_t* pEdict, bool bLoadGame)
+{
+	CHL1_Player* pPlayer = dynamic_cast<CHL1_Player*>(CBaseEntity::Instance(pEdict));
+
+	pPlayer->InitialSpawn();
+
+	if (!bLoadGame)
+	{
+		pPlayer->Spawn();
+	}
+}
+
 /*
 ===============
 const char *GetGameDescription()

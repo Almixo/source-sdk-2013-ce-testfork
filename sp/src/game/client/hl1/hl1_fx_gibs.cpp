@@ -105,7 +105,7 @@ public:
 
 void C_HL1Gib::ClientThink( void )
 {
-	m_nRenderMode	= kRenderTransAlpha;
+	SetRenderMode(kRenderTransAlpha);
 	m_nRenderFX		= kRenderFxFadeSlow;
 
 	if ( m_clrRender->a == 5 )
@@ -237,7 +237,7 @@ void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int 
 
 	vDir.Random( -1.0f, 1.0f );
 
-	for ( i = 0; i < 4; i++ )
+	for ( int i = 0; i < 4; i++ )
 	{
 		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), hMaterial, origin );
 			
@@ -264,7 +264,7 @@ void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int 
 
 	hMaterial = pSimple->GetPMaterial( "effects/blood2" );
 
-	for ( i = 0; i < 4; i++ )
+	for ( int i = 0; i < 4; i++ )
 	{
 		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), hMaterial, origin );
 			

@@ -14,15 +14,19 @@ void ImpactCallback( const CEffectData &data )
 {
 	trace_t tr;
 	Vector vecOrigin, vecStart, vecShotDir;
-	int iMaterial, iDamageType, iHitbox, iEntIndex;
-	ParseImpactData( data, &vecOrigin, &vecStart, &vecShotDir, &iMaterial, &iDamageType, &iHitbox, &iEntIndex );
+	int iMaterial, iDamageType, iHitbox;
+	short nSurfaceProp;
+	C_BaseEntity* pEntity = ParseImpactData(data, &vecOrigin, &vecStart, &vecShotDir, nSurfaceProp, iMaterial, iDamageType, iHitbox);
+
+	if (!pEntity)
+		return;
 
 	// If we hit, perform our custom effects and play the sound
-	if ( Impact( vecOrigin, vecStart, iMaterial, iDamageType, iHitbox, iEntIndex, tr ) )
+	if ( Impact( vecOrigin, vecStart, iMaterial, iDamageType, iHitbox, pEntity, tr ) )
 	{
 		// Check for custom effects based on the Decal index
 		PerformCustomEffects( vecOrigin, tr, vecShotDir, iMaterial, 1.0 );
-		PlayImpactSound( tr );
+		PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
 	}
 }
 
