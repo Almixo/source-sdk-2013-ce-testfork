@@ -154,7 +154,7 @@ void CNPC_Barney::ModifyOrAppendCriteria( AI_CriteriaSet& set )
 {
 	BaseClass::ModifyOrAppendCriteria( set );
 
-	bool predisaster = FBitSet( m_spawnflags, SF_NPC_PREDISASTER ) ? true : false;
+	bool predisaster = HasSpawnFlags( SF_NPC_PREDISASTER ) ? true : false;
 
 	set.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
 }
@@ -213,9 +213,7 @@ void CNPC_Barney::AlertSound( void )
 //=========================================================
 void CNPC_Barney::SetYawSpeed ( void )
 {
-	int ys;
-
-	ys = 0;
+	int ys = 0;
 
 	switch ( GetActivity() )
 	{
@@ -318,7 +316,17 @@ void CNPC_Barney::BarneyFirePistol ( void )
 		pitchShift -= 5;
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "barney/ba_attack2.wav", 1, ATTN_NORM, 0, 100 + pitchShift );
+
+	EmitSound_t params;
+	params.m_pSoundName = "Barney.FirePistol";
+
+	//TODO: Remove everything not needed!
+	params.m_flVolume = 1;
+	params.m_nChannel= CHAN_WEAPON;
+	params.m_SoundLevel = SNDLVL_140dB;
+
+	params.m_nPitch = 100 + pitchShift;
+	EmitSound( filter, entindex(), params );
 
 	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), 384, 0.3 );
 
@@ -372,12 +380,11 @@ void CNPC_Barney :: PainSound ( void )
 {
 	if (gpGlobals->curtime < m_flPainTime)
 		return;
-	
-	m_flPainTime = gpGlobals->curtime + random->RandomFloat( 0.5, 0.75 );
 
 	CPASAttenuationFilter filter(this);
 	EmitSound(filter, entindex(), "Barney.Pain");
-	m_flPainTime = gpGlobals->curtime + RandomFloat(0.5f, 0.75f);
+
+	m_flPainTime = gpGlobals->curtime + RandomFloat( 0.5f, 0.75f );
 }
 
 //=========================================================
@@ -385,6 +392,8 @@ void CNPC_Barney :: PainSound ( void )
 //=========================================================
 void CNPC_Barney :: DeathSound ( void )
 {
+	SentenceStop();
+
 	CPASAttenuationFilter filter(this);
 	EmitSound(filter, entindex(), "Barney.Die");
 }
@@ -393,28 +402,27 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 {
 	CTakeDamageInfo info = inputInfo;
 
-	switch( ptr->hitgroup )
+	switch (ptr->hitgroup)
 	{
-	case HITGROUP_CHEST:
-	case HITGROUP_STOMACH:
-		if ( info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST) )
-		{
-			info.ScaleDamage( 0.5f );
-		}
-		break;
-	case 10:
-		if ( info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB) )
-		{
-			info.SetDamage( info.GetDamage() - 20 );
-			if ( info.GetDamage() <= 0 )
+		case HITGROUP_CHEST:
+		case HITGROUP_STOMACH:
+			if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST))
+				info.ScaleDamage( 0.5f );
+			break;
+		case HITGROUP_GEAR:
+			if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
 			{
-				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
-				info.SetDamage( 0.01 );
+				float Dmg = info.GetDamage() - 20;
+				if (Dmg <= 0)
+				{
+					g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
+					info.SetDamage( 0.01f );
+				}
+				break;
 			}
-		}
-		// always a head shot
-		ptr->hitgroup = HITGROUP_HEAD;
-		break;
+			// always a head shot
+			ptr->hitgroup = HITGROUP_HEAD;
+			break;
 	}
 
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );

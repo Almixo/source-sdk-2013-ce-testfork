@@ -1,27 +1,19 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		357 - hand gun
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
 #include "gamerules.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-
 
 //-----------------------------------------------------------------------------
 // CWeapon357
 //-----------------------------------------------------------------------------
+
 class CWeapon357 : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeapon357, CBaseHL1CombatWeapon );
@@ -29,7 +21,6 @@ public:
 
 	CWeapon357( void );
 
-	void	Precache( void );
 	bool	Deploy( void );
 	void	PrimaryAttack( void );
 	void	SecondaryAttack( void );
@@ -42,9 +33,7 @@ public:
 
 private:
 	void	ToggleZoom( void );
-
-private:
-	bool	m_fInZoom;
+	bool	m_bInZoom;
 };
 
 LINK_ENTITY_TO_CLASS( weapon_357, CWeapon357 );
@@ -64,31 +53,21 @@ CWeapon357::CWeapon357( void )
 {
 	m_bReloadsSingly	= false;
 	m_bFiresUnderwater	= false;
-	m_fInZoom			= false;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CWeapon357::Precache( void )
-{
-	BaseClass::Precache();
-
-	UTIL_PrecacheOther( "ammo_357" );
+	m_bInZoom			= false;
 }
 
 bool CWeapon357::Deploy( void )
 {
-// Bodygroup stuff not currently working correctly
-//	if ( g_pGameRules->IsMultiplayer() )
-//	{
+	// Bodygroup stuff not currently working correctly
+	if ( g_pGameRules->IsMultiplayer() )
+	{
 		// enable laser sight geometry.
-//		SetBodygroup( 4, 1 );
-//	}
-//	else
-//	{
-//		SetBodygroup( 4, 0 );
-//	}
+		SetBodygroup( 4, 1 );
+	}
+	else
+	{
+		SetBodygroup( 4, 0 );
+	}
 
 	return BaseClass::Deploy();
 }
@@ -100,11 +79,7 @@ void CWeapon357::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
-		return;
-	}
+	if (pPlayer == NULL) return;
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -135,7 +110,10 @@ void CWeapon357::PrimaryAttack( void )
 	Vector vecSrc		= pPlayer->Weapon_ShootPosition();
 	Vector vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );	
 
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_1DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+	FireBulletsInfo_t info( 1, vecSrc, vecAiming, VECTOR_CONE_1DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+	info.m_pAttacker = pPlayer;
+
+	pPlayer->FireBullets( info );
 
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
@@ -155,33 +133,21 @@ void CWeapon357::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeapon357::SecondaryAttack( void )
 {
-	// only in multiplayer
-	if ( !g_pGameRules->IsMultiplayer() )
+	if (g_pGameRules->IsMultiplayer() || sv_cheats->GetBool())
 	{
-		// unless we have cheats on
-		if ( sv_cheats->GetBool() )
-		{
-			return;
-		}
+		ToggleZoom();
+		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
 	}
-
-	ToggleZoom();
-
-	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
 }
 
 
 bool CWeapon357::Reload( void )
 {
-	bool fRet;
-
-	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
+	bool fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
 	if ( fRet )
 	{
-		if ( m_fInZoom )
-		{
+		if ( m_bInZoom )
 			ToggleZoom();
-		}
 	}
 
 	return fRet;
@@ -191,21 +157,28 @@ bool CWeapon357::Reload( void )
 void CWeapon357::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
-	}
+	if ( pPlayer == NULL ) return;
 
-	BaseClass::WeaponIdle();
+	pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
+
+	if ( !HasWeaponIdleTimeElapsed() )
+		return;
+
+	if ( RandomFloat( 0, 1 ) <= 0.9 )
+	{
+		SendWeaponAnim( ACT_VM_IDLE );
+	}
+	else
+	{
+		SendWeaponAnim( ACT_VM_FIDGET );
+	}
 }
 
 
 bool CWeapon357::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
-	if ( m_fInZoom )
-	{
+	if ( m_bInZoom )
 		ToggleZoom();
-	}
 
 	return BaseClass::Holster( pSwitchingTo );
 }
@@ -214,21 +187,22 @@ bool CWeapon357::Holster( CBaseCombatWeapon *pSwitchingTo )
 void CWeapon357::ToggleZoom( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-	{
-		return;
-	}
+	if ( pPlayer == NULL ) return;
 
-	if ( m_fInZoom )
+	if ( m_bInZoom )
 	{
-		pPlayer->SetFOV(this, 0);
-		m_fInZoom = false;
-		pPlayer->ShowViewModel( true );
+		if ( pPlayer->SetFOV( this, 0 ) )
+		{
+			m_bInZoom = false;
+			pPlayer->ShowViewModel( true );
+		}
 	}
 	else
 	{
-		pPlayer->SetFOV(this, 40);
-		m_fInZoom = true;
-		pPlayer->ShowViewModel( false );
+		if ( pPlayer->SetFOV( this, 40 ) )
+		{
+			m_bInZoom = true;
+			pPlayer->ShowViewModel( false );
+		}
 	}
 }

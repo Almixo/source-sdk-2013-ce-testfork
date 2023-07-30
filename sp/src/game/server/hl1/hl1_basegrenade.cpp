@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -21,6 +21,16 @@ extern short	g_sModelIndexWExplosion;	// (in combatweapon.cpp) holds the index f
 unsigned int CHL1BaseGrenade::PhysicsSolidMaskForEntity( void ) const
 {
 	return BaseClass::PhysicsSolidMaskForEntity() | CONTENTS_HITBOX;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHL1BaseGrenade::Precache()
+{
+	BaseClass::Precache();
+
+	PrecacheScriptSound( "BaseGrenade.Explode" );
 }
 
 
@@ -45,7 +55,7 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	if ( pTrace->fraction != 1.0 )
 	{
 		Vector vecNormal = pTrace->plane.normal;
-		surfacedata_t *pdata = physprops->GetSurfaceData( pTrace->surface.surfaceProps );	
+		const surfacedata_t *pdata = physprops->GetSurfaceData( pTrace->surface.surfaceProps );	
 		CPASFilter filter( vecAbsOrigin );
 		te->Explosion( filter, 0.0, 
 			&vecAbsOrigin,
@@ -74,11 +84,11 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
 	// Use the owner's position as the reported position
-	Vector vecReported = GetOwnerEntity() ? GetOwnerEntity()->GetAbsOrigin() : vec3_origin;
+	Vector vecReported = GetThrower() ? GetThrower()->GetAbsOrigin() : vec3_origin;
 	
-	CTakeDamageInfo info( this, GetOwnerEntity(), GetBlastForce(), GetAbsOrigin(), m_flDamage, bitsDamageType, 0, &vecReported );
+	CTakeDamageInfo info( this, GetThrower(), GetBlastForce(), GetAbsOrigin(), m_flDamage, bitsDamageType, 0, &vecReported );
 
-	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, this );
+	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
 	UTIL_DecalTrace( pTrace, "Scorch" );
 
@@ -91,7 +101,7 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	AddEffects( EF_NODRAW );
 	SetAbsVelocity( vec3_origin );
 
-	SetThink( &CHL1BaseGrenade::Smoke );
+	SetThink( &CBaseGrenade::Smoke );
 	SetNextThink( gpGlobals->curtime + 0.3);
 
 	if ( GetWaterLevel() == 0 )

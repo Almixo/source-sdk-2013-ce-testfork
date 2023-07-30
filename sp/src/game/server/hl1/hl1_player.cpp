@@ -1,4 +1,4 @@
-﻿//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Player for HL1.
 //
@@ -14,6 +14,7 @@
 #include "in_buttons.h"
 #include "igamemovement.h"
 #include "ai_hull.h"
+#include "hl2_shareddefs.h"
 #include "info_camera_link.h"
 #include "Point_Camera.h"
 #include "ndebugoverlay.h"
@@ -536,30 +537,13 @@ void CHL1_Player::UpdatePullingObject()
 //-----------------------------------------------------------------------------
 void CHL1_Player::Spawn(void)
 {
-	// In multiplayer ,this is handled in the super class
-	if ( !g_pGameRules->IsMultiplayer () )
-		SetModel( "models/player.mdl" );
+	SetModel( "models/player.mdl" );
+	SetMoveType( MOVETYPE_WALK );
+	RemoveSolidFlags( FSOLID_NOT_SOLID );
 
-	BaseClass::Spawn();
-
-	//
-	// Our player movement speed is set once here. This will override the cl_xxxx
-	// cvars unless they are set to be lower than this.
-	//
 	SetMaxSpeed( 320 );
-
-	SetDefaultFOV( 0 );
-
-	m_nFlashBattery = 99;
-	m_flFlashLightTime = 1;
-
-	m_flFieldOfView	= 0.5;
-
-	StopPullingObject();
-
-	m_Local.m_iHideHUD = 0;
 	
-	engine->ClientCommand( edict(), "unbind tab" );
+	BaseClass::Spawn();
 }
 
 //-----------------------------------------------------------------------------
@@ -572,7 +556,6 @@ void CHL1_Player::Event_Killed( const CTakeDamageInfo &info )
 
 void CHL1_Player::CheckTimeBasedDamage( void ) 
 {
-	int i;
 	byte bDuration = 0;
 
 	static float gtbdPrev = 0.0;
@@ -587,7 +570,7 @@ void CHL1_Player::CheckTimeBasedDamage( void )
 	
 	m_tbdPrev = gpGlobals->curtime;
 
-	for (i = 0; i < CDMG_TIMEBASED; i++)
+	for (int i = 0; i < CDMG_TIMEBASED; i++)
 	{
 		// Make sure the damage type is really time-based.
 		// This is kind of hacky but necessary until we setup DamageType as an enum.

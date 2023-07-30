@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "hl1_grenade_mp5.h"
@@ -29,6 +29,8 @@ BEGIN_DATADESC( CGrenadeMP5 )
 
 	// Function pointers
 	DEFINE_ENTITYFUNC( GrenadeMP5Touch ),
+
+	DEFINE_FIELD( m_fSpawnTime, FIELD_TIME ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( grenade_mp5, CGrenadeMP5 );
@@ -41,10 +43,10 @@ void CGrenadeMP5::Spawn( void )
 	AddFlag( FL_GRENADE );
 
 	SetModel( "models/grenade.mdl" );
-	UTIL_SetSize(this, Vector(-3, -3, -3), Vector(3, 3, 3));
-//	UTIL_SetSize(this, Vector(0, 0, 0), Vector(0, 0, 0));
+	//UTIL_SetSize(this, Vector(-3, -3, -3), Vector(3, 3, 3));
+	UTIL_SetSize(this, Vector(0, 0, 0), Vector(0, 0, 0));
 
-	SetUse( &CGrenadeMP5::DetonateUse );
+	SetUse( &CBaseGrenade::DetonateUse );
 	SetTouch( &CGrenadeMP5::GrenadeMP5Touch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
@@ -54,10 +56,10 @@ void CGrenadeMP5::Spawn( void )
 	m_bIsLive		= true;
 	m_iHealth		= 1;
 
-	SetGravity( 0.5 );
+	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for grenades to make them easier to see
 	SetFriction( 0.8 );
 
-	SetSequence( 1 );
+	SetSequence( 0 );
 
 	m_fSpawnTime	= gpGlobals->curtime;
 }
@@ -84,7 +86,7 @@ void CGrenadeMP5::GrenadeMP5Touch( CBaseEntity *pOther )
 		// If I'm not live, only blow up if I'm hitting an chacter that
 		// is not the owner of the weapon
 		CBaseCombatCharacter *pBCC = ToBaseCombatCharacter( pOther );
-		if (pBCC && GetOwnerEntity() != pBCC)
+		if (pBCC && GetThrower() != pBCC)
 		{
 			m_bIsLive = true;
 			Detonate();
@@ -112,11 +114,8 @@ void CGrenadeMP5::Detonate(void)
 		m_DmgRadius,
 		m_flDamage );
 
-	Vector vecForward = GetAbsVelocity();
-	VectorNormalize(vecForward);
-	trace_t		tr;
-	UTIL_TraceLine ( GetAbsOrigin(), GetAbsOrigin() + 60*vecForward, MASK_SOLID, 
-		this, COLLISION_GROUP_NONE, &tr );
+	trace_t tr;	
+	tr = CBaseEntity::GetTouchTrace();
 
 	if ( (tr.m_pEnt != GetWorldEntity()) || (tr.hitbox != 0) )
 	{
@@ -125,12 +124,12 @@ void CGrenadeMP5::Detonate(void)
 	}
 	else
 	{
-		UTIL_DecalTrace( &tr, "Sorch" );
+		UTIL_DecalTrace( &tr, "Scorch" );
 	}
 
 	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
-	RadiusDamage ( CTakeDamageInfo( this, GetOwnerEntity(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_flDamage * 2.5, CLASS_NONE, 0 );
+	RadiusDamage ( CTakeDamageInfo( this, GetThrower(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_flDamage * 2.5, CLASS_NONE, NULL );
 
 	CPASAttenuationFilter filter2( this );
 	EmitSound( filter2, entindex(), "GrenadeMP5.Detonate" );
@@ -148,10 +147,14 @@ void CGrenadeMP5::Detonate(void)
 	UTIL_Remove( this );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CGrenadeMP5::Precache( void )
 {
 	BaseClass::Precache();
 
-	PrecacheModel( "models/grenade.mdl" );
+	PrecacheModel( "models/grenade.mdl" ); 
+
 	PrecacheScriptSound( "GrenadeMP5.Detonate" );
 }

@@ -7,6 +7,17 @@
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "te_effect_dispatch.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseHL1CombatWeapon::Precache()
+{
+	BaseClass::Precache();
+
+	PrecacheScriptSound( "BaseCombatWeapon.WeaponDrop" );
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -54,4 +65,44 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 
 		Materialize(); 
 	}
+}
+
+void CBaseHL1CombatWeapon::EjectShell( CBaseEntity *pPlayer, int iType )
+{
+	QAngle angShellAngles = pPlayer->GetAbsAngles();
+
+	Vector vecForward, vecRight, vecUp;
+	AngleVectors(angShellAngles, &vecForward, &vecRight, &vecUp);
+
+	Vector vecShellPosition = pPlayer->GetAbsOrigin() + pPlayer->GetViewOffset();
+	switch (iType)
+	{
+	case 0:
+	default:
+		vecShellPosition += vecRight * 4;
+		vecShellPosition += vecUp * -12;
+		vecShellPosition += vecForward * 20;
+		break;
+	case 1:
+		vecShellPosition += vecRight * 6;
+		vecShellPosition += vecUp * -12;
+		vecShellPosition += vecForward * 32;
+		break;
+	}
+
+	Vector vecShellVelocity = vec3_origin;
+	vecShellVelocity += vecRight * RandomFloat( 50, 70 );
+	vecShellVelocity += vecUp * RandomFloat( 100, 150 );
+	vecShellVelocity += vecForward * 25;
+
+	angShellAngles.x = 0;
+	angShellAngles.z = 0;
+
+	CEffectData	data;
+	data.m_vStart = vecShellVelocity;
+	data.m_vOrigin = vecShellPosition;
+	data.m_vAngles = angShellAngles;
+	data.m_fFlags = iType;
+
+	DispatchEffect("HL1ShellEject", data);
 }

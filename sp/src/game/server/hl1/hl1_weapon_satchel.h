@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #ifndef HL1_WEAPON_SATCHEL_H
 #define HL1_WEAPON_SATCHEL_H
@@ -10,10 +10,8 @@
 #pragma once
 #endif
 
-
 #include "hl1_basegrenade.h"
 #include "hl1_basecombatweapon_shared.h"
-
 
 //-----------------------------------------------------------------------------
 // CWeaponSatchel
@@ -51,13 +49,12 @@ private:
 	void	ActivateRadioModel( void );
 
 private:
-	int		m_iRadioViewIndex;
-	int		m_iRadioWorldIndex;
-	int		m_iSatchelViewIndex;
-	int		m_iSatchelWorldIndex;
-	int		m_iChargeReady;
+	int m_iRadioViewIndex;
+	int m_iRadioWorldIndex;
+	int m_iSatchelViewIndex;
+	int m_iSatchelWorldIndex;
+	int m_iChargeReady;
 };
-
 
 //-----------------------------------------------------------------------------
 // CSatchelCharge
@@ -88,6 +85,4 @@ private:
 	void	UpdateSlideSound( void );
 	void	Deactivate( void );
 };
-
-
 #endif // HL1_WEAPON_SATCHEL_H

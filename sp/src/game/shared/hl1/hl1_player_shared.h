@@ -14,8 +14,8 @@
 
 // Shared header file for players
 #if defined( CLIENT_DLL )
-#define CHL1_Player C_BaseHLPlayer	//FIXME: Lovely naming job between server and client here...
-#include "c_basehlplayer.h"
+#define CHL1_Player C_HL1_Player	//FIXME: Lovely naming job between server and client here...
+#include "hl1_c_player.h"
 #else
 #include "hl1_player.h"
 #endif

@@ -1,13 +1,31 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Satchel charge
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "hl1_weapon_satchel.h"
+#include "NPCEvent.h"
+#include "hl1_basecombatweapon_shared.h"
+//#include "basecombatweapon.h"
+//#include "basecombatcharacter.h"
+#ifdef CLIENT_DLL
+#include "c_baseplayer.h"
+#else
+#include "player.h"
+#endif
+//#include "AI_BaseNPC.h"
+//#include "player.h"
+#include "gamerules.h"
 #include "in_buttons.h"
+#ifndef CLIENT_DLL
+#include "soundent.h"
+#include "game.h"
+#endif
+#include "vstdlib/random.h"
+#include "engine/IEngineSound.h"
+#include "hl1mp_weapon_satchel.h"
 
 
 //-----------------------------------------------------------------------------
@@ -20,19 +38,50 @@
 #define SATCHELRADIO_VIEW_MODEL		"models/v_satchel_radio.mdl"
 #define SATCHELRADIO_WORLD_MODEL	"models/w_satchel.mdl"	// this needs fixing if we do multiplayer
 
+IMPLEMENT_NETWORKCLASS_ALIASED( WeaponSatchel, DT_WeaponSatchel );
+
+BEGIN_NETWORK_TABLE( CWeaponSatchel, DT_WeaponSatchel )
+#ifdef CLIENT_DLL
+	RecvPropInt( RECVINFO( m_iRadioViewIndex ) ),
+	RecvPropInt( RECVINFO( m_iRadioWorldIndex ) ),
+	RecvPropInt( RECVINFO( m_iSatchelViewIndex ) ),
+	RecvPropInt( RECVINFO( m_iSatchelWorldIndex ) ),
+	RecvPropInt( RECVINFO( m_iChargeReady ) ),
+#else
+	SendPropInt( SENDINFO( m_iRadioViewIndex ) ),
+	SendPropInt( SENDINFO( m_iRadioWorldIndex ) ),
+	SendPropInt( SENDINFO( m_iSatchelViewIndex ) ),
+	SendPropInt( SENDINFO( m_iSatchelWorldIndex ) ),
+	SendPropInt( SENDINFO( m_iChargeReady ) ),
+#endif
+END_NETWORK_TABLE()
+
 LINK_ENTITY_TO_CLASS( weapon_satchel, CWeaponSatchel );
 
 PRECACHE_WEAPON_REGISTER( weapon_satchel );
 
-IMPLEMENT_SERVERCLASS_ST( CWeaponSatchel, DT_WeaponSatchel )
-END_SEND_TABLE()
+//IMPLEMENT_SERVERCLASS_ST( CWeaponSatchel, DT_WeaponSatchel )
+//END_SEND_TABLE()
+
+
+BEGIN_PREDICTION_DATA( CWeaponSatchel )
+#ifdef CLIENT_DLL
+	DEFINE_PRED_FIELD( m_iRadioViewIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_MODELINDEX ),
+	DEFINE_PRED_FIELD( m_iRadioWorldIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_MODELINDEX ),
+	DEFINE_PRED_FIELD( m_iSatchelViewIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_MODELINDEX ),
+	DEFINE_PRED_FIELD( m_iSatchelWorldIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_MODELINDEX ),
+	DEFINE_PRED_FIELD( m_iChargeReady, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+#endif
+END_PREDICTION_DATA()
+
 
 BEGIN_DATADESC( CWeaponSatchel )
-	DEFINE_FIELD( m_iRadioViewIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iRadioWorldIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iSatchelViewIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iSatchelWorldIndex, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iChargeReady, FIELD_INTEGER ),
+
+//	DEFINE_FIELD( m_iRadioViewIndex, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iRadioWorldIndex, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iSatchelViewIndex, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iSatchelWorldIndex, FIELD_INTEGER ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -96,7 +145,9 @@ void CWeaponSatchel::Precache( void )
 	m_iRadioViewIndex		= PrecacheModel( SATCHELRADIO_VIEW_MODEL );
 	m_iRadioWorldIndex		= PrecacheModel( SATCHELRADIO_WORLD_MODEL );
 
+#ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "monster_satchel" );
+#endif
 
 	BaseClass::Precache();
 }
@@ -145,6 +196,7 @@ void CWeaponSatchel::PrimaryAttack( void )
 
 			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 
+#ifndef CLIENT_DLL
 			CBaseEntity *pSatchel = NULL;
 
 			while ( (pSatchel = gEntList.FindEntityByClassname( pSatchel, "monster_satchel" ) ) != NULL)
@@ -154,11 +206,12 @@ void CWeaponSatchel::PrimaryAttack( void )
 					pSatchel->Use( pPlayer, pPlayer, USE_ON, 0 );
 				}
 			}
+#endif
 
 			m_iChargeReady = 2;
 			m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
 			m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
-			m_flTimeWeaponIdle = gpGlobals->curtime + 0.5;
+			SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
 			break;
 		}
 
@@ -195,7 +248,8 @@ void CWeaponSatchel::Throw( void )
 		Vector vecSrc	= pPlayer->WorldSpaceCenter();
 		Vector vecThrow	= vecForward * 274 + pPlayer->GetAbsVelocity();
 
-		CBaseEntity *pSatchel = Create( "monster_satchel", vecSrc, vec3_angle, pPlayer );
+#ifndef CLIENT_DLL
+		CBaseEntity *pSatchel = Create( "monster_satchel", vecSrc, QAngle( 0, 0, 90 ), pPlayer );
 		if ( pSatchel )
 		{
 			pSatchel->SetAbsVelocity( vecThrow );
@@ -215,6 +269,7 @@ void CWeaponSatchel::Throw( void )
 			pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
 
 		}
+#endif
 
 		m_flNextPrimaryAttack = gpGlobals->curtime + 1.0;
 		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
@@ -303,8 +358,10 @@ bool CWeaponSatchel::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 		if ( (pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0) && !HasChargeDeployed() )
 		{
+#ifndef CLIENT_DLL
 			SetThink( &CWeaponSatchel::DestroyItem );
 			SetNextThink( gpGlobals->curtime + 0.1 );
+#endif
 		}
 	}
 
@@ -352,7 +409,20 @@ const char *CWeaponSatchel::GetWorldModel( void ) const
 	}
 }
 
+void CWeaponSatchel::OnRestore( void )
+{
+	BaseClass::OnRestore();
+	if ( HasChargeDeployed() )
+	{
+		ActivateRadioModel();
+	}
+	else
+	{
+		ActivateSatchelModel();
+	}
+}
 
+#ifndef CLIENT_DLL
 //-----------------------------------------------------------------------------
 // CSatchelCharge
 //-----------------------------------------------------------------------------
@@ -408,8 +478,8 @@ void CSatchelCharge::Spawn( void )
 	m_takedamage	= DAMAGE_NO;
 	m_iHealth		= 1;
 
-	SetGravity( 0.7 );
-	SetFriction( 1.0 );
+	SetGravity( UTIL_ScaleForGravity( 560 ) );	// slightly lower gravity
+	SetFriction( 0.97 );	//used in SatchelTouch to slow us when sliding
 	SetSequence( LookupSequence( "onback" ) );
 
 	m_bInAir				= false;
@@ -425,7 +495,7 @@ void CSatchelCharge::Spawn( void )
 //-----------------------------------------------------------------------------
 void CSatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink( &CSatchelCharge::Detonate );
+	SetThink( &CBaseGrenade::Detonate );
 	SetNextThink( gpGlobals->curtime );
 }
 
@@ -437,23 +507,10 @@ void CSatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 void CSatchelCharge::SatchelTouch( CBaseEntity *pOther )
 {
 	Assert( pOther );
-	if ( pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) )
+	if ( pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) || GetWaterLevel() > 0 )
 		return;
 
 	StudioFrameAdvance( );
-
-	SetGravity( 1 );// normal gravity now
-
-	// HACKHACK - On ground isn't always set, so look for ground underneath
-	trace_t tr;
-	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,10), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
-
-	if ( tr.fraction < 1.0 )
-	{
-		// add a bit of static friction
-		SetAbsVelocity( GetAbsVelocity() * 0.85 );
-		SetLocalAngularVelocity( GetLocalAngularVelocity() * 0.8 );
-	}
 
 	UpdateSlideSound();
 
@@ -463,6 +520,9 @@ void CSatchelCharge::SatchelTouch( CBaseEntity *pOther )
 		m_bInAir = false;
 	}
 
+	// add a bit of static friction
+	SetAbsVelocity( GetAbsVelocity() * GetFriction() );
+	SetLocalAngularVelocity( GetLocalAngularVelocity() * GetFriction() );
 }
 
 void CSatchelCharge::UpdateSlideSound( void )
@@ -481,22 +541,6 @@ void CSatchelCharge::SatchelThink( void )
 {
 	UpdateSlideSound();
 
-	// Bounce movement code gets this think stuck occasionally so check if I've 
-	// succeeded in moving, otherwise kill my motions.
-	if ((GetAbsOrigin() - m_vLastPosition).LengthSqr()<1)
-	{
-		SetAbsVelocity( vec3_origin );
-
-		QAngle angVel = GetLocalAngularVelocity();
-		angVel.y  = 0;
-		SetLocalAngularVelocity( angVel );
-
-		// Clear think function
-		SetThink(NULL);
-		return;
-	}
-	m_vLastPosition= GetAbsOrigin();
-
 	StudioFrameAdvance( );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
@@ -507,36 +551,37 @@ void CSatchelCharge::SatchelThink( void )
 	}
 
 	Vector vecNewVel = GetAbsVelocity();
-	if ( GetWaterLevel() == 3 )
+	
+	if ( GetWaterLevel() > 0 )
 	{
-		SetMoveType( MOVETYPE_FLY );
+		SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 		vecNewVel *= 0.8;
-		vecNewVel.z += 8;
 		SetLocalAngularVelocity( GetLocalAngularVelocity() * 0.9 );
+
+		vecNewVel.z = 0;
+		SetGravity( -0.2 );
 	}
 	else if ( GetWaterLevel() == 0 )
 	{
-		SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
-	}
-	else
-	{
-		vecNewVel.z -= 8;
+		SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_SLIDE );
+
+		SetGravity( 1.0 );
 	}
 
-	SetAbsVelocity( vecNewVel );
+	SetAbsVelocity( vecNewVel );	
 }
 
 void CSatchelCharge::Precache( void )
 {
-	engine->PrecacheModel( SATCHEL_CHARGE_MODEL );
+	PrecacheModel( SATCHEL_CHARGE_MODEL );
+	PrecacheScriptSound( "SatchelCharge.Bounce" );
 }
 
 void CSatchelCharge::BounceSound( void )
 {
 	if ( gpGlobals->curtime > m_flNextBounceSoundTime )
 	{
-		CPASAttenuationFilter filter(this);
-		EmitSound( filter, entindex(), "SatchelCharge.Bounce" );
+		EmitSound( "SatchelCharge.Bounce" );
 
 		m_flNextBounceSoundTime = gpGlobals->curtime + 0.1;
 	}
@@ -551,3 +596,5 @@ CSatchelCharge::CSatchelCharge(void)
 {
 	m_vLastPosition.Init();
 }
+
+#endif

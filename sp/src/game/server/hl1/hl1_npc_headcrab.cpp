@@ -22,9 +22,6 @@
 #include "movevars_shared.h"
 #include "soundemittersystem/isoundemittersystembase.h"
 
-extern void ClearMultiDamage(void);
-extern void ApplyMultiDamage( void );
-
 ConVar	sk_headcrab_health( "sk_headcrab_health","20");
 ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");
 
@@ -416,6 +413,24 @@ void CNPC_Headcrab::LeapTouch( CBaseEntity *pOther )
 	}
 
 	SetTouch( NULL );
+}
+
+//=========================================================
+// DeathSound
+//=========================================================
+void CNPC_Headcrab::DeathSound( const CTakeDamageInfo &info )
+{
+	CPASAttenuationFilter filter(this);
+	EmitSound(filter, entindex(), "Headcrab.Die");
+}
+
+//=========================================================
+// DeathSound
+//=========================================================
+void CNPC_Headcrab::PainSound( const CTakeDamageInfo &info )
+{
+	CPASAttenuationFilter filter(this);
+	EmitSound(filter, entindex(), "Headcrab.Pain");
 }
 
 //-----------------------------------------------------------------------------

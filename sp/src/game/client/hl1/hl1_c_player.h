@@ -20,12 +20,13 @@ public:
 
 	C_HL1_Player();
 
-
-	CNetworkVar( bool, m_bHasLongJump );
+	int m_nFlashBattery;	// Flashlight Battery Draw
+	float m_flStartCharge, m_flAmmoStartCharge, m_flPlayAftershock, m_flNextAmmoBurn, m_flFlashLightTime;
+	bool m_bIsPullingObject, m_bHasLongJump;
 
 private:
 	C_HL1_Player( const C_HL1_Player & );
-	
+
 };
 
 inline C_HL1_Player *ToHL1Player( CBaseEntity *pEntity )

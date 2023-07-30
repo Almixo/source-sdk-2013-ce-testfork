@@ -1,20 +1,21 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+// Purpose: 
 //
-// $Header: $
 // $NoKeywords: $
 //
-//=============================================================================
+//=============================================================================//
 #include "cbase.h"
 #include "ivmodemanager.h"
 #include "clientmode_hlnormal.h"
+#include "hl1_clientmode.h"
+
+#include "memdbgon.h"
 
 // default FOV for HL1
-ConVar default_fov( "default_fov", "90", 0 );
+ConVar default_fov( "default_fov", "90", FCVAR_CHEAT );
+ConVar fov_desired( "fov_desired", "75", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the base field-of-view.", true, 75.0, true, 120.0 );
+extern ConVar forcebullets_toggle( "forcebullets_toggle", "1", FCVAR_USERINFO, "Turns on/off Half-Life Source's coded in bullet eject." );
 
 // The current client mode. Always ClientModeNormal in HL.
 IClientMode *g_pClientMode = NULL;
@@ -28,7 +29,7 @@ public:
 	virtual void	Init( void );
 	virtual void	SwitchMode( bool commander, bool force );
 	virtual void	OverrideView( CViewSetup *pSetup );
-	virtual void	CreateMove( float flFrameTime, float flInputSampleTime, CUserCmd *cmd );
+	virtual void	CreateMove( float flInputSampleTime, CUserCmd *cmd );
 	virtual void	LevelInit( const char *newmap );
 	virtual void	LevelShutdown( void );
 };
@@ -54,7 +55,7 @@ void CHLModeManager::OverrideView( CViewSetup *pSetup )
 {
 }
 
-void CHLModeManager::CreateMove( float flFrameTime, float flInputSampleTime, CUserCmd *cmd )
+void CHLModeManager::CreateMove( float flInputSampleTime, CUserCmd *cmd )
 {
 }
 
@@ -67,7 +68,6 @@ void CHLModeManager::LevelShutdown( void )
 {
 	g_pClientMode->LevelShutdown();
 }
-
 
 static CHLModeManager g_HLModeManager;
 IVModeManager *modemanager = &g_HLModeManager;
@@ -97,26 +97,6 @@ protected:
 
 	virtual IViewPortPanel *CreatePanelByName( const char *szPanelName );
 };
-#include "clientmode_shared.h"
-
-class ClientModeHL1Normal : public ClientModeShared 
-{
-	DECLARE_CLASS( ClientModeHL1Normal, ClientModeShared );
-public:
-					ClientModeHL1Normal();
-	virtual			~ClientModeHL1Normal();
-
-	virtual	void	InitViewport();
-
-	virtual float	GetViewModelFOV( void );
-
-	virtual int		GetDeathMessageStartHeight( void );
-};
-
-
-extern IClientMode *GetClientModeNormal();
-extern ClientModeHL1Normal* GetClientModeHL1Normal();
-
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -140,7 +120,8 @@ void ClientModeHL1Normal::InitViewport()
 
 float ClientModeHL1Normal::GetViewModelFOV( void )
 {
-	return 90.0f;
+	ConVarRef viewmodel_fov( "viewmodel_fov" );
+	return viewmodel_fov.GetFloat() == 54.0f ? 90.0f : viewmodel_fov.GetFloat();
 }
 
 
@@ -166,11 +147,5 @@ ClientModeHL1Normal* GetClientModeHL1Normal()
 
 IViewPortPanel* CHudViewport::CreatePanelByName( const char *szPanelName )
 {
-/*	else if ( Q_strcmp(PANEL_INFO, szPanelName) == 0 )
-	{
-		newpanel = new CHL2MPTextWindow( this );
-		return newpanel;
-	}*/
-
 	return BaseClass::CreatePanelByName( szPanelName ); 
 }

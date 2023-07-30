@@ -1,3 +1,10 @@
+﻿//========= Copyright ©	 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
 #include	"AI_Default.h"
 #include	"AI_Task.h"
@@ -8,18 +15,12 @@
 #include	"AI_Memory.h"
 #include	"AI_Route.h"
 #include	"AI_Senses.h"
-#include	"soundent.h"
-#include	"game.h"
 #include	"NPCEvent.h"
 #include	"EntityList.h"
 #include	"activitylist.h"
 #include	"animation.h"
-#include	"basecombatweapon.h"
 #include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
 #include	"ammodef.h"
-#include    "te.h"
 #include    "hl1_npc_hornet.h"
 
 int iHornetTrail;
@@ -34,6 +35,10 @@ BEGIN_DATADESC( CNPC_Hornet )
 	DEFINE_FIELD( m_flStopAttack, FIELD_TIME ),
 	DEFINE_FIELD( m_iHornetType, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flFlySpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flDamage, FIELD_INTEGER ),
+	DEFINE_FIELD( m_vecEnemyLKP, FIELD_POSITION_VECTOR ),
+
+
 	DEFINE_ENTITYFUNC( DieTouch ),
 	DEFINE_THINKFUNC( StartDart ),
 	DEFINE_THINKFUNC( StartTrack ),
@@ -53,6 +58,7 @@ void CNPC_Hornet::Spawn( void )
 	m_takedamage	= DAMAGE_YES;
 	AddFlag( FL_NPC );
 	m_iHealth		= 1;// weak!
+	m_bloodColor	= DONT_BLEED;
 	
 	if ( g_pGameRules->IsMultiplayer() )
 	{
@@ -95,6 +101,8 @@ void CNPC_Hornet::Spawn( void )
 	
 	SetNextThink( gpGlobals->curtime + 0.1f );
 	ResetSequenceInfo();
+
+	m_vecEnemyLKP = vec3_origin;
 }
 
 
@@ -144,7 +152,7 @@ void CNPC_Hornet::StartDart ( void )
 
 	SetTouch( &CNPC_Hornet::DartTouch );
 
-	SetThink( &CNPC_Hornet::SUB_Remove );
+	SetThink( &CBaseEntity::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + 4 );
 }
 
@@ -165,7 +173,7 @@ void CNPC_Hornet::DieTouch ( CBaseEntity *pOther )
 
 	m_takedamage	= DAMAGE_NO;
 
-	AddEffects(EF_NODRAW);
+	AddEffects( EF_NODRAW );
 
 	AddSolidFlags( FSOLID_NOT_SOLID );// intangible
 
@@ -177,7 +185,7 @@ void CNPC_Hornet::DieTouch ( CBaseEntity *pOther )
 //=========================================================
 // StartTrack - starts a hornet out tracking its target
 //=========================================================
-void CNPC_Hornet :: StartTrack ( void )
+void CNPC_Hornet:: StartTrack ( void )
 {
 	IgniteTrail();
 
@@ -213,6 +221,16 @@ void CNPC_Hornet::IgniteTrail( void )
 		vColor.y,
 		vColor.z,
 		128 );
+}
+
+
+unsigned int CNPC_Hornet::PhysicsSolidMaskForEntity( void ) const
+{
+	unsigned int iMask = BaseClass::PhysicsSolidMaskForEntity();
+
+	iMask &= ~CONTENTS_MONSTERCLIP;
+
+	return iMask;
 }
 
 //=========================================================
@@ -264,14 +282,13 @@ void CNPC_Hornet::TrackTarget ( void )
 	Vector	vecFlightDir;
 	Vector	vecDirToEnemy;
 	float	flDelta;
-	Vector  vecEnemyLKP;
 
 	StudioFrameAdvance( );
 
 	if (gpGlobals->curtime > m_flStopAttack)
 	{
 		SetTouch( NULL );
-		SetThink( &CNPC_Hornet::SUB_Remove );
+		SetThink( &CBaseEntity::SUB_Remove );
 		SetNextThink( gpGlobals->curtime + 0.1f );
 		return;
 	}
@@ -279,20 +296,20 @@ void CNPC_Hornet::TrackTarget ( void )
 	// UNDONE: The player pointer should come back after returning from another level
 	if ( GetEnemy() == NULL )
 	{// enemy is dead.
-		GetSenses()->Look( 512 );
+		GetSenses()->Look( 1024 );
 		SetEnemy( BestEnemy() );
 	}
 	
 	if ( GetEnemy() != NULL && FVisible( GetEnemy() ))
 	{
-		vecEnemyLKP = GetEnemy()->BodyTarget( GetAbsOrigin() );
+		m_vecEnemyLKP = GetEnemy()->BodyTarget( GetAbsOrigin() );
 	}
 	else
 	{
-		vecEnemyLKP = GetEnemyLKP() + GetAbsVelocity() * m_flFlySpeed * 0.1;
+		m_vecEnemyLKP = m_vecEnemyLKP + GetAbsVelocity() * m_flFlySpeed * 0.1;
 	}
 
-	vecDirToEnemy = vecEnemyLKP - GetAbsOrigin();
+	vecDirToEnemy = m_vecEnemyLKP - GetAbsOrigin();
 	VectorNormalize( vecDirToEnemy );
 
 	if ( GetAbsVelocity().Length() < 0.1 )
@@ -319,7 +336,7 @@ void CNPC_Hornet::TrackTarget ( void )
 		flDelta = 0.25;
 	}
 
-	Vector vecVel = GetAbsVelocity();
+	Vector vecVel = vecFlightDir + vecDirToEnemy;
 	VectorNormalize( vecVel );
 
 	if ( GetOwnerEntity() && (GetOwnerEntity()->GetFlags() & FL_NPC) )
@@ -330,17 +347,17 @@ void CNPC_Hornet::TrackTarget ( void )
 		vecVel.y += random->RandomFloat ( -0.10, 0.10 );
 		vecVel.z += random->RandomFloat ( -0.10, 0.10 );
 	}
-
-	SetAbsVelocity( vecVel );
 	
 	switch ( m_iHornetType )
 	{
 		case HORNET_TYPE_RED:
-			SetAbsVelocity( GetAbsVelocity() * ( m_flFlySpeed * flDelta ) );// scale the dir by the ( speed * width of turn )
+			SetAbsVelocity( vecVel * ( m_flFlySpeed * flDelta ) );// scale the dir by the ( speed * width of turn )
 			SetNextThink( gpGlobals->curtime + random->RandomFloat( 0.1, 0.3 ) );
 			break;
+		default:
+			Assert( false );	//fall through if release
 		case HORNET_TYPE_ORANGE:
-			SetAbsVelocity( GetAbsVelocity() * m_flFlySpeed );// do not have to slow down to turn.
+			SetAbsVelocity( vecVel * m_flFlySpeed );// do not have to slow down to turn.
 			SetNextThink( gpGlobals->curtime + 0.1f );// fixed think time
 			break;
 	}
@@ -355,7 +372,7 @@ void CNPC_Hornet::TrackTarget ( void )
 	// (only in the single player game)
 	if ( GetEnemy() != NULL && !g_pGameRules->IsMultiplayer() )
 	{
-		if ( flDelta >= 0.4 && ( GetAbsOrigin() - vecEnemyLKP ).Length() <= 300 )
+		if ( flDelta >= 0.4 && ( GetAbsOrigin() - m_vecEnemyLKP ).Length() <= 300 )
 		{
 			CPVSFilter filter( GetAbsOrigin() );
 			te->Sprite( filter, 0.0,

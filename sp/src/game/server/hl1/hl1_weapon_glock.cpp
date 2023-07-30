@@ -1,27 +1,21 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Glock - hand gun
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-
 
 class CWeaponGlock : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponGlock, CBaseHL1CombatWeapon );
+
+	DECLARE_NETWORKCLASS(); 
+	DECLARE_DATADESC();
+
 public:
 
 	CWeaponGlock(void);
@@ -32,9 +26,6 @@ public:
 	bool	Reload( void );
 	void	WeaponIdle( void );
 	void	DryFire( void );
-
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
 
 private:
 	void	GlockFire( float flSpread , float flCycleTime, bool fUseAutoAim );
@@ -138,9 +129,15 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 		vecAiming = pPlayer->GetAutoaimVector( 0 );	
 	}
 
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, Vector( flSpread, flSpread, flSpread ), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+//	pPlayer->FireBullets( 1, vecSrc, vecAiming, Vector( flSpread, flSpread, flSpread ), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+	FireBulletsInfo_t info( 1, vecSrc, vecAiming, Vector( flSpread, flSpread, flSpread ), MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+	info.m_pAttacker = pPlayer;
+	pPlayer->FireBullets( info );
+
+	EjectShell( pPlayer, 0 );
 
 	pPlayer->ViewPunch( QAngle( -2, 0, 0 ) );
+
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
@@ -157,17 +154,12 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 
 bool CWeaponGlock::Reload( void )
 {
-	bool iResult;
+	bool iResult = false;
 
 	if ( m_iClip1 == 0 )
 		iResult = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_GLOCK_SHOOT_RELOAD );
 	else
 		iResult = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
-
-	if ( iResult )
-	{
-		SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
-	}
 
 	return iResult;
 }
@@ -177,10 +169,9 @@ bool CWeaponGlock::Reload( void )
 void CWeaponGlock::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
-	}
+	if ( pPlayer == NULL ) return;
+
+	pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
 
 	// only idle if the slid isn't back
 	if ( m_iClip1 != 0 )

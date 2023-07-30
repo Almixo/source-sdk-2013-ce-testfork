@@ -24,6 +24,8 @@ public:
 
 	void LeapTouch ( CBaseEntity *pOther );
 	void BiteSound( void );
+	void PainSound( const CTakeDamageInfo &info );
+	void DeathSound( const CTakeDamageInfo &info );
 	void AttackSound( void );
 	void TouchDamage( CBaseEntity *pOther );
 	void HandleAnimEvent( animevent_t *pEvent );

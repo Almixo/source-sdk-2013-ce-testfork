@@ -19,19 +19,19 @@
 class CBaseHL1CombatWeapon : public CBaseCombatWeapon
 {
 	DECLARE_CLASS( CBaseHL1CombatWeapon, CBaseCombatWeapon );
-public:
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
-
 public:
 	void Spawn( void );
 
-public:
 // Server Only Methods
-#if !defined( CLIENT_DLL )
-	void SetObjectCollisionBox( void );
+#ifndef CLIENT_DLL
+	void Precache( void );
+
 	void FallInit( void );						// prepare to fall to the ground
 	void FallThink( void );						// make the weapon fall to the ground after spawning
+
+	void EjectShell( CBaseEntity *pPlayer, int iType );
 #endif
 };
 

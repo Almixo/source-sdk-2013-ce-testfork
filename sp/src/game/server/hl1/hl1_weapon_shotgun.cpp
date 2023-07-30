@@ -1,28 +1,15 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: This is the Shotgun weapon
 //
 // $Workfile:     $
 // $Date:         $
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"		// For g_pGameRules
-#include "in_buttons.h"
 #include "soundent.h"
-#include "vstdlib/random.h"
-
 
 // special deathmatch shotgun spreads
 #define VECTOR_CONE_DM_SHOTGUN	Vector( 0.08716, 0.04362, 0.00  )// 10 degrees by 5 degrees
@@ -32,11 +19,9 @@
 class CWeaponShotgun : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponShotgun, CBaseHL1CombatWeapon );
-
 private:
 	float	m_flPumpTime;
 	int		m_fInSpecialReload;
-
 public:
 	void	Precache( void );
 
@@ -83,11 +68,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if (!pPlayer)
-	{
-		return;
-	}
+	if ( pPlayer == NULL ) return;
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -116,18 +97,31 @@ void CWeaponShotgun::PrimaryAttack( void )
 
 	if ( g_pGameRules->IsMultiplayer() )
 	{
-		pPlayer->FireBullets( 4, vecSrc, vecAiming, VECTOR_CONE_DM_SHOTGUN, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+		FireBulletsInfo_t info( 4, vecSrc, vecAiming, VECTOR_CONE_DM_SHOTGUN, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+
+		pPlayer->FireBullets( info );
 	}
 	else
 	{
-		pPlayer->FireBullets( 6, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+		FireBulletsInfo_t info( 6, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+
+		pPlayer->FireBullets( info );
+
+//		pPlayer->FireBullets( 6, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 	}
 
+	EjectShell( pPlayer, 1 );
+
+#if !defined(CLIENT_DLL)
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 1.0 );
+#endif
 
 	pPlayer->ViewPunch( QAngle( -5, 0, 0 ) );
 
-	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
+	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2 );
+	WeaponSound( SINGLE );
 
 	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
@@ -135,15 +129,9 @@ void CWeaponShotgun::PrimaryAttack( void )
 		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
 	}
 
-
 	if ( m_iClip1 > 0 )
 	{
 		m_flPumpTime = gpGlobals->curtime + 0.5;
-		SetWeaponIdleTime( gpGlobals->curtime + 5.0 );
-	}
-	else
-	{
-		SetWeaponIdleTime( gpGlobals->curtime + 0.75 );
 	}
 
 	m_fInSpecialReload = 0;
@@ -154,11 +142,7 @@ void CWeaponShotgun::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if (!pPlayer)
-	{
-		return;
-	}
+	if ( pPlayer == NULL ) return;
 
 	if ( m_iClip1 <= 1 )
 	{
@@ -166,6 +150,15 @@ void CWeaponShotgun::SecondaryAttack( void )
 		if ( m_iClip1 <= 0 )
 			DryFire( );
 
+		return;
+	}
+
+	if ( pPlayer->GetWaterLevel() == 3 )
+	{
+		// This weapon doesn't fire underwater
+		WeaponSound(EMPTY);
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.2;
+		m_flNextSecondaryAttack	= gpGlobals->curtime + 0.2;
 		return;
 	}
 
@@ -189,17 +182,30 @@ void CWeaponShotgun::SecondaryAttack( void )
 	// Fire the bullets
 	if ( g_pGameRules->IsMultiplayer() )
 	{
-		pPlayer->FireBullets( 8, vecSrc, vecAiming, VECTOR_CONE_DM_DOUBLESHOTGUN, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+		FireBulletsInfo_t info( 8, vecSrc, vecAiming, VECTOR_CONE_DM_DOUBLESHOTGUN, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+
+		pPlayer->FireBullets( info );
+
+//		pPlayer->FireBullets( 8, vecSrc, vecAiming, VECTOR_CONE_DM_DOUBLESHOTGUN, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 	}
 	else
 	{
-		pPlayer->FireBullets( 12, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+		FireBulletsInfo_t info( 12, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+
+		pPlayer->FireBullets( info );
+//		pPlayer->FireBullets( 12, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 	}
 
+	EjectShell( pPlayer, 1 );
+	EjectShell( pPlayer, 1 );
+
 	pPlayer->ViewPunch( QAngle( -10, 0, 0 ) );
+
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 1.0 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 800, 0.2 );
+	WeaponSound( SINGLE );
 
 	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
@@ -209,12 +215,7 @@ void CWeaponShotgun::SecondaryAttack( void )
 
 	if ( m_iClip1 > 0 )
 	{
-		m_flPumpTime = gpGlobals->curtime + 0.5;
-		SetWeaponIdleTime( gpGlobals->curtime + 5.0 );
-	}
-	else
-	{
-		SetWeaponIdleTime( gpGlobals->curtime + 0.75 );
+		m_flPumpTime = gpGlobals->curtime + 1;
 	}
 
 	m_fInSpecialReload = 0;
@@ -299,9 +300,7 @@ void CWeaponShotgun::DryFire( void )
 void CWeaponShotgun::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( pPlayer == NULL )
-		return;
+	if ( pPlayer == NULL ) return;
 
 	pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
 

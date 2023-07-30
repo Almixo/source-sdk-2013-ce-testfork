@@ -1,31 +1,18 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hornetgun
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
-#include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "hl1_player.h"
 #include "hl1_npc_hornet.h"
 
 
 //-----------------------------------------------------------------------------
 // CWeaponHgun
 //-----------------------------------------------------------------------------
-
-
 class CWeaponHgun : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponHgun, CBaseHL1CombatWeapon );
@@ -46,6 +33,7 @@ public:
 	DECLARE_DATADESC();
 
 private:
+
 	float	m_flRechargeTime;
 	int		m_iFirePhase;
 };
@@ -79,7 +67,9 @@ CWeaponHgun::CWeaponHgun( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::Precache( void )
 {
+#ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "hornet" );
+#endif
 
 	BaseClass::Precache();
 }
@@ -89,16 +79,10 @@ void CWeaponHgun::Precache( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::PrimaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
-		return;
-	}
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL ) return;
 
-	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-	{
-		return;
-	}
+	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 ) return;
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
@@ -113,7 +97,7 @@ void CWeaponHgun::PrimaryAttack( void )
 	pPlayer->EyeVectors( &vForward, &vRight, &vUp );
 	VectorAngles( vForward, vecAngles );
 
-	CBaseEntity *pHornet = CBaseEntity::Create( "hornet", pPlayer->Weapon_ShootPosition() + vForward * 16 + vRight * 8 + vUp * -12, vecAngles, pPlayer );
+	CBaseEntity *pHornet = Create( "hornet", pPlayer->Weapon_ShootPosition() + vForward * 16 + vRight * 8 + vUp * -12, vecAngles, pPlayer );
 	pHornet->SetAbsVelocity( vForward * 300 );
 
 	m_flRechargeTime = gpGlobals->curtime + 0.5;
@@ -137,16 +121,10 @@ void CWeaponHgun::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::SecondaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
-		return;
-	}
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL ) return;
 
-	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-	{
-		return;
-	}
+	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 ) return;
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
@@ -200,7 +178,7 @@ void CWeaponHgun::SecondaryAttack( void )
 		break;
 	}
 
-	pHornet = CBaseEntity::Create( "hornet", vecSrc, vecAngles, pPlayer );
+	pHornet = Create( "hornet", vecSrc, vecAngles, pPlayer );
 	pHornet->SetAbsVelocity( vForward * 1200 );
 	pHornet->SetThink( &CNPC_Hornet::StartDart );
 
@@ -240,13 +218,14 @@ bool CWeaponHgun::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 	if ( bRet )
 	{
-		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-		if ( pPlayer )
+		CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+		if ( pPlayer != NULL )
 		{
 			//!!!HACKHACK - can't select hornetgun if it's empty! no way to get ammo for it, either.
-			while ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
+			int iCount = pPlayer->GetAmmoCount( m_iPrimaryAmmoType );
+			if ( iCount <= 0 )
 			{
-				pPlayer->GiveAmmo( 1, m_iPrimaryAmmoType, true );
+				pPlayer->GiveAmmo( iCount + 1, m_iPrimaryAmmoType, true );
 			}
 		}
 	}
@@ -261,8 +240,8 @@ bool CWeaponHgun::Reload( void )
 		return true;
 	}
 
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL )
 	{
 		return true;
 	}
