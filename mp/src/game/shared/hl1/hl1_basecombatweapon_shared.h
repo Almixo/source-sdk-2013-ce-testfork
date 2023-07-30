@@ -35,8 +35,6 @@ public:
 	void FallThink( void );						// make the weapon fall to the ground after spawning
 
 	void EjectShell( CBaseEntity *pPlayer, int iType );
-
-	Vector GetSoundEmissionOrigin() const;
 #else
 
 	virtual void	AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles );

@@ -66,7 +66,7 @@ public:
 	void PreThink( void );
 	void PostThink( void );
 
-	int	m_iRealSequence; //bruhh
+	int	m_iRealSequence, m_iSpawnInterpCounter, m_iSpawnInterpCounterCache;; //bruhh
 
 private:
 	C_HL1MP_Player( const C_HL1MP_Player & );
@@ -78,11 +78,6 @@ private:
 	CInterpolatedVar< QAngle >	m_iv_angEyeAngles;
 
     IHL1MPPlayerAnimState* m_PlayerAnimState;
-    
-    int m_iSpawnInterpCounter;
-    int m_iSpawnInterpCounterCache;
-
-	float m_fLastPredFreeze;
 };
 
 
@@ -110,8 +105,6 @@ private:
 
 	void Interp_Copy( C_BaseAnimatingOverlay *pSourceEntity );
 	void CreateHL1MPRagdoll( void );
-
-private:
 
 	EHANDLE	m_hPlayer;
 	CNetworkVector( m_vecRagdollVelocity );

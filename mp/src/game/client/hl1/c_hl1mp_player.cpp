@@ -52,29 +52,28 @@ END_RECV_TABLE();
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PlayerExclusive)
-	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)), // RECVINFO_NAME copies the networked value over to the 'real' one
-	RecvPropFloat(RECVINFO(m_angEyeAngles[0])),
+BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PLAYER_EXCLUSIVE)
+	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
 END_RECV_TABLE()
 
-BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PlayerNonLocalExclusive)
-	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)), // RECVINFO_NAME again
-	RecvPropFloat(RECVINFO(m_angEyeAngles[0])),
-	RecvPropFloat(RECVINFO(m_angEyeAngles[1])),
+BEGIN_RECV_TABLE_NOBASE(C_HL1MP_Player, DT_HL1MP_PLAYER_NONEXCLUSIVE)
+	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
+	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
+	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
 END_RECV_TABLE()
 
 IMPLEMENT_CLIENTCLASS_DT( C_HL1MP_Player, DT_HL1MP_Player, CHL1MP_Player )
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
-	RecvPropInt( RECVINFO( m_iSpawnInterpCounter ) ),    
 	RecvPropInt( RECVINFO( m_iRealSequence ) ),
-	RecvPropDataTable( "hl1mp_player_local", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PlayerExclusive) ),
-	RecvPropDataTable( "hl1mp_player_nonlocal", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PlayerNonLocalExclusive) ),
+	RecvPropInt( RECVINFO( m_iSpawnInterpCounter ) ),
+	RecvPropDataTable( "hl1mp_pLocal", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PLAYER_EXCLUSIVE) ),
+	RecvPropDataTable( "hl1mp_pNonLocal", 0, 0, &REFERENCE_RECV_TABLE(DT_HL1MP_PLAYER_NONEXCLUSIVE) ),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_HL1MP_Player )
 	DEFINE_PRED_FIELD( m_flCycle, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	DEFINE_PRED_FIELD( m_nSequence, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	DEFINE_PRED_FIELD( m_flPlaybackRate, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
+	DEFINE_PRED_FIELD( m_nSequence, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
 END_PREDICTION_DATA()
 
 /////////////////////////////////////////////////////////////////////
@@ -84,11 +83,9 @@ static ConVar cl_playermodel( "cl_playermodel", "none", FCVAR_USERINFO | FCVAR_A
 C_HL1MP_Player::C_HL1MP_Player( void ) : m_iv_angEyeAngles( "C_HL1MP_Player::m_iv_angEyeAngles" )
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this );
+
 	m_angEyeAngles.Init();
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
-	SetPredictionEligible(true);
-
-	m_fLastPredFreeze = -1;
 }
 
 C_HL1MP_Player::~C_HL1MP_Player()
@@ -134,10 +131,6 @@ void C_HL1MP_Player::ProcessMuzzleFlashEvent()
 void C_HL1MP_Player::Spawn( void )
 {
     BaseClass::Spawn();
-
-//    SetModel( "models/player/mp/barney/barney.mdl" );
-
-    m_iSpawnInterpCounterCache = 0;
 
 	UpdateVisibility();
 }
@@ -207,6 +200,13 @@ void C_HL1MP_Player::PostDataUpdate( DataUpdateType_t updateType )
 	SetNetworkAngles( GetLocalAngles() );
 	
 	BaseClass::PostDataUpdate( updateType );
+
+	if( m_iSpawnInterpCounter != m_iSpawnInterpCounterCache )
+	{
+		MoveToLastReceivedPosition( true );
+		ResetLatched();
+		m_iSpawnInterpCounterCache = m_iSpawnInterpCounter;
+	}
 }
 
 void C_HL1MP_Player::ClientThink( void )
