@@ -14,6 +14,10 @@ LINK_ENTITY_TO_CLASS( basehl1combatweapon, CBaseHL1CombatWeapon );
 IMPLEMENT_NETWORKCLASS_ALIASED( BaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
 
 BEGIN_NETWORK_TABLE( CBaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
+#if 0
+	SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
+	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
+#endif
 END_NETWORK_TABLE()
 
 BEGIN_PREDICTION_DATA( CBaseHL1CombatWeapon )
@@ -208,23 +212,4 @@ void CBaseHL1CombatWeapon::AddViewmodelBob( CBaseViewModel *viewmodel, Vector &o
 
 	VectorMA( origin, g_lateralBob * 0.8f, right, origin );
 }
-
-
-#else
-
-Vector CBaseHL1CombatWeapon::GetSoundEmissionOrigin() const
-{
-	if ( gpGlobals->maxClients == 1 || !GetOwner() )
-		return CBaseCombatWeapon::GetSoundEmissionOrigin();
-
-//	Vector vecOwner = GetOwner()->GetSoundEmissionOrigin();
-//	Vector vecThis = WorldSpaceCenter();
-//	DevMsg("SoundEmissionOrigin: Owner: %4.1f,%4.1f,%4.1f Default:%4.1f,%4.1f,%4.1f\n",
-//			vecOwner.x, vecOwner.y, vecOwner.z,
-//			vecThis.x, vecThis.y, vecThis.z );
-
-	// TEMP fix for HL1MP... sounds are sometimes beeing emitted underneath the ground
-	return GetOwner()->GetSoundEmissionOrigin();
-}
-
 #endif
