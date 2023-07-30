@@ -1,0 +1,63 @@
+ Volume in drive C has no label.
+ Volume Serial Number is 4E90-0029
+
+ Directory of C:\Alex\MODDING_STUFF\SDKs\source-sdk-2013-ce-testfork-bshift\sp\src\game\client\bshift\base
+
+10. 07. 2023  14:51    <DIR>          .
+10. 07. 2023  14:51    <DIR>          ..
+12. 05. 2023  19:31             4ÿ073 hl1_clientmode.cpp
+12. 05. 2023  19:29               769 hl1_clientmode.h
+12. 05. 2023  18:52             2ÿ318 hl1_c_beamfollow.cpp
+12. 05. 2023  19:22               703 hl1_c_player.cpp
+12. 05. 2023  19:09               904 hl1_c_player.h
+12. 05. 2023  18:52             1ÿ032 hl1_c_rpg_rocket.cpp
+12. 05. 2023  18:52             5ÿ403 hl1_c_stickybolt.cpp
+12. 05. 2023  18:52             1ÿ703 hl1_c_weapon__stubs.cpp
+16. 04. 2023  13:53             6ÿ389 hl1_fx_gauss.cpp
+12. 05. 2023  18:52             7ÿ455 hl1_fx_gibs.cpp
+12. 05. 2023  18:52             1ÿ199 hl1_fx_impacts.cpp
+16. 04. 2023  13:53               585 hl1_fx_shelleject.cpp
+16. 04. 2023  13:53             6ÿ182 hl1_hud_ammo.cpp
+16. 04. 2023  13:53             4ÿ394 hl1_hud_battery.cpp
+16. 04. 2023  13:53             8ÿ074 hl1_hud_damageindicator.cpp
+16. 04. 2023  13:53             7ÿ657 hl1_hud_damagetiles.cpp
+16. 04. 2023  13:53            10ÿ895 hl1_hud_deathnotice.cpp
+16. 04. 2023  13:53             3ÿ192 hl1_hud_flashlight.cpp
+16. 04. 2023  13:53             5ÿ638 hl1_hud_geiger.cpp
+16. 04. 2023  13:53             5ÿ154 hl1_hud_health.cpp
+12. 05. 2023  18:52            10ÿ092 hl1_hud_history_resource.cpp
+16. 04. 2023  13:53             1ÿ991 hl1_hud_numbers.cpp
+16. 04. 2023  13:53               761 hl1_hud_numbers.h
+16. 04. 2023  13:53             3ÿ852 hl1_hud_train.cpp
+16. 04. 2023  13:53            18ÿ455 hl1_hud_weaponselection.cpp
+12. 05. 2023  18:52             2ÿ679 hl1_legacy_tempents.cpp
+10. 07. 2023  14:51                 0 tmp
+              27 File(s)        121ÿ549 bytes
+               2 Dir(s)  43ÿ281ÿ453ÿ056 bytes free
+hl1_clientmode.cpp
+hl1_clientmode.h
+hl1_c_beamfollow.cpp
+hl1_c_player.cpp
+hl1_c_player.h
+hl1_c_rpg_rocket.cpp
+hl1_c_stickybolt.cpp
+hl1_c_weapon__stubs.cpp
+hl1_fx_gauss.cpp
+hl1_fx_gibs.cpp
+hl1_fx_impacts.cpp
+hl1_fx_shelleject.cpp
+hl1_hud_ammo.cpp
+hl1_hud_battery.cpp
+hl1_hud_damageindicator.cpp
+hl1_hud_damagetiles.cpp
+hl1_hud_deathnotice.cpp
+hl1_hud_flashlight.cpp
+hl1_hud_geiger.cpp
+hl1_hud_health.cpp
+hl1_hud_history_resource.cpp
+hl1_hud_numbers.cpp
+hl1_hud_numbers.h
+hl1_hud_train.cpp
+hl1_hud_weaponselection.cpp
+hl1_legacy_tempents.cpp
+tmp

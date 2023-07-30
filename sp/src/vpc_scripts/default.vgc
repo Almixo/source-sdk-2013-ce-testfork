@@ -11,8 +11,7 @@
 $Games
 {
 	"SDK2013CE"
-	"EPISODIC"
-	"HL2"
+	"BSHIFT"
 }
 
 // Makes the VPC scripts work in the SDK's context
