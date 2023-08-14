@@ -16,6 +16,7 @@ void CBaseHL1CombatWeapon::Precache()
 {
 	BaseClass::Precache();
 
+	PrecacheScriptSound( "Item.Pickup" );
 	PrecacheScriptSound( "BaseCombatWeapon.WeaponDrop" );
 }
 
@@ -54,7 +55,8 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
 		if ( GetOwnerEntity() )
 		{
-			EmitSound( "BaseCombatWeapon.WeaponDrop" );
+			CPASAttenuationFilter filter(this);
+			EmitSound( filter, entindex(), "BaseCombatWeapon.WeaponDrop" );
 		}
 
 		// lie flat
