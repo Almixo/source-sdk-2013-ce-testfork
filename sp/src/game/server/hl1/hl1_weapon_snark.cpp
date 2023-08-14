@@ -62,6 +62,8 @@ void CWeaponSnark::Precache( void )
 {
 	BaseClass::Precache();
 
+	PrecacheModel(SNARK_NEST_MODEL);
+
 	PrecacheScriptSound( "WpnSnark.PrimaryAttack" );
 	PrecacheScriptSound( "WpnSnark.Deploy" );
 

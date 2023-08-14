@@ -16,11 +16,11 @@
 #include "ai_hull.h"
 #include "hl2_shareddefs.h"
 #include "info_camera_link.h"
-#include "Point_Camera.h"
+#include "point_camera.h"
 #include "ndebugoverlay.h"
 #include "globals.h"
 #include "ai_interactions.h"
-#include "engine/IEngineSound.h"
+#include "engine/ienginesound.h"
 #include "vphysics/player_controller.h"
 #include "vphysics/constraints.h"
 #include "predicted_viewmodel.h"
@@ -1216,6 +1216,168 @@ void CHL1_Player::OnRestore( void )
 	{
 		m_iTrain |= TRAIN_NEW;
 	}
+}
+
+void CHL1_Player::SetAnimation( PLAYER_ANIM playerAnim )
+{
+	int animDesired;
+	char szAnim[64];
+
+	float speed;
+
+	speed = GetAbsVelocity().Length2D();
+
+	if (GetFlags() & (FL_FROZEN|FL_ATCONTROLS))
+	{
+		speed = 0;
+		playerAnim = PLAYER_IDLE;
+	}
+
+	Activity idealActivity = ACT_WALK;// TEMP!!!!!
+
+	// This could stand to be redone. Why is playerAnim abstracted from activity? (sjb)
+	if (playerAnim == PLAYER_JUMP)
+	{
+		idealActivity = ACT_HOP;
+	}
+	else if (playerAnim == PLAYER_SUPERJUMP)
+	{
+		idealActivity = ACT_LEAP;
+	}
+	else if (playerAnim == PLAYER_DIE)
+	{
+		if ( m_lifeState == LIFE_ALIVE )
+		{
+			idealActivity = GetDeathActivity();
+		}
+	}
+	else if (playerAnim == PLAYER_ATTACK1)
+	{
+		if ( GetActivity() == ACT_HOVER ||
+			GetActivity() == ACT_SWIM		||
+			GetActivity() == ACT_HOP		||
+			GetActivity() == ACT_LEAP		||
+			GetActivity() == ACT_DIESIMPLE )
+		{
+			idealActivity = GetActivity();
+		}
+		else
+		{
+			idealActivity = ACT_RANGE_ATTACK1;
+		}
+	}
+	else if (playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK)
+	{
+		if ( !( GetFlags() & FL_ONGROUND ) && (GetActivity() == ACT_HOP || GetActivity() == ACT_LEAP) )	// Still jumping
+		{
+			idealActivity = GetActivity();
+		}
+		else if ( GetWaterLevel() > 1 )
+		{
+			if ( speed == 0 )
+				idealActivity = ACT_HOVER;
+			else
+				idealActivity = ACT_SWIM;
+		}
+		else
+		{
+			idealActivity = ACT_WALK;
+		}
+	}
+	else if (playerAnim == PLAYER_RELOAD)
+	{
+		if (FStrEq(m_szAnimExtension, "onehanded"))
+			idealActivity = ACT_RELOAD_HL1_ONEHANDED;
+		else if (FStrEq(m_szAnimExtension, "mp5"))
+			idealActivity = ACT_RELOAD_HL1_MP5;
+		else if (FStrEq(m_szAnimExtension, "bow"))
+			idealActivity = ACT_RELOAD_HL1_BOW;
+		else if (FStrEq(m_szAnimExtension, "rpg"))
+			idealActivity = ACT_RELOAD_HL1_RPG;
+		else if (FStrEq(m_szAnimExtension, "shotgun"))
+			idealActivity = ACT_RELOAD_HL1_SHOTGUN;
+	}
+	
+	if (idealActivity == ACT_RANGE_ATTACK1)
+	{
+		if ( GetFlags() & FL_DUCKING )	// crouching
+		{
+			Q_strncpy( szAnim, "crouch_shoot_" ,sizeof(szAnim));
+		}
+		else
+		{
+			Q_strncpy( szAnim, "ref_shoot_" ,sizeof(szAnim));
+		}
+		Q_strncat( szAnim, m_szAnimExtension ,sizeof(szAnim), COPY_ALL_CHARACTERS );
+		animDesired = LookupSequence( szAnim );
+		if (animDesired == -1)
+			animDesired = 0;
+
+		if ( GetSequence() != animDesired || !SequenceLoops() )
+		{
+			SetCycle( 0 );
+		}
+
+		// Tracker 24588:  In single player when firing own weapon this causes eye and punchangle to jitter
+		//fuckoff
+		if (!SequenceLoops())
+		{
+			IncrementInterpolationFrame();
+		}
+
+		SetActivity( idealActivity );
+		ResetSequence( animDesired );
+	}
+	else if (idealActivity == ACT_WALK)
+	{
+		if (GetActivity() != ACT_RANGE_ATTACK1 || IsActivityFinished())
+		{
+			if ( GetFlags() & FL_DUCKING )	// crouching
+			{
+				Q_strncpy( szAnim, "crouch_aim_" ,sizeof(szAnim));
+			}
+			else
+			{
+				Q_strncpy( szAnim, "ref_aim_" ,sizeof(szAnim));
+			}
+			Q_strncat( szAnim, m_szAnimExtension, sizeof(szAnim), COPY_ALL_CHARACTERS );
+			animDesired = LookupSequence( szAnim );
+			if (animDesired == -1)
+				animDesired = 0;
+			SetActivity( ACT_WALK );
+		}
+		else
+		{
+			animDesired = GetSequence();
+		}
+	}
+	else
+	{
+		if ( GetActivity() == idealActivity)
+			return;
+	
+		SetActivity( idealActivity );
+
+		animDesired = SelectWeightedSequence( GetActivity() );
+
+		// Already using the desired animation?
+		if (GetSequence() == animDesired)
+			return;
+
+		ResetSequence( animDesired );
+		SetCycle( 0 );
+		return;
+	}
+
+	// Already using the desired animation?
+	if (GetSequence() == animDesired)
+		return;
+
+	//Msg( "Set animation to %d\n", animDesired );
+	// Reset to first frame of desired animation
+	ResetSequence( animDesired );
+	SetCycle( 0 );
+
 }
 
 

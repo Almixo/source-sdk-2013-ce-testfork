@@ -6,29 +6,7 @@
 //=============================================================================
 
 #include "cbase.h"
-#include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Hint.h"
-#include "AI_Navigator.h"
-#include "AI_Senses.h"
-#include "NPCEvent.h"
-#include "animation.h"
 #include "hl1_npc_bullsquid.h"
-#include "gib.h"
-#include "soundent.h"
-#include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "hl1_grenade_spit.h"
-#include "util.h"
-#include "shake.h"
-#include "movevars_shared.h"
-#include "decals.h"
-#include "hl2_shareddefs.h"
-#include "ammodef.h"
 
 #define		SQUID_SPRINT_DIST	256 // how close the squid has to get before starting to sprint and refusing to swerve
 
@@ -129,7 +107,11 @@ END_DATADESC()
 
 void CSquidSpit::Precache( void )
 {
-	m_nSquidSpitSprite = engine->PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+	m_nSquidSpitSprite = PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+
+	PrecacheScriptSound( "NPC_BigMomma.SpitTouch1" );
+	PrecacheScriptSound( "NPC_BigMomma.SpitHit1" );
+	PrecacheScriptSound( "NPC_BigMomma.SpitHit2" );
 }
 
 void CSquidSpit:: Spawn( void )
@@ -184,6 +166,7 @@ void CSquidSpit::Touch ( CBaseEntity *pOther )
 {
 	trace_t tr;
 	int		iPitch;
+	CPASAttenuationFilter filter(this);
 
 	if ( pOther->GetSolidFlags() & FSOLID_TRIGGER )
 		 return;
@@ -196,15 +179,15 @@ void CSquidSpit::Touch ( CBaseEntity *pOther )
 	// splat sound
 	iPitch = random->RandomFloat( 90, 110 );
 
-	EmitSound( "NPC_BigMomma.SpitTouch1" );
+	EmitSound( filter, entindex(), "NPC_BigMomma.SpitTouch1" );
 
 	switch ( random->RandomInt( 0, 1 ) )
 	{
 	case 0:
-		EmitSound( "NPC_BigMomma.SpitHit1" );
+		EmitSound( filter, entindex(), "NPC_BigMomma.SpitHit1" );
 		break;
 	case 1:
-		EmitSound( "NPC_BigMomma.SpitHit2" );
+		EmitSound( filter, entindex(), "NPC_BigMomma.SpitHit2" );
 		break;
 	}
 
@@ -217,7 +200,7 @@ void CSquidSpit::Touch ( CBaseEntity *pOther )
 		// make some flecks
 		CPVSFilter filter( tr.endpos );
 
-		te->SpriteSpray( filter, 0.0,	&tr.endpos, &tr.plane.normal, m_nSquidSpitSprite, 30, 8, 5 );
+		te->SpriteSpray( filter, 0.0, &tr.endpos, &tr.plane.normal, m_nSquidSpitSprite, 30, 8, 5 );
 
 	}
 	else

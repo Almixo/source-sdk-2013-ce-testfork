@@ -17,23 +17,10 @@
 //=========================================================
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Motor.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
+#include	"hl1_ai_basenpc.h"
+#include	"ai_baseactor.h"
+#include	"npcevent.h"
 #include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include "ai_baseactor.h"
 
 //=========================================================
 // Monster's Anim Events Go Here

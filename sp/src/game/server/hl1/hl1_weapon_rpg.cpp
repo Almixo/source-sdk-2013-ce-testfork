@@ -7,17 +7,9 @@
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "movie_explosion.h"
 #include "soundent.h"
-#include "player.h"
-#include "rope.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 #include "explode.h"
-#include "util.h"
 #include "in_buttons.h"
-#include "shake.h"
 #include "te_effect_dispatch.h"
 #include "hl1_weapon_rpg.h"
 
@@ -63,9 +55,12 @@ CRpgRocket::CRpgRocket()
 //-----------------------------------------------------------------------------
 void CRpgRocket::Precache( void )
 {
-	engine->PrecacheModel( "models/rpgrocket.mdl" );
-	engine->PrecacheModel( "sprites/animglow01.vmt" );
-	m_iTrail = engine->PrecacheModel("sprites/smoke.vmt");
+	PrecacheModel( "models/rpgrocket.mdl" );
+	PrecacheModel( "sprites/animglow01.vmt" );
+
+	PrecacheScriptSound( "Weapon_RPG.RocketIgnite" );
+
+	m_iTrail = PrecacheModel( "sprites/smoke.vmt" );
 }
 
 //-----------------------------------------------------------------------------
@@ -117,7 +112,7 @@ void CRpgRocket::RocketTouch( CBaseEntity *pOther )
 		m_hOwner->NotifyRocketDied();
 	}
 
-	StopSound( "Weapon_RPG.RocketIgnite" );
+	StopSound( entindex(), "Weapon_RPG.RocketIgnite" );
 	ExplodeTouch( pOther );
 }
 

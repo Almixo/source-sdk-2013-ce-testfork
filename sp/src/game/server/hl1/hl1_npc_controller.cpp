@@ -18,29 +18,11 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Navigator.h"
-//#include	"hl1_npc_controller.h"
+#include	"hl1_ai_basenpc.h"
 #include	"ai_basenpc_flyer.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
 #include	"Sprite.h"
-#include	"AI_MoveProbe.h"
+#include	"npcevent.h"
+#include	"ai_moveprobe.h"
 
 
 //=========================================================

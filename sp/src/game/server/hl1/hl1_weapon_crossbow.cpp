@@ -25,9 +25,7 @@
 extern ConVar sk_plr_dmg_xbow_bolt_plr;
 extern ConVar sk_plr_dmg_xbow_bolt_npc;
 
-extern short	g_sModelIndexFireball;		// (in combatweapon.cpp) holds the index for the fireball 
-
-#if !defined(CLIENT_DLL)
+extern short	g_sModelIndexFireball;		// (in combatweapon.cpp) holds the index for the fireball
 
 //-----------------------------------------------------------------------------
 // Crossbow Bolt
@@ -256,8 +254,6 @@ void CCrossbowBolt::BubbleThink( void )
 
 	UTIL_BubbleTrail( GetAbsOrigin() - GetAbsVelocity() * 0.1, GetAbsOrigin(), 1 );
 }
-
-#endif	// crossbowbolt
 
 //-----------------------------------------------------------------------------
 // CWeaponCrossbow

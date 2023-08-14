@@ -5,23 +5,6 @@
 // $NoKeywords: $
 //=============================================================================
 #include "cbase.h"
-#include "beam_shared.h"
-#include "AI_Task.h"
-#include "AI_Default.h"
-#include "AI_Navigator.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "activitylist.h"
-#include "game.h"
-#include "NPCEvent.h"
-#include "Player.h"
-#include "EntityList.h"
-#include "soundenvelope.h"
-#include "shake.h"
-#include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 #include "hl1_npc_ichthyosaur.h"
 
 ConVar sk_ichthyosaur_health ( "sk_ichthyosaur_health", "0" );

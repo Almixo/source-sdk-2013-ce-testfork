@@ -9,6 +9,8 @@
 #define NPC_HORNET_H
 
 #include "hl1_ai_basenpc.h"
+#include "ammodef.h"
+#include "ai_senses.h"
 
 //=========================================================
 // Hornets

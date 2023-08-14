@@ -22,7 +22,6 @@
 #include "iefx.h"
 #include "engine/IEngineSound.h"
 #include "materialsystem/IMaterialVar.h"
-#include "c_splash.h"
 #include "ieffects.h"
 #include "engine/IEngineTrace.h"
 #include "vphysics/constraints.h"
@@ -89,8 +88,8 @@ public:
 
 			if ( ( Origin- m_vWorld).Length () < 64 )
 			{
-				pReference->WorldToLocal( ballsocket.constraintPosition[0], m_vWorld );
-				pPhysicsObject->WorldToLocal( ballsocket.constraintPosition[1], Origin );
+				pReference->WorldToLocal( &ballsocket.constraintPosition[0], m_vWorld );
+				pPhysicsObject->WorldToLocal( &ballsocket.constraintPosition[1], Origin );
 				
 				GetBreakParams( ballsocket.constraint );
 

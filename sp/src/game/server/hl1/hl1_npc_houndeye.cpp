@@ -6,24 +6,7 @@
 //=============================================================================
 
 #include "cbase.h"
-#include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Navigator.h"
-#include "AI_Route.h"
-#include "AI_Squad.h"
-#include "AI_SquadSlot.h"
-#include "AI_Hint.h"
-#include "NPCEvent.h"
-#include "animation.h"
 #include "hl1_npc_houndeye.h"
-#include "gib.h"
-#include "soundent.h"
-#include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "movevars_shared.h"
 
 // houndeye does 20 points of damage spread over a sphere 384 units in diameter, and each additional 
 // squad member increases the BASE damage by 110%, per the spec.

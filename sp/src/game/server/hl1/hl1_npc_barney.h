@@ -2,6 +2,9 @@
 #define NPC_BARNEY_H
 
 #include "hl1_npc_talker.h"
+#include "ammodef.h"
+#include "IEffects.h"
+#include "npcevent.h"
 
 //=========================================================
 //=========================================================

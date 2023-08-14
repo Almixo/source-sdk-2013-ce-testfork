@@ -3,6 +3,10 @@
 #pragma once
 
 #include "hl1_ai_basenpc.h"
+#include "ai_squad.h"
+#include "ai_hint.h"
+#include "npcevent.h"
+#include "movevars_shared.h"
 
 class CNPC_Houndeye : public CHL1BaseNPC
 {

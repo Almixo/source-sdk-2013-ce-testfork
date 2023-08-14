@@ -10,10 +10,9 @@
 
 $Games
 {
-	"SDK2013CE"
-	"EPISODIC"
-	"HL2"
 	"HL1"
+	"HL2"	//shaders
+	"EPISODIC" //shaders
 }
 
 // Makes the VPC scripts work in the SDK's context

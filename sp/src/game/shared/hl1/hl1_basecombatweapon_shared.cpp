@@ -14,15 +14,10 @@ LINK_ENTITY_TO_CLASS( basehl1combatweapon, CBaseHL1CombatWeapon );
 IMPLEMENT_NETWORKCLASS_ALIASED( BaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
 
 BEGIN_NETWORK_TABLE( CBaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
-#ifndef CLIENT_DLL
-	SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
-#endif
 END_NETWORK_TABLE()
 
 BEGIN_PREDICTION_DATA( CBaseHL1CombatWeapon )
 END_PREDICTION_DATA()
-
 
 void CBaseHL1CombatWeapon::Spawn( void )
 {

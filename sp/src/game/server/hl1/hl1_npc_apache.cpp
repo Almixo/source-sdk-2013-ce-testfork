@@ -1,28 +1,12 @@
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"hl1_basegrenade.h"
-#include	"animation.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
+#include	"hl1_ai_basenpc.h"
+#include	"hl1_CBaseHelicopter.h"
+#include	"beam_shared.h"
 #include	"ammodef.h"
 #include	"soundenvelope.h"
-#include	"hl1_cbasehelicopter.h"
-#include	"ndebugoverlay.h"
-#include	"smoke_trail.h"
-#include	"beam_shared.h"
 #include	"grenade_homer.h"
+#include	"hl1_basegrenade.h"
+#include	"smoke_trail.h"
 
 #define	 HOMER_TRAIL0_LIFE		0.1
 #define	 HOMER_TRAIL1_LIFE		0.2
@@ -438,7 +422,7 @@ bool CNPC_Apache::FireGun( )
 	{
 		CPASAttenuationFilter filter( this, 0.2f );
 
-		enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "turret/tu_fire1.wav", 1.0, 0.2 );//<<TEMP>>temp sound
+		EmitSound( filter, entindex(), "Apache.FireGun" );
 		FireBullets( 1, posBarrel, vecGun, VECTOR_CONE_2DEGREES, 8192, m_iAmmoType, 2 );
 		return true;
 	}
@@ -551,7 +535,7 @@ void CNPC_Apache::AimRocketGun( void )
 void CNPC_Apache::LaunchRocket( Vector &viewDir, int damage, int radius, Vector vecLaunchPoint )
 {
 
-	CGrenadeHomer *pGrenade = CGrenadeHomer::CreateGrenadeHomer( MAKE_STRING("models/weapons/w_missile.mdl"), MAKE_STRING("weapons/stinger_fire1.wav"), vecLaunchPoint, vec3_angle, edict() );
+	CGrenadeHomer *pGrenade = CGrenadeHomer::CreateGrenadeHomer( MAKE_STRING("models/weapons/w_missile.mdl"), MAKE_STRING("Apache.RPG"), vecLaunchPoint, vec3_angle, edict());
 	pGrenade->Spawn( );
 	pGrenade->SetHoming(MISSILE_HOMING_STRENGTH, MISSILE_HOMING_DELAY,
 						MISSILE_HOMING_RAMP_UP,	MISSILE_HOMING_DURATION,
@@ -705,9 +689,9 @@ void CApacheHVR :: Spawn( void )
 
 void CApacheHVR :: Precache( void )
 {
-	engine->PrecacheModel( "models/HVR.mdl" );
-	m_iTrail = engine->PrecacheModel( "sprites/smoke.spr" );
-	enginesound->PrecacheSound ( "weapons/rocket1.wav" );
+	PrecacheModel( "models/HVR.mdl" );
+	m_iTrail = PrecacheModel( "sprites/smoke.vmt" );
+	PrecacheSound ( "ApacheHVR.Ignite" );
 }
 
 void TE_BeamFollow( int msg_dest, float delay, const Vector *origin, const edict_t *recipient, int iEntIndex,
@@ -718,7 +702,7 @@ void CApacheHVR :: IgniteThink( void  )
 {
 	// make rocket sound
 	CPASAttenuationFilter filter( this, 0.5f );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, "weapons/rocket1.wav", 1, 0.5 );
+	EmitSound( filter, entindex(), "ApacheHVR.Ignite" );
 
 	StartRocketTrail();
 

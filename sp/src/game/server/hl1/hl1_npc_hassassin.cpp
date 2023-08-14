@@ -1,27 +1,9 @@
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include    "util.h"
 #include	"hl1_ai_basenpc.h"
-#include	"hl1_basegrenade.h"
+#include	"ammodef.h"
 #include	"movevars_shared.h"
-#include	"ai_basenpc.h"
+#include	"hl1_basegrenade.h"
+#include	"npcevent.h"
 
 
 ConVar sk_hassassin_health( "sk_hassassin_health", "50" );
@@ -510,12 +492,11 @@ void CNPC_HAssassin::HandleAnimEvent( animevent_t *pEvent )
 
 			GetAttachment( "grenadehand", vTossPos, vAngles );
 
-			CHL1BaseGrenade *pGrenade = (CHL1BaseGrenade*)CreateNoSpawn( "npc_handgrenade", vTossPos, vec3_angle, this );
-			pGrenade->SetAbsVelocity( m_vecTossVelocity );
-			pGrenade->m_flDetonateTime = gpGlobals->curtime + 2.0;
-			pGrenade->Spawn( );
-			pGrenade->SetOwnerEntity( this );
-			pGrenade->SetGravity( 0.5 );
+			CHandGrenade *pGrenade = (CHandGrenade*)Create( "grenade_hand", vTossPos, vec3_angle );
+			if ( pGrenade )
+			{
+				pGrenade->ShootTimed( this, m_vecTossVelocity, 2.0 );
+			}
 
 			m_flNextGrenadeCheck = gpGlobals->curtime + 6;// wait six seconds before even looking again to see if a grenade can be thrown.
 			m_fThrowGrenade = FALSE;

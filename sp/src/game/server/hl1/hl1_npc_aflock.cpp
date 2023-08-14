@@ -18,24 +18,6 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
 #include	"hl1_ai_basenpc.h"
 
 #define		AFLOCK_MAX_RECRUIT_RADIUS	1024
@@ -714,28 +696,16 @@ void CNPC_FlockingFlyer::SpreadFlock2 ( )
 //=========================================================
 void CNPC_FlockingFlyer::MakeSound( void )
 {
+	CPASAttenuationFilter filter(this);
+
 	if ( m_flAlertTime > gpGlobals->curtime )
 	{
-		CPASAttenuationFilter filter1( this );
-
-		// make agitated sounds
-		switch ( random->RandomInt( 0, 1 ) )
-		{
-		case 0:	enginesound->EmitSound( filter1, entindex(), CHAN_WEAPON, "boid/boid_alert1.wav", 1, ATTN_NORM );	break;
-		case 1:	enginesound->EmitSound( filter1, entindex(), CHAN_WEAPON, "boid/boid_alert2.wav", 1, ATTN_NORM );	break;
-		}
-
+		EmitSound(filter, entindex(), "FlockingFlyer.Alert");
 		return;
 	}
 
 	// make normal sound
-	CPASAttenuationFilter filter2( this );
-
-	switch ( random->RandomInt( 0, 1 ) )
-	{
-	case 0:	enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, "boid/boid_idle1.wav", 1, ATTN_NORM );	break;
-	case 1:	enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, "boid/boid_idle2.wav", 1, ATTN_NORM );	break;
-	}
+	EmitSound(filter, entindex(), "FlockingFlyer.Idle");
 }
 
 //=========================================================

@@ -30,6 +30,7 @@ public:
 
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
+	DECLARE_ACTTABLE();
 
 private:
 	void	ToggleZoom( void );
@@ -45,6 +46,13 @@ END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeapon357 )
 END_DATADESC()
+
+acttable_t CWeapon357::m_acttable[] =
+{
+	{ ACT_RELOAD, ACT_VM_RELOAD, true },
+};
+
+IMPLEMENT_ACTTABLE(CWeapon357);
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor

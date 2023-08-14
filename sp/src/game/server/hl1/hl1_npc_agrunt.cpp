@@ -18,29 +18,8 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Navigator.h"
-#include	"AI_Route.h"
-#include	"AI_Squad.h"
-#include	"AI_SquadSlot.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include    "te.h"
-#include "hl1_ai_basenpc.h"
+#include	"npcevent.h"
+#include	"hl1_npc_hgrunt.h"
 
 ConVar sk_agrunt_health( "sk_agrunt_health", "0" );
 ConVar sk_agrunt_dmg_punch( "sk_agrunt_dmg_punch", "0" );
@@ -222,7 +201,7 @@ void CNPC_AlienGrunt::Spawn()
 //=========================================================
 void CNPC_AlienGrunt::Precache()
 {
-	engine->PrecacheModel("models/agrunt.mdl");
+	PrecacheModel("models/agrunt.mdl");
 
 	PrecacheScriptSound( "Weapon_Hornetgun.Single" );
 	PrecacheScriptSound( "AlienGrunt.LeftFoot" );
@@ -235,7 +214,7 @@ void CNPC_AlienGrunt::Precache()
 	PrecacheScriptSound( "AlienGrunt.Pain" );
 	PrecacheScriptSound( "AlienGrunt.Idle" );
 
-	iAgruntMuzzleFlash = engine->PrecacheModel( "sprites/muz4.vmt" );
+	iAgruntMuzzleFlash = PrecacheModel( "sprites/muz4.vmt" );
 
 	UTIL_PrecacheOther( "hornet" );
 }	

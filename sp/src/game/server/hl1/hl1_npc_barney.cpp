@@ -18,29 +18,7 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Memory.h"
-#include	"AI_Route.h"
-#include	"AI_Motor.h"
 #include	"hl1_npc_barney.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include	"AI_Behavior_Follow.h"
-#include	"AI_Criteria.h"
 
 #define BA_ATTACK	"BA_ATTACK"
 #define BA_MAD		"BA_MAD"
@@ -412,8 +390,7 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 		case HITGROUP_GEAR:
 			if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
 			{
-				float Dmg = info.GetDamage() - 20;
-				if (Dmg <= 0)
+				if ((info.GetDamage() - 20) <= 0)
 				{
 					g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
 					info.SetDamage( 0.01f );

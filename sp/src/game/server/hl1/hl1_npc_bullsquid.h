@@ -2,7 +2,13 @@
 #define NPC_BULLSQUID_H
 
 #include "hl1_ai_basenpc.h"
-
+#include "Sprite.h"
+#include "hl2_shareddefs.h"
+#include "ammodef.h"
+#include "npcevent.h"
+#include "movevars_shared.h"
+#include "ai_hint.h"
+#include "ai_senses.h"
 
 class CNPC_Bullsquid : public CHL1BaseNPC
 {

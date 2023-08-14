@@ -3,6 +3,13 @@
 
 #include "ai_squad.h"
 #include "hl1_ai_basenpc.h"
+#include "ammodef.h"
+#include "ai_interactions.h"
+#include "scripted.h"
+#include "npcevent.h"
+#include "hl1_basegrenade.h"
+#include "hl1_grenade_mp5.h"
+#include "beam_shared.h"
 
 class CNPC_HGrunt : public CHL1BaseNPC
 {

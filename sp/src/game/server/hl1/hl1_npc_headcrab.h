@@ -4,6 +4,8 @@
 
 
 #include "hl1_ai_basenpc.h"
+#include "npcevent.h"
+#include "movevars_shared.h"
 
 class CNPC_Headcrab : public CHL1BaseNPC
 {

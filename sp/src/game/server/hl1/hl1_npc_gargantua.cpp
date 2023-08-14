@@ -18,33 +18,7 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"beam_shared.h"
-#include	"Sprite.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
 #include	"hl1_npc_gargantua.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include	"shake.h"
-#include	"decals.h"
-#include	"particle_smokegrenade.h"
-#include	"gib.h"
-#include	"func_break.h"
-#include	<hl2_shareddefs.h>
 
 extern short	g_sModelIndexFireball;
 int				gGargGibModel;
@@ -69,7 +43,6 @@ int				gGargGibModel;
 #define GARG_BEAM_SPRITE_NAME		"sprites/xbeam3.vmt"
 #define GARG_BEAM_SPRITE2			"sprites/xbeam3.vmt"
 #define GARG_STOMP_SPRITE_NAME		"sprites/gargeye1.vmt"
-#define GARG_STOMP_BUZZ_SOUND		"weapons/mine_charge.wav"
 #define GARG_FLAME_LENGTH			330
 #define GARG_GIB_MODEL				"models/metalplategibs.mdl"
 
@@ -175,7 +148,7 @@ void CStomp::Spawn( void )
 //	pev->rendermode = kRenderTransTexture;
 //	SetBrightness( 0 );
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_VOICE, GARG_STOMP_BUZZ_SOUND, 1.0, ATTN_NORM, 0, PITCH_NORM );
+	EmitSound( filter, entindex(), "Garg.Stomp" );
 
 }
 
@@ -235,7 +208,7 @@ void CStomp::Think( void )
 			UTIL_Remove(this);
 //			STOP_SOUND( edict(), CHAN_BODY, GARG_STOMP_BUZZ_SOUND );
 			CPASAttenuationFilter filter( this );
-			StopSound( entindex(), CHAN_STATIC, GARG_STOMP_BUZZ_SOUND );
+			StopSound(entindex(), CHAN_STATIC, "Garg.Stomp" );
 
 		}
 

@@ -14,15 +14,8 @@
 
 #include "cbase.h"
 #include "hl1_npc_barnacle.h"
-#include "NPCEvent.h"
 #include "gib.h"
-#include "AI_Default.h"
-#include "activitylist.h"
-#include "hl2_player.h"
-#include "vstdlib/random.h"
-#include "physics_saverestore.h"
-#include "vcollide_parse.h"
-#include "engine/IEngineSound.h"
+#include "npcevent.h"
 
 ConVar	sk_barnacle_health( "sk_barnacle_health","0");
 

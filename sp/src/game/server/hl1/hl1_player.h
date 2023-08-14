@@ -101,6 +101,8 @@ public:
 
 	virtual void OnRestore( void );
 
+	void		SetAnimation( PLAYER_ANIM playerAnim );
+
 	bool		IsPullingObject() { return m_bIsPullingObject; }
 	void		StartPullingObject( CBaseEntity *pObject );
 	void		StopPullingObject();

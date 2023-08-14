@@ -2107,6 +2107,13 @@ typedef enum
 	ACT_SPELL_VM_ARM, 
 	ACT_SPELL_VM_FIRE,
 
+#if defined HL1_DLL || HL1_CLIENT_DLL
+	ACT_RELOAD_HL1_BOW,
+	ACT_RELOAD_HL1_MP5,
+	ACT_RELOAD_HL1_ONEHANDED,
+	ACT_RELOAD_HL1_RPG,
+	ACT_RELOAD_HL1_SHOTGUN,
+#endif
 	// this is the end of the global activities, private per-monster activities start here.
 	LAST_SHARED_ACTIVITY,
 } Activity;

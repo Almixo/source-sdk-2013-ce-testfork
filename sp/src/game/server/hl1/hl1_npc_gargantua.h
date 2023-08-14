@@ -2,6 +2,13 @@
 #define NPC_GARGANTUA_H
 
 #include "hl1_ai_basenpc.h"
+#include "Sprite.h"
+#include "IEffects.h"
+#include "npcevent.h"
+#include "gib.h"
+#include "func_break.h"
+#include "beam_shared.h"
+#include "hl2_shareddefs.h"
 
 class CNPC_Gargantua : public CHL1BaseNPC
 {

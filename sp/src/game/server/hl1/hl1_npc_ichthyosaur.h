@@ -3,6 +3,9 @@
 
 
 #include "hl1_ai_basenpc.h"
+#include "npcevent.h"
+#include "beam_shared.h"
+#include "ai_route.h"
 
 #define SEARCH_RETRY	16
 

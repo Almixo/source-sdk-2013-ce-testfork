@@ -10,17 +10,15 @@
 
 #include "cbase.h"
 #include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "NPCEvent.h"
+#include "ai_default.h"
+#include "ai_schedule.h"
+#include "ai_hull.h"
+#include "ai_route.h"
+#include "npcevent.h"
 #include "hl1_npc_zombie.h"
 #include "gib.h"
-//#include "AI_Interactions.h"
+//#include "ai_interactions.h"
 #include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 
 ConVar	sk_zombie_health( "sk_zombie_health","50");
 ConVar  sk_zombie_dmg_one_slash( "sk_zombie_dmg_one_slash", "20" );

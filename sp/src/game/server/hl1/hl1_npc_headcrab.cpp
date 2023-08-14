@@ -6,21 +6,7 @@
 //=============================================================================
 
 #include "cbase.h"
-#include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Motor.h"
-#include "NPCEvent.h"
 #include "hl1_npc_headcrab.h"
-#include "gib.h"
-//#include "AI_Interactions.h"
-#include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "movevars_shared.h"
-#include "soundemittersystem/isoundemittersystembase.h"
 
 ConVar	sk_headcrab_health( "sk_headcrab_health","20");
 ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");

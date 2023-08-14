@@ -19,10 +19,6 @@ extern ConVar    sk_plr_dmg_mp5_grenade;
 extern ConVar    sk_max_mp5_grenade;
 extern ConVar	 sk_mp5_grenade_radius;
 
-//new
-//extern ConVar	sk_mp5_scnd_attck_md("mp5_scnd_attck_md", "0", FCVAR_CHEAT || FCVAR_ARCHIVE, "Spin, or don't spin?");		//mp5_second_attack_mode
-extern ConVar	sk_mp5_scnd_attck_md("sk_mp5_scnd_attck_md", "0", FCVAR_ARCHIVE);
-
 //=========================================================
 //=========================================================
 

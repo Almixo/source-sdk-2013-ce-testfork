@@ -18,32 +18,7 @@
 //=============================================================================
 
 #include	"cbase.h"
-#include	"beam_shared.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Squad.h"
-#include	"AI_SquadSlot.h"
-#include	"AI_Motor.h"
 #include	"hl1_npc_hgrunt.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include	"basecombatweapon.h"
-#include	"hl1_basegrenade.h"
-#include	"ai_interactions.h"
-#include	"scripted.h"
-#include	"hl1_basegrenade.h"
-#include	"hl1_grenade_mp5.h"
 
 ConVar	sk_hgrunt_health( "sk_hgrunt_health","0");
 ConVar  sk_hgrunt_kick ( "sk_hgrunt_kick", "0" );
@@ -1059,25 +1034,20 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 		case HGRUNT_AE_RELOAD:
 		{
 			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "hgrunt/gr_reload1.wav", 1, ATTN_NORM );
+			EmitSound( filter, entindex(), "HGrunt.Reload" );
 
 			m_cAmmoLoaded = m_iClipSize;
 			ClearCondition( COND_NO_PRIMARY_AMMO);
 		}
 		break;
-
+		
 		case HGRUNT_AE_GREN_TOSS:
 		{
-			CHandGrenade *pGrenade = (CHandGrenade*)CreateNoSpawn( "grenade_hand", GetAbsOrigin() + Vector(0,0,60), vec3_angle, this );
-
-			// alway explode 3 seconds after the pin was pulled
-			pGrenade->m_flDetonateTime = gpGlobals->curtime + 3.5;
-			pGrenade->Spawn( );
-			pGrenade->SetOwnerEntity( this );
-			pGrenade->SetGravity( 0.5 );
-			pGrenade->SetAbsVelocity( m_vecTossVelocity );
-			pGrenade->SetDamage( sk_plr_dmg_grenade.GetFloat() );
-			pGrenade->SetDamageRadius( pGrenade->GetDamage() * 2.5 );
+			CHandGrenade* pGrenade = ( CHandGrenade *)Create( "grenade_hand", GetAbsOrigin() + Vector(0, 0, 60), vec3_angle );
+			if ( pGrenade )
+			{
+				pGrenade->ShootTimed( this, m_vecTossVelocity, 3.5 );
+			}
 
 			m_iLastGrenadeCondition =  COND_NONE;
 			m_flNextGrenadeCheck = gpGlobals->curtime + 6;// wait six seconds before even looking again to see if a grenade can be thrown.
@@ -1089,7 +1059,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 		case HGRUNT_AE_GREN_LAUNCH:
 		{
 			CPASAttenuationFilter filter2( this );
-			enginesound->EmitSound( filter2, entindex(), CHAN_WEAPON, "weapons/glauncher.wav", 0.8, ATTN_NORM );
+			EmitSound( filter2, entindex(), "HGrunt.GrenadeLaunch" );
 			
 			Vector vecSrc;
 			QAngle angAngles;
