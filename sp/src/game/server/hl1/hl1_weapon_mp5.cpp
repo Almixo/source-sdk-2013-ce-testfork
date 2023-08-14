@@ -174,16 +174,8 @@ void CWeaponMP5::DryFire( void )
 
 void CWeaponMP5::WeaponIdle( void )
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
-	}
-
-	bool bElapsed = HasWeaponIdleTimeElapsed();
-
 	BaseClass::WeaponIdle();
-	
-	if( bElapsed )
+
+	if ( HasWeaponIdleTimeElapsed() )
 		SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 3, 5 ) );
 }
