@@ -13,11 +13,11 @@ END_NETWORK_TABLE()
 
 #ifndef CLIENT_DLL
 // a list of laser dots to search quickly
-CEntityClassList<CGuidedDot> g_LaserDotList;
+CEntityClassList<CGuidedDot> g_GuidedDotList;
 template <> CGuidedDot *CEntityClassList<CGuidedDot>::m_pClassList = NULL;
-CGuidedDot *GetLaserDotList()
+CGuidedDot *GetGuidedDotList()
 {
-	return g_LaserDotList.m_pClassList;
+	return g_GuidedDotList.m_pClassList;
 }
 
 #endif
@@ -55,14 +55,14 @@ CGuidedDot::CGuidedDot(void)
 {
 	m_bIsOn = true;
 #ifndef CLIENT_DLL
-	g_LaserDotList.Insert(this);
+	g_GuidedDotList.Insert(this);
 #endif
 }
 
 CGuidedDot::~CGuidedDot(void)
 {
 #ifndef CLIENT_DLL
-	g_LaserDotList.Remove(this);
+	g_GuidedDotList.Remove(this);
 #endif
 }
 
@@ -75,9 +75,6 @@ CGuidedDot::~CGuidedDot(void)
 CGuidedDot *CGuidedDot::Create(const Vector &origin, CBaseEntity *pOwner, bool bVisibleDot)
 {
 #ifndef CLIENT_DLL
-	//	CGuidedDot *pLaserDot = (CGuidedDot *) CBaseEntity::Create( "guided_dot", origin, QAngle(0,0,0) );
-
-		//idk if this is alright...
 	CGuidedDot *pLaserDot = assert_cast<CGuidedDot*>(CBaseEntity::Create("guided_dot", origin, vec3_angle));
 
 	if (pLaserDot == NULL)

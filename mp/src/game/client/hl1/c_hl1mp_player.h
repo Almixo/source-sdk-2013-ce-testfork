@@ -66,7 +66,7 @@ public:
 	void PreThink( void );
 	void PostThink( void );
 
-	int	m_iRealSequence, m_iSpawnInterpCounter, m_iSpawnInterpCounterCache;; //bruhh
+	int	m_iRealSequence, m_iSpawnInterpCounter, m_iSpawnInterpCounterCache; //bruhh
 
 private:
 	C_HL1MP_Player( const C_HL1MP_Player & );

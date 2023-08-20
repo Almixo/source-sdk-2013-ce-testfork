@@ -15,7 +15,6 @@ END_DATADESC();
 
 CWpnBox::CWpnBox()
 {
-	bGiveAmmo = bGiveWeapon = bGiveKVAmmo = bGiveKVEntity = false;
 }
 CWpnBox::~CWpnBox()
 {

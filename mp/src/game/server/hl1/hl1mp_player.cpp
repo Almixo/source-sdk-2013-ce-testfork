@@ -432,8 +432,11 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			idealActivity = ACT_IDLE;
 		}
 	}
-
-
+	else if ( playerAnim == PLAYER_RELOAD )
+	{
+		idealActivity = ACT_GESTURE_RELOAD;
+	}
+	
 	if ( idealActivity == ACT_RANGE_ATTACK1 )
 	{
 		if ( GetFlags( ) & FL_DUCKING )	// crouching
@@ -491,6 +494,11 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			SetActivity( ACT_RUN );
 		}
 
+	}
+	else if ( idealActivity == ACT_GESTURE_RELOAD )
+	{
+		RestartGesture( Weapon_TranslateActivity( idealActivity ) );
+		return;
 	}
 	else
 	{

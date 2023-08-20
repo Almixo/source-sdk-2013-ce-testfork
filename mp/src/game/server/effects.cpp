@@ -914,6 +914,9 @@ CBaseEntity *CRotorWashShooter::DoWashPush( float flWashStartTime, const Vector 
 	return pGib;
 }
 
+static ConVar test_effect_bc_r("test_effect_bc_r", "255", FCVAR_REPLICATED);
+static ConVar test_effect_bc_g("test_effect_bc_g", "255", FCVAR_REPLICATED);
+static ConVar test_effect_bc_b("test_effect_bc_b", "255", FCVAR_REPLICATED);
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -967,7 +970,11 @@ void CTestEffect::Think( void )
 
 		pbeam->PointsInit( vecSrc, tr.endpos );
 		// pbeam->SetColor( 80, 100, 255 );
-		pbeam->SetColor( 255, 180, 100 );
+		//pbeam->SetColor( 255, 180, 100 );
+
+		pbeam->SetColor( test_effect_bc_r.GetInt(), 
+						 test_effect_bc_g.GetInt(), 
+						 test_effect_bc_b.GetInt());
 		pbeam->SetWidth( 10.0 );
 		pbeam->SetScrollRate( 12 );
 
@@ -981,6 +988,11 @@ void CTestEffect::Think( void )
 		TE_DynamicLight( filter, 0.0,
 			vecMid, 255, 180, 100, 3, 2.0, 0.0 );
 #endif
+
+		Vector vecMid = (vecSrc + tr.endpos) * 0.5;
+		CBroadcastRecipientFilter filter;
+		te->DynamicLight( filter, 0.0, 
+			&vecMid, 255, 180, 100, 3, 200, 2.0, 0.0 );
 	}
 
 	if (t < 3.0)

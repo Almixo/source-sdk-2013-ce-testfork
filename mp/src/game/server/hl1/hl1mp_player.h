@@ -15,7 +15,7 @@
 #include "hl1_player.h"
 #include "takedamageinfo.h"
 #include "ilagcompensationmanager.h"
-#include "CUSTOM/CWeaponBox.h"
+#include "custom/CWeaponBox.h"
 
 //=============================================================================
 // >> HL1MP_Player
