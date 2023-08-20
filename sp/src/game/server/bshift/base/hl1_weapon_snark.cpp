@@ -1,24 +1,12 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Snark
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
-#include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 #include "hl1_npc_snark.h"
-#include "beam_shared.h"
 
 
 //-----------------------------------------------------------------------------

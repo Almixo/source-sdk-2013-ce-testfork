@@ -1,3 +1,9 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose:		WarpBall
+//
+//=============================================================================//
+
 #include "cbase.h"
 #include "beam_shared.h"
 #include "Sprite.h"
@@ -12,7 +18,8 @@ class CWarpBall : public CPointEntity
 	DECLARE_CLASS(CWarpBall, CPointEntity);
 	DECLARE_DATADESC();
 public:
-	~CWarpBall();
+	CWarpBall(void);
+	~CWarpBall(void);
 
 	void Spawn(void);
 	void Precache(void);
@@ -34,7 +41,7 @@ private:
 	CSprite *pSpr[2];
 	CEnvBeam *pBeam;
 
-	bool bActive = false;
+	bool bActive;
 };
 
 LINK_ENTITY_TO_CLASS(env_warpball, CWarpBall);
@@ -54,6 +61,21 @@ BEGIN_DATADESC(CWarpBall)
 	DEFINE_FIELD(fBeamTime, FIELD_TIME),
 END_DATADESC();
 //============================================================
+
+CWarpBall::CWarpBall()
+{
+	/*fRadius = 0;
+	fDamageDelay = 0;
+	fActiveTime = 0;
+	fBeamTime = 0;*/
+
+	pSpr[0] = false;
+	pSpr[1] = false;
+
+	pBeam = false;
+
+	bActive = false;
+}
 
 CWarpBall::~CWarpBall()
 {
@@ -100,7 +122,7 @@ void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 
 	bActive = true;
 	fActiveTime = gpGlobals->curtime + 2.0;
-	fBeamTime = gpGlobals->curtime + 1.1;
+	fBeamTime = gpGlobals->curtime + 1.0;
 
 	vecOrigin = GetAbsOrigin();
 
@@ -144,14 +166,20 @@ void CWarpBall::RunBeams(void)
 	pBeam->m_boltWidth = 1.8;
 	pBeam->m_life = 0.5;
 	pBeam->SetColor(0, 255, 0);
-	pBeam->AddSpawnFlags(SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON);
+	pBeam->AddSpawnFlags(SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON); //SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON
 	pBeam->m_radius = fRadius;
-	pBeam->m_iszStartEntity = MAKE_STRING(GetDebugName());
+	pBeam->m_iszStartEntity = MAKE_STRING(GetDebugName()); //SetStartEntity will fuck itself TODO: work around this!
 
 	DispatchSpawn(pBeam);
 
-	pBeam->SetThink(&CEnvBeam::StrikeThink);
-	pBeam->SetNextThink(gpGlobals->curtime + .1);
+	/*pBeam->SetThink(&CEnvBeam::StrikeThink);
+	pBeam->SetNextThink(gpGlobals->curtime);*/
+
+	inputdata_t info;
+	info.pActivator = this;
+	info.pCaller = this;
+
+	pBeam->InputToggle(info);
 }
 void CWarpBall::RunSprites(void)
 {

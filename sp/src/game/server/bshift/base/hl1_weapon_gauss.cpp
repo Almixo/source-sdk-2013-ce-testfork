@@ -1,9 +1,8 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Gauss
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "NPCEvent.h"
@@ -33,6 +32,8 @@ extern ConVar sk_plr_dmg_gauss;
 class CWeaponGauss : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponGauss, CBaseHL1CombatWeapon );
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 public:
 
 	CWeaponGauss( void );
@@ -45,19 +46,15 @@ public:
 	bool	Deploy( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
 private:
 	void	StopSpinSound( void );
 	float	GetFullChargeTime( void );
 	void	StartFire( void );
 	void	Fire( Vector vecOrigSrc, Vector vecDir, float flDamage );
 
-private:
 	int			m_nAttackState;
 	bool		m_bPrimaryFire;
-	CSoundPatch	*m_sndCharge;
+	CSoundPatch *m_sndCharge;
 	int			m_iBeam;
 	int			m_iGlow;
 };
@@ -71,7 +68,7 @@ END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeaponGauss )
 	DEFINE_FIELD( m_nAttackState, FIELD_INTEGER ),
-	DEFINE_FIELD( m_bPrimaryFire,	FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bPrimaryFire, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_iBeam, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iGlow, FIELD_INTEGER ),
 END_DATADESC()
@@ -81,12 +78,12 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 CWeaponGauss::CWeaponGauss( void )
 {
-	m_bReloadsSingly	= false;
-	m_bFiresUnderwater	= false;
+	m_bReloadsSingly = false;
+	m_bFiresUnderwater = false;
 
-	m_bPrimaryFire		= false;
-	m_nAttackState		= 0;
-	m_sndCharge			= NULL;
+	m_bPrimaryFire = false;
+	m_nAttackState = 0;
+	m_sndCharge = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -124,10 +121,8 @@ float CWeaponGauss::GetFullChargeTime( void )
 void CWeaponGauss::PrimaryAttack( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) < 2 )
 	{
@@ -153,17 +148,15 @@ void CWeaponGauss::PrimaryAttack( void )
 void CWeaponGauss::SecondaryAttack( void )
 {
 	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	// don't fire underwater
 	if ( pPlayer->GetWaterLevel() == 3 )
 	{
 		if ( m_nAttackState != 0 )
 		{
-			CPASAttenuationFilter filter(this);
+			CPASAttenuationFilter filter( this );
 			EmitSound( filter, entindex(), "Weapon_Gauss.Zap1" );
 			SendWeaponAnim( ACT_VM_IDLE );
 			m_nAttackState = 0;
@@ -193,7 +186,7 @@ void CWeaponGauss::SecondaryAttack( void )
 
 		// spin up
 //FIXME		pPlayer->m_iWeaponVolume = GAUSS_PRIMARY_CHARGE_VOLUME;
-		
+
 		SendWeaponAnim( ACT_GAUSS_SPINUP );
 		m_nAttackState = 1;
 		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
@@ -204,16 +197,16 @@ void CWeaponGauss::SecondaryAttack( void )
 		if ( m_sndCharge == NULL )
 		{
 			CPASAttenuationFilter filter( this );
-			m_sndCharge	= (CSoundEnvelopeController::GetController()).SoundCreate( filter, entindex(), CHAN_WEAPON, "ambience/pulsemachine.wav", ATTN_NORM );
+			m_sndCharge = ( CSoundEnvelopeController::GetController() ).SoundCreate( filter, entindex(), CHAN_WEAPON, "ambience/pulsemachine.wav", ATTN_NORM );
 		}
 
-		assert(m_sndCharge!=NULL);
+		assert( m_sndCharge != NULL );
 		if ( m_sndCharge != NULL )
 		{
-			(CSoundEnvelopeController::GetController()).Play( m_sndCharge, 1.0f, 110 );
+			( CSoundEnvelopeController::GetController() ).Play( m_sndCharge, 1.0f, 110 );
 		}
 	}
-	else if (m_nAttackState == 1)
+	else if ( m_nAttackState == 1 )
 	{
 		if ( HasWeaponIdleTimeElapsed() )
 		{
@@ -247,7 +240,7 @@ void CWeaponGauss::SecondaryAttack( void )
 			pPlayer->SetNextAttack( gpGlobals->curtime + 1 );
 			return;
 		}
-		
+
 		if ( gpGlobals->curtime >= pPlayer->m_flAmmoStartCharge )
 		{
 			// don't eat any more ammo after gun is fully charged.
@@ -255,42 +248,42 @@ void CWeaponGauss::SecondaryAttack( void )
 		}
 
 		int pitch = ( gpGlobals->curtime - pPlayer->m_flStartCharge ) * ( 150 / GetFullChargeTime() ) + 100;
-		if ( pitch > 250 ) 
-			 pitch = 250;
-		
-		// ALERT( at_console, "%d %d %d\n", m_nAttackState, m_iSoundState, pitch );
+		if ( pitch > 250 )
+			pitch = 250;
+
+	   // ALERT( at_console, "%d %d %d\n", m_nAttackState, m_iSoundState, pitch );
 
 //		if ( m_iSoundState == 0 )
 //			ALERT( at_console, "sound state %d\n", m_iSoundState );
 
 		if ( m_sndCharge != NULL )
 		{
-			(CSoundEnvelopeController::GetController()).SoundChangePitch( m_sndCharge, pitch, 0 );
+			( CSoundEnvelopeController::GetController() ).SoundChangePitch( m_sndCharge, pitch, 0 );
 		}
 
 //FIXME		m_pPlayer->m_iWeaponVolume = GAUSS_PRIMARY_CHARGE_VOLUME;
-		
+
 		// m_flTimeWeaponIdle = gpGlobals->curtime + 0.1;
 		if ( pPlayer->m_flStartCharge < gpGlobals->curtime - 10 )
 		{
-			CPASAttenuationFilter filter(this);
+			CPASAttenuationFilter filter( this );
 
 			// Player charged up too long. Zap him.
 			EmitSound( filter, entindex(), "Weapon_Gauss.Zap1" );
 			EmitSound( filter, entindex(), "Weapon_Gauss.Zap2" );
-			
+
 			m_nAttackState = 0;
 			SetWeaponIdleTime( gpGlobals->curtime + 1.0 );
 			pPlayer->SetNextAttack( gpGlobals->curtime + 1.0 );
-				
+
 			// Add DMG_CRUSH because we don't want any physics force
 			pPlayer->TakeDamage( CTakeDamageInfo( this, this, 50, DMG_SHOCK | DMG_CRUSH ) );
 
-			color32 gaussDamage = {255,128,0,128};
+			color32 gaussDamage = { 255,128,0,128 };
 			UTIL_ScreenFade( pPlayer, gaussDamage, 2, 0.5, FFADE_IN );
 
 			SendWeaponAnim( ACT_VM_IDLE );
-			
+
 			StopSpinSound();
 			// Player may have been killed and this weapon dropped, don't execute any more code after this!
 			return;
@@ -306,24 +299,23 @@ void CWeaponGauss::SecondaryAttack( void )
 //=========================================================
 void CWeaponGauss::StartFire( void )
 {
-	float flDamage;
-	
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
-		return;
-	}
+	float flDamage = 0;
 
-	Vector vecAiming	= pPlayer->GetAutoaimVector( 0 );
-	Vector vecSrc		= pPlayer->Weapon_ShootPosition( );
-	
+	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+
+	if ( pPlayer == NULL )
+		return;
+
+	Vector vecAiming = pPlayer->GetAutoaimVector( 0 );
+	Vector vecSrc = pPlayer->Weapon_ShootPosition();
+
 	if ( gpGlobals->curtime - pPlayer->m_flStartCharge > GetFullChargeTime() )
 	{
 		flDamage = 200;
 	}
 	else
 	{
-		flDamage = 200 * (( gpGlobals->curtime - pPlayer->m_flStartCharge) / GetFullChargeTime() );
+		flDamage = 200 * ( ( gpGlobals->curtime - pPlayer->m_flStartCharge ) / GetFullChargeTime() );
 	}
 
 	if ( m_bPrimaryFire )
@@ -332,8 +324,8 @@ void CWeaponGauss::StartFire( void )
 	}
 
 	//ALERT ( at_console, "Time:%f Damage:%f\n", gpGlobals->curtime - m_pPlayer->m_flStartCharge, flDamage );
-	Vector	vecNewVel	= pPlayer->GetAbsVelocity();
-	float	flZVel		= vecNewVel.z;
+	Vector	vecNewVel = pPlayer->GetAbsVelocity();
+	float	flZVel = vecNewVel.z;
 
 	if ( !m_bPrimaryFire )
 	{
@@ -360,24 +352,23 @@ void CWeaponGauss::StartFire( void )
 void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 {
 	CBaseEntity *pIgnore;
-	Vector		vecSrc		= vecOrigSrc;
-	Vector		vecDest		= vecSrc + vecDir * MAX_TRACE_LENGTH;
-	bool		fFirstBeam	= true;
+	Vector		vecSrc = vecOrigSrc;
+	Vector		vecDest = vecSrc + vecDir * MAX_TRACE_LENGTH;
+	bool		fFirstBeam = true;
 	bool		fHasPunched = false;
-	float		flMaxFrac	= 1.0;
-	int			nTotal		= 0;
-	int			nMaxHits	= 10;
+	float		flMaxFrac = 1.0;
+	int			nTotal = 0;
+	int			nMaxHits = 10;
 
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-	{
+
+	if ( pPlayer == NULL )
 		return;
-	}
 
 //FIXME	pPlayer->m_iWeaponVolume = GAUSS_PRIMARY_FIRE_VOLUME;
 
 	StopSpinSound();
-	
+
 	pIgnore = pPlayer;
 
 //	ALERT( at_console, "%f %f\n", tr.flFraction, flMaxFrac );
@@ -395,7 +386,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 			break;
 
 		CBaseEntity *pEntity = tr.m_pEnt;
-		if (pEntity == NULL)
+		if ( pEntity == NULL )
 			break;
 
 		CBroadcastRecipientFilter filter;
@@ -404,7 +395,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 		{
 			pPlayer->DoMuzzleFlash();
 			fFirstBeam = false;
-	
+
 			nTotal += 26;
 
 			te->BeamEntPoint(
@@ -453,7 +444,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 				0
 			);
 		}
-		
+
 		if ( pEntity->m_takedamage != DAMAGE_NO )
 		{
 			ClearMultiDamage();
@@ -463,7 +454,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 			ApplyMultiDamage();
 		}
 
-		if ( pEntity->IsBSPModel() && (pEntity->m_takedamage == DAMAGE_NO) )
+		if ( pEntity->IsBSPModel() && ( pEntity->m_takedamage == DAMAGE_NO ) )
 		{
 			float n;
 
@@ -476,7 +467,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 				// ALERT( at_console, "reflect %f\n", n );
 				// reflect
 				Vector r;
-			
+
 				r = 2.0 * tr.plane.normal * n + vecDir;
 				flMaxFrac = flMaxFrac - tr.fraction;
 				vecDir = r;
@@ -487,15 +478,15 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 				RadiusDamage( CTakeDamageInfo( this, pPlayer, flDamage * n, DMG_BLAST ), tr.endpos, flDamage * n * 2.5, CLASS_NONE, 0 );
 
 				nTotal += 34;
-				
+
 /*
 //FIXME
 				vec3_t r;
-			
+
 				VectorMA( forward, 2.0 * n, tr.plane.normal, r );
 
 				flMaxFrac = flMaxFrac - tr.fraction;
-				
+
 				VectorCopy( r, forward );
 
 				VectorMA( tr.endpos, 8.0, forward, vecSrc );
@@ -511,10 +502,10 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 */
 
 				// lose energy
-				if (n == 0)
+				if ( n == 0 )
 					n = 0.1;
 
-				flDamage = flDamage * (1 - n);
+				flDamage = flDamage * ( 1 - n );
 			}
 			else
 			{
@@ -539,17 +530,17 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 				{
 					trace_t beam_tr;
 
-					UTIL_TraceLine( tr.endpos + vecDir * 8, vecDest, MASK_SHOT, pIgnore, COLLISION_GROUP_NONE, &beam_tr);
+					UTIL_TraceLine( tr.endpos + vecDir * 8, vecDest, MASK_SHOT, pIgnore, COLLISION_GROUP_NONE, &beam_tr );
 					if ( !beam_tr.allsolid )
 					{
 						// trace backwards to find exit point
-						UTIL_TraceLine( beam_tr.endpos, tr.endpos, MASK_SHOT, pIgnore, COLLISION_GROUP_NONE, &beam_tr);
+						UTIL_TraceLine( beam_tr.endpos, tr.endpos, MASK_SHOT, pIgnore, COLLISION_GROUP_NONE, &beam_tr );
 
-						float n = (beam_tr.endpos - tr.endpos).Length( );
+						float n = ( beam_tr.endpos - tr.endpos ).Length();
 
 						if ( n < flDamage )
 						{
-							if (n == 0)
+							if ( n == 0 )
 								n = 1;
 
 							flDamage -= n;
@@ -565,7 +556,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 							}
 							UTIL_ImpactTrace( &beam_tr, DMG_ENERGYBEAM );
 							gEngfuncs.pEfxAPI->R_TempSprite( beam_tr.endpos, vec3_origin, 0.1, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
-			
+
 							// balls
 							{
 								vec3_t fwd;
@@ -612,10 +603,10 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 //FIXME
 					if ( m_fPrimaryFire )
 					{
-						// slug doesn't punch through ever with primary 
+						// slug doesn't punch through ever with primary
 						// fire, so leave a little glowy bit and make some balls
 						gEngfuncs.pEfxAPI->R_TempSprite( tr.endpos, vec3_origin, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, 200.0 / 255.0, 0.3, FTENT_FADEOUT );
-			
+
 						{
 							vec3_t fwd;
 							VectorAdd( tr.endpos, tr.plane.normal, fwd );
@@ -624,7 +615,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 						}
 					}
 */
-					
+
 					flDamage = 0;
 				}
 
@@ -647,7 +638,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 	if ( GetParametersForSound( "Weapon_Gauss.Fire", params, NULL ) )
 	{
 		EmitSound_t ep( params );
-		ep.m_flVolume = 0.5 + flDamage * (1.0 / 400.0);
+		ep.m_flVolume = 0.5 + flDamage * ( 1.0 / 400.0 );
 		EmitSound( filter, entindex(), ep );
 	}
 }
@@ -655,15 +646,14 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 void CWeaponGauss::WeaponIdle( void )
 {
 	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
+
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	// play aftershock static discharge
 	if ( pPlayer->m_flPlayAftershock && pPlayer->m_flPlayAftershock < gpGlobals->curtime )
 	{
-		CPASAttenuationFilter filter(this);
+		CPASAttenuationFilter filter( this );
 		EmitSound( filter, entindex(), "Weapon_Gauss.StaticDischarge" );
 		pPlayer->m_flPlayAftershock = 0.0;
 	}
@@ -679,11 +669,11 @@ void CWeaponGauss::WeaponIdle( void )
 	}
 	else
 	{
-		float flRand = random->RandomFloat( 0, 1 );
+		float flRand = RandomFloat( 0, 1 );
 		if ( flRand <= 0.75 )
 		{
 			SendWeaponAnim( ACT_VM_IDLE );
-			SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
+			SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
 		}
 		else
 		{
@@ -705,7 +695,7 @@ void CWeaponGauss::AddViewKick( void )
 
 bool CWeaponGauss::Deploy( void )
 {
-	if ( DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), ACT_VM_DRAW, (char*)GetAnimPrefix() ) )
+	if ( DefaultDeploy( ( char * )GetViewModel(), ( char * )GetWorldModel(), ACT_VM_DRAW, ( char * )GetAnimPrefix() ) )
 	{
 		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
 		if ( pPlayer )
@@ -723,17 +713,16 @@ bool CWeaponGauss::Deploy( void )
 
 bool CWeaponGauss::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
-
 	StopSpinSound();
 	m_nAttackState = 0;
 
-	return BaseClass::Holster(pSwitchingTo);
+	return BaseClass::Holster( pSwitchingTo );
 }
 
 void CWeaponGauss::StopSpinSound( void )
 {
 	if ( m_sndCharge != NULL )
 	{
-		(CSoundEnvelopeController::GetController()).SoundFadeOut( m_sndCharge, 0.1f );
+		( CSoundEnvelopeController::GetController() ).SoundFadeOut( m_sndCharge, 0.1f );
 	}
 }

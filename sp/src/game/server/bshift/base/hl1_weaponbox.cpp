@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -15,15 +15,14 @@
 
 class CWeaponBox : public CHL1Item
 {
-public:
 	DECLARE_CLASS( CWeaponBox, CHL1Item );
+	DECLARE_DATADESC();
+public:
 
 	void Spawn( void );
 	void Precache( void );
 	bool KeyValue( const char *szKeyName, const char *szValue );
 	void BoxTouch( CBaseEntity *pPlayer );
-
-	DECLARE_DATADESC();
 
 private:
 	bool		PackAmmo( char *szName, int iCount );
@@ -74,7 +73,7 @@ void CWeaponBox::Spawn( void )
 
 void CWeaponBox::Precache( void )
 {
-	engine->PrecacheModel( WEAPONBOX_MODEL );
+	PrecacheModel( WEAPONBOX_MODEL );
 }
 
 
@@ -200,7 +199,7 @@ bool CWeaponBox::PackAmmo( char *szName, int iCount )
 //=========================================================
 int CWeaponBox::GiveAmmo( int iCount, char *szName, int iMax, int *pIndex )
 {
-	int i;
+	int i = 0;
 
 	for ( i = 1; ( i < MAX_AMMO_SLOTS ) && ( m_rgiszAmmo[i] != NULL_STRING ); i++ )
 	{

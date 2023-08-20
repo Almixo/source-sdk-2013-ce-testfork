@@ -1,22 +1,12 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Tripmine
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 #include "hl1_player.h"
 #include "hl1_basegrenade.h"
 #include "beam_shared.h"
@@ -35,6 +25,8 @@ extern ConVar sk_plr_dmg_tripmine;
 class CWeaponTripMine : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponTripMine, CBaseHL1CombatWeapon );
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 public:
 
 	CWeaponTripMine( void );
@@ -45,9 +37,6 @@ public:
 	void	PrimaryAttack( void );
 	void	WeaponIdle( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
 
 private:
 	bool	m_bJustPlaced;
@@ -88,9 +77,7 @@ void CWeaponTripMine::Spawn( void )
 	m_flPlaybackRate = 0;
 
 	if ( !g_pGameRules->IsDeathmatch() )
-	{
 		UTIL_SetSize( this, Vector(-16, -16, 0), Vector(16, 16, 28) ); 
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -118,11 +105,9 @@ void CWeaponTripMine::Equip( CBaseCombatCharacter *pOwner )
 //-----------------------------------------------------------------------------
 void CWeaponTripMine::PrimaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 		return;
@@ -156,18 +141,15 @@ void CWeaponTripMine::PrimaryAttack( void )
 	}
 	else
 	{
-		m_flTimeWeaponIdle = gpGlobals->curtime + random->RandomFloat( 10, 15 );
+		m_flTimeWeaponIdle = gpGlobals->curtime + RandomFloat( 10, 15 );
 	}
 }
 
 void CWeaponTripMine::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
@@ -184,21 +166,17 @@ void CWeaponTripMine::WeaponIdle( void )
 		else
 		{
 			SendWeaponAnim( ACT_VM_DRAW );
-			SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
+			SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
 		}
 	}
 	else
 	{
-		int iAnim;
+		int iAnim = 0;
 
-		if ( random->RandomFloat( 0, 1 ) <= 0.75 )
-		{
+		if ( RandomFloat( 0, 1 ) <= 0.75 )
 			iAnim = ACT_VM_IDLE;
-		}
 		else
-		{
 			iAnim = ACT_VM_FIDGET;
-		}
 
 		SendWeaponAnim( iAnim );
 	}
@@ -207,15 +185,11 @@ void CWeaponTripMine::WeaponIdle( void )
 bool CWeaponTripMine::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return false;
-	}
 
-	if ( !BaseClass::Holster( pSwitchingTo ) )
-	{
+	if ( BaseClass::Holster( pSwitchingTo ) == NULL )
 		return false;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
@@ -238,8 +212,11 @@ bool CWeaponTripMine::Holster( CBaseCombatWeapon *pSwitchingTo )
 class CTripmineGrenade : public CHL1BaseGrenade
 {
 	DECLARE_CLASS( CTripmineGrenade, CHL1BaseGrenade );
+	DECLARE_DATADESC();
 public:
+
 	CTripmineGrenade();
+
 	void		Spawn( void );
 	void		Precache( void );
 
@@ -251,13 +228,10 @@ public:
 	void		DelayDeathThink( void );
 	void		Event_Killed( const CTakeDamageInfo &info );
 
-	DECLARE_DATADESC();
-
 private:
 	void			MakeBeam( void );
 	void			KillBeam( void );
 
-private:
 	float					m_flPowerUp;
 	Vector					m_vecDir;
 	Vector					m_vecEnd;
@@ -534,7 +508,7 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	SetThink( &CTripmineGrenade::DelayDeathThink );
-	SetNextThink( gpGlobals->curtime + random->RandomFloat( 0.1, 0.3 ) );
+	SetNextThink( gpGlobals->curtime + RandomFloat( 0.1, 0.3 ) );
 
 	StopSound( "TripmineGrenade.Charge" );
 }

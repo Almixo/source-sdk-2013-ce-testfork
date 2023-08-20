@@ -1,43 +1,31 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Glock - hand gun
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 
 
 class CWeaponGlock : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponGlock, CBaseHL1CombatWeapon );
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 public:
 
-	CWeaponGlock(void);
+	CWeaponGlock( void );
 
-	void	Precache( void );
 	void	PrimaryAttack( void );
 	void	SecondaryAttack( void );
 	bool	Reload( void );
 	void	WeaponIdle( void );
 	void	DryFire( void );
 
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
 private:
-	void	GlockFire( float flSpread , float flCycleTime, bool fUseAutoAim );
+	void	GlockFire( float flSpread, float flCycleTime, bool fUseAutoAim );
 };
 
 LINK_ENTITY_TO_CLASS( weapon_glock, CWeaponGlock );
@@ -53,48 +41,33 @@ END_DATADESC()
 
 CWeaponGlock::CWeaponGlock( void )
 {
-	m_bReloadsSingly	= false;
-	m_bFiresUnderwater	= true;
+	m_bReloadsSingly = false;
+	m_bFiresUnderwater = true;
 }
-
-
-void CWeaponGlock::Precache( void )
-{
-
-	BaseClass::Precache();
-}
-
 
 void CWeaponGlock::DryFire( void )
 {
 	WeaponSound( EMPTY );
 	SendWeaponAnim( ACT_VM_DRYFIRE );
-		
+
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.2;
 }
 
-
 void CWeaponGlock::PrimaryAttack( void )
 {
-	GlockFire( 0.01, 0.3, TRUE );
+	GlockFire( 0.01, 0.3, true );
 }
-
 
 void CWeaponGlock::SecondaryAttack( void )
 {
-	GlockFire( 0.1, 0.2, FALSE );
+	GlockFire( 0.1, 0.2, false );
 }
 
-
-void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoAim )
+void CWeaponGlock::GlockFire( float flSpread, float flCycleTime, bool fUseAutoAim )
 {
-	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -123,19 +96,19 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
-	m_flNextPrimaryAttack	= gpGlobals->curtime + flCycleTime;
-	m_flNextSecondaryAttack	= gpGlobals->curtime + flCycleTime;
+	m_flNextPrimaryAttack = gpGlobals->curtime + flCycleTime;
+	m_flNextSecondaryAttack = gpGlobals->curtime + flCycleTime;
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming;
-	
+
 	if ( fUseAutoAim )
 	{
-		vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );	
+		vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
 	}
 	else
 	{
-		vecAiming = pPlayer->GetAutoaimVector( 0 );	
+		vecAiming = pPlayer->GetAutoaimVector( 0 );
 	}
 
 	pPlayer->FireBullets( 1, vecSrc, vecAiming, Vector( flSpread, flSpread, flSpread ), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
@@ -148,16 +121,15 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
 		// HEV suit - indicate out of ammo condition
-		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
+		pPlayer->SetSuitUpdate( "!HEV_AMO0", FALSE, 0 );
 	}
 
-	SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
+	SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
 }
-
 
 bool CWeaponGlock::Reload( void )
 {
-	bool iResult;
+	bool iResult = false;
 
 	if ( m_iClip1 == 0 )
 		iResult = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_GLOCK_SHOOT_RELOAD );
@@ -166,22 +138,14 @@ bool CWeaponGlock::Reload( void )
 
 	if ( iResult )
 	{
-		SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
+		SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
 	}
 
 	return iResult;
 }
 
-
-
 void CWeaponGlock::WeaponIdle( void )
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );
-	}
-
 	// only idle if the slid isn't back
 	if ( m_iClip1 != 0 )
 	{

@@ -6,18 +6,9 @@
 //=============================================================================
 
 #include "cbase.h"
-#include "basecombatweapon.h"
-#include "NPCevent.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
 #include "hl1_weapon_mp5.h"
 #include "hl1_grenade_mp5.h"
-#include "gamerules.h"
-#include "game.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "engine/IEngineSound.h"
 
 extern ConVar    sk_plr_dmg_mp5_grenade;	
 extern ConVar    sk_max_mp5_grenade;
@@ -54,11 +45,8 @@ void CWeaponMP5::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -91,7 +79,7 @@ void CWeaponMP5::PrimaryAttack( void )
 		pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_3DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
 	}
 
-	pPlayer->ViewPunch( QAngle( random->RandomFloat( -.5, .5 ), 0, 0 ) );
+	pPlayer->ViewPunch( QAngle( random->RandomFloat( -0.5, 0.5 ), 0, 0 ) );
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
@@ -110,11 +98,8 @@ void CWeaponMP5::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if (!pPlayer)
-	{
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iSecondaryAmmoType ) <= 0 )
 	{
@@ -169,16 +154,4 @@ void CWeaponMP5::DryFire( void )
 	WeaponSound( EMPTY );
 	m_flNextPrimaryAttack	= gpGlobals->curtime + 0.15;
 	m_flNextSecondaryAttack	= gpGlobals->curtime + 0.15;
-}
-
-
-void CWeaponMP5::WeaponIdle( void )
-{
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
-	}
-
-	BaseClass::WeaponIdle();
 }

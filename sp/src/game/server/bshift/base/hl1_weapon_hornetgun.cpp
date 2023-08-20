@@ -1,22 +1,12 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hornetgun
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
-#include "player.h"
-#include "gamerules.h"
-#include "in_buttons.h"
 #include "soundent.h"
-#include "game.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 #include "hl1_player.h"
 #include "hl1_npc_hornet.h"
 
@@ -29,6 +19,8 @@
 class CWeaponHgun : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponHgun, CBaseHL1CombatWeapon );
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 public:
 
 	CWeaponHgun( void );
@@ -41,9 +33,6 @@ public:
 	bool	Reload( void );
 
 	virtual void ItemPostFrame( void );
-
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
 
 private:
 	float	m_flRechargeTime;
@@ -89,16 +78,12 @@ void CWeaponHgun::Precache( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::PrimaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-	{
 		return;
-	}
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
@@ -125,11 +110,9 @@ void CWeaponHgun::PrimaryAttack( void )
 	m_flNextPrimaryAttack = m_flNextPrimaryAttack + 0.25;
 
 	if (m_flNextPrimaryAttack < gpGlobals->curtime )
-	{
 		m_flNextPrimaryAttack = gpGlobals->curtime + 0.25;
-	}
 
-	SetWeaponIdleTime( random->RandomFloat( 10, 15 ) );
+	SetWeaponIdleTime( RandomFloat( 10, 15 ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -137,16 +120,12 @@ void CWeaponHgun::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::SecondaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL )
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-	{
 		return;
-	}
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
@@ -210,7 +189,7 @@ void CWeaponHgun::SecondaryAttack( void )
 	pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
 
 	m_flNextPrimaryAttack = m_flNextSecondaryAttack = gpGlobals->curtime + 0.1;
-	SetWeaponIdleTime( random->RandomFloat( 10, 15 ) );
+	SetWeaponIdleTime( RandomFloat( 10, 15 ) );
 }
 
 void CWeaponHgun::WeaponIdle( void )
@@ -218,8 +197,8 @@ void CWeaponHgun::WeaponIdle( void )
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
 
-	int iAnim;
-	float flRand = random->RandomFloat( 0, 1 );
+	int iAnim = 0;
+	float flRand =RandomFloat( 0, 1 );
 	if ( flRand <= 0.75 )
 	{
 		iAnim = ACT_VM_IDLE;
@@ -234,13 +213,11 @@ void CWeaponHgun::WeaponIdle( void )
 
 bool CWeaponHgun::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
-	bool bRet;
-
-	bRet = BaseClass::Holster( pSwitchingTo );
+	bool bRet = BaseClass::Holster( pSwitchingTo );
 
 	if ( bRet )
 	{
-		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+		CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 		if ( pPlayer )
 		{
 			//!!!HACKHACK - can't select hornetgun if it's empty! no way to get ammo for it, either.
@@ -257,15 +234,11 @@ bool CWeaponHgun::Holster( CBaseCombatWeapon *pSwitchingTo )
 bool CWeaponHgun::Reload( void )
 {
 	if ( m_flRechargeTime >= gpGlobals->curtime )
-	{
 		return true;
-	}
 
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
-	if ( !pPlayer )
-	{
-		return true;
-	}
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL )
+		return false;
 
 	if ( !g_pGameRules->CanHaveAmmo( pPlayer, m_iPrimaryAmmoType ) )
 		return true;

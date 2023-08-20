@@ -1,3 +1,9 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose:		Barney's armour
+//
+//=============================================================================//
+
 #include "cbase.h"
 #include "hl1_items.h"
 

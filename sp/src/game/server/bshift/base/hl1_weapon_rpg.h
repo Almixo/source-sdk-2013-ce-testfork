@@ -14,9 +14,11 @@
 
 #include "hl1_basecombatweapon_shared.h"
 #include "sprite.h"
-#include "NPCEvent.h"
 #include "smoke_trail.h"
 #include "hl1_basegrenade.h"
+#include "soundent.h"
+#include "in_buttons.h"
+#include "te_effect_dispatch.h"
 
 
 class CWeaponRPG;
@@ -88,6 +90,8 @@ private:
 class CWeaponRPG : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponRPG, CBaseHL1CombatWeapon );
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 public:
 
 	CWeaponRPG( void );
@@ -103,9 +107,6 @@ public:
 
 	virtual int	GetDefaultClip1( void ) const;
 
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
 private:
 	void	CreateLaserPointer( void );
 	void	UpdateSpot( void );
@@ -113,7 +114,6 @@ private:
 	void	StartGuiding( void );
 	void	StopGuiding( void );
 
-private:
 	bool				m_bGuiding;
 	CHandle<CLaserDot>	m_hLaserDot;
 	CHandle<CRpgRocket>	m_hMissile;

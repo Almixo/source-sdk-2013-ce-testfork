@@ -1,34 +1,11 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
-//			events 
+// Purpose:		Rosenburger
 //
-// $Workfile:     $
-// $Date:         $
-//
-//-----------------------------------------------------------------------------
-// $Log: $
-//
-// $NoKeywords: $
 //=============================================================================//
 
-#include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"hl1_npc_talker.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"engine/IEngineSound.h"
-#include	"ai_navigator.h"
-#include	"AI_Behavior_Follow.h"
-#include	"AI_Criteria.h"
+#include "cbase.h"
+#include "hl1_npc_talker.h"
 
 #define NUM_ROSENBERG_HEADS 1 //only one head duh
 

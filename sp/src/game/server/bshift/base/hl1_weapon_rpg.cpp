@@ -1,24 +1,10 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		RPG
 //
-// $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "hl1_basecombatweapon_shared.h"
-#include "basecombatcharacter.h"
-#include "movie_explosion.h"
-#include "soundent.h"
-#include "player.h"
-#include "rope.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "explode.h"
-#include "util.h"
-#include "in_buttons.h"
-#include "shake.h"
-#include "te_effect_dispatch.h"
 #include "hl1_weapon_rpg.h"
 
 
