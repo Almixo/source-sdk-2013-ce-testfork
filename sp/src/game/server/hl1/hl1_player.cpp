@@ -1286,16 +1286,21 @@ void CHL1_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	}
 	else if (playerAnim == PLAYER_RELOAD)
 	{
-		if (FStrEq(m_szAnimExtension, "onehanded"))
-			idealActivity = ACT_RELOAD_HL1_ONEHANDED;
-		else if (FStrEq(m_szAnimExtension, "mp5"))
-			idealActivity = ACT_RELOAD_HL1_MP5;
-		else if (FStrEq(m_szAnimExtension, "bow"))
-			idealActivity = ACT_RELOAD_HL1_BOW;
-		else if (FStrEq(m_szAnimExtension, "rpg"))
-			idealActivity = ACT_RELOAD_HL1_RPG;
-		else if (FStrEq(m_szAnimExtension, "shotgun"))
-			idealActivity = ACT_RELOAD_HL1_SHOTGUN;
+		Q_strncpy(szAnim, "reload_", sizeof(szAnim));
+		Q_strncat(szAnim, m_szAnimExtension, sizeof(szAnim), COPY_ALL_CHARACTERS);
+
+		animDesired = LookupSequence(szAnim);
+		if (animDesired == -1)
+			animDesired = 0;
+
+		if (GetSequence() != animDesired || !SequenceLoops())
+			SetCycle(0);
+
+		if (!SequenceLoops())
+			IncrementInterpolationFrame();
+
+		SetActivity(idealActivity);
+		ResetSequence(animDesired);
 	}
 	
 	if (idealActivity == ACT_RANGE_ATTACK1)
