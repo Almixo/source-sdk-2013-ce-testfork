@@ -1,21 +1,18 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hornetgun
 //
+// $NoKeywords: $
 //=============================================================================//
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
-#include "soundent.h"
-#include "hl1_player.h"
 #include "hl1_npc_hornet.h"
 
 
 //-----------------------------------------------------------------------------
 // CWeaponHgun
 //-----------------------------------------------------------------------------
-
-
 class CWeaponHgun : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponHgun, CBaseHL1CombatWeapon );
@@ -35,6 +32,7 @@ public:
 	virtual void ItemPostFrame( void );
 
 private:
+
 	float	m_flRechargeTime;
 	int		m_iFirePhase;
 };
@@ -68,7 +66,9 @@ CWeaponHgun::CWeaponHgun( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::Precache( void )
 {
+#ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "hornet" );
+#endif
 
 	BaseClass::Precache();
 }
@@ -79,10 +79,10 @@ void CWeaponHgun::Precache( void )
 void CWeaponHgun::PrimaryAttack( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
+	if ( pPlayer == NULL ) 
 		return;
 
-	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
+	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 ) 
 		return;
 
 	WeaponSound( SINGLE );
@@ -98,7 +98,7 @@ void CWeaponHgun::PrimaryAttack( void )
 	pPlayer->EyeVectors( &vForward, &vRight, &vUp );
 	VectorAngles( vForward, vecAngles );
 
-	CBaseEntity *pHornet = CBaseEntity::Create( "hornet", pPlayer->Weapon_ShootPosition() + vForward * 16 + vRight * 8 + vUp * -12, vecAngles, pPlayer );
+	CBaseEntity *pHornet = Create( "hornet", pPlayer->Weapon_ShootPosition() + vForward * 16 + vRight * 8 + vUp * -12, vecAngles, pPlayer );
 	pHornet->SetAbsVelocity( vForward * 300 );
 
 	m_flRechargeTime = gpGlobals->curtime + 0.5;
@@ -121,11 +121,9 @@ void CWeaponHgun::PrimaryAttack( void )
 void CWeaponHgun::SecondaryAttack( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
-		return;
+	if ( pPlayer == NULL ) return;
 
-	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-		return;
+	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 ) return;
 
 	WeaponSound( SINGLE );
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 200, 0.2 );
@@ -179,7 +177,7 @@ void CWeaponHgun::SecondaryAttack( void )
 		break;
 	}
 
-	pHornet = CBaseEntity::Create( "hornet", vecSrc, vecAngles, pPlayer );
+	pHornet = Create( "hornet", vecSrc, vecAngles, pPlayer );
 	pHornet->SetAbsVelocity( vForward * 1200 );
 	pHornet->SetThink( &CNPC_Hornet::StartDart );
 
@@ -198,7 +196,7 @@ void CWeaponHgun::WeaponIdle( void )
 		return;
 
 	int iAnim = 0;
-	float flRand =RandomFloat( 0, 1 );
+	float flRand = RandomFloat( 0, 1 );
 	if ( flRand <= 0.75 )
 	{
 		iAnim = ACT_VM_IDLE;
@@ -218,12 +216,13 @@ bool CWeaponHgun::Holster( CBaseCombatWeapon *pSwitchingTo )
 	if ( bRet )
 	{
 		CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-		if ( pPlayer )
+		if ( pPlayer != NULL )
 		{
 			//!!!HACKHACK - can't select hornetgun if it's empty! no way to get ammo for it, either.
-			while ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
+			int iCount = pPlayer->GetAmmoCount( m_iPrimaryAmmoType );
+			if ( iCount <= 0 )
 			{
-				pPlayer->GiveAmmo( 1, m_iPrimaryAmmoType, true );
+				pPlayer->GiveAmmo( iCount + 1, m_iPrimaryAmmoType, true );
 			}
 		}
 	}
@@ -238,7 +237,7 @@ bool CWeaponHgun::Reload( void )
 
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( pPlayer == NULL )
-		return false;
+		return true;
 
 	if ( !g_pGameRules->CanHaveAmmo( pPlayer, m_iPrimaryAmmoType ) )
 		return true;

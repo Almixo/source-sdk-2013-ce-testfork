@@ -1,22 +1,19 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Snark
 //
+// $NoKeywords: $
 //=============================================================================//
 
 #include "cbase.h"
-#include "hl1_basecombatweapon_shared.h"
 #include "hl1_npc_snark.h"
+#include "hl1_basecombatweapon_shared.h"
 
+#define SNARK_NEST_MODEL	"models/w_sqknest.mdl"
 
 //-----------------------------------------------------------------------------
 // CWeaponSnark
 //-----------------------------------------------------------------------------
-
-
-#define SNARK_NEST_MODEL	"models/w_sqknest.mdl"
-
-
 class CWeaponSnark : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponSnark, CBaseHL1CombatWeapon );
@@ -24,21 +21,17 @@ public:
 
 	CWeaponSnark( void );
 
-	void	Spawn( void );
 	void	Precache( void );
 	void	PrimaryAttack( void );
 	void	WeaponIdle( void );
 	bool	Deploy( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-	void	Equip( CBaseCombatCharacter *pOwner );
 
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 private:
 	bool	m_bJustThrown;
-	int		m_iNestIndex;
-	int		m_iPickedUpIndex;
 };
 
 LINK_ENTITY_TO_CLASS( weapon_snark, CWeaponSnark );
@@ -62,36 +55,19 @@ CWeaponSnark::CWeaponSnark( void )
 	m_bJustThrown		= false;
 }
 
-void CWeaponSnark::Spawn( void )
-{
-	BaseClass::Spawn();
-
-	m_iWorldModelIndex = m_iNestIndex;
-	SetModel( SNARK_NEST_MODEL );
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CWeaponSnark::Precache( void )
 {
-
 	BaseClass::Precache();
 
-	m_iNestIndex		= PrecacheModel( SNARK_NEST_MODEL );
-	m_iPickedUpIndex	= PrecacheModel( GetWorldModel() );
+	PrecacheModel(SNARK_NEST_MODEL);
 
-	PrecacheScriptSound("WpnSnark.PrimaryAttack");
-	PrecacheScriptSound("WpnSnark.Deploy");
+	PrecacheScriptSound( "WpnSnark.PrimaryAttack" );
+	PrecacheScriptSound( "WpnSnark.Deploy" );
 
 	UTIL_PrecacheOther("monster_snark");
-}
-
-void CWeaponSnark::Equip( CBaseCombatCharacter *pOwner )
-{
-	m_iWorldModelIndex = m_iPickedUpIndex;
-
-	BaseClass::Equip( pOwner );
 }
 
 //-----------------------------------------------------------------------------
@@ -101,11 +77,7 @@ void CWeaponSnark::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
-		return;
-	}
+	if ( pPlayer == NULL ) return;
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 		return;
@@ -149,11 +121,7 @@ void CWeaponSnark::PrimaryAttack( void )
 void CWeaponSnark::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( !pPlayer )
-	{
-		return;
-	}
+	if ( pPlayer == NULL ) return;
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
@@ -175,7 +143,14 @@ void CWeaponSnark::WeaponIdle( void )
 	}
 	else
 	{
-		BaseClass::WeaponIdle();
+		if ( random->RandomFloat( 0, 1 ) <= 0.75 )
+		{
+			SendWeaponAnim( ACT_VM_IDLE );
+		}
+		else
+		{
+			SendWeaponAnim( ACT_VM_FIDGET );
+		}
 	}
 }
 
@@ -190,15 +165,9 @@ bool CWeaponSnark::Deploy( void )
 bool CWeaponSnark::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-	{
-		return false;
-	}
+	if ( pPlayer == NULL ) return false;
 
-	if ( !BaseClass::Holster( pSwitchingTo ) )
-	{
-		return false;
-	}
+	if ( BaseClass::Holster( pSwitchingTo ) == false ) return false;
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{

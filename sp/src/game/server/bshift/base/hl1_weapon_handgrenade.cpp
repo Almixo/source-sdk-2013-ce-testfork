@@ -1,13 +1,14 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hand grenade
 //
+// $NoKeywords: $
 //=============================================================================//
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "basecombatcharacter.h"
 #include "soundent.h"
-#include "game.h"
 #include "hl1_basegrenade.h"
 
 #define HANDGRENADE_MODEL "models/w_grenade.mdl"
@@ -20,7 +21,7 @@ extern ConVar sk_plr_dmg_grenade;
 LINK_ENTITY_TO_CLASS( grenade_hand, CHandGrenade );
 
 BEGIN_DATADESC( CHandGrenade )
-DEFINE_ENTITYFUNC( BounceTouch ),
+	DEFINE_ENTITYFUNC( BounceTouch ),
 END_DATADESC()
 
 
@@ -28,80 +29,100 @@ void CHandGrenade::Spawn( void )
 {
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	SetSolid( SOLID_BBOX );
+	AddSolidFlags( FSOLID_NOT_STANDABLE );
 
-	SetModel( HANDGRENADE_MODEL );
+	SetModel( HANDGRENADE_MODEL ); 
 
-	UTIL_SetSize( this, Vector( -1, -4, -4 ), Vector( 13, 5, 4 ) );
+	UTIL_SetSize( this, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
 
 	m_bHasWarnedAI = false;
-
-	QAngle angles;
-	Vector vel = GetAbsVelocity();
-
-	VectorAngles( vel, angles );
-	SetAbsAngles( angles );
-
-	SetTouch( &CHandGrenade::BounceTouch );	// Bounce if touched
-
-	// Take one second off of the desired detonation time and set the think to PreDetonate. PreDetonate
-	// will insert a DANGER sound into the world sound list and delay detonation for one second so that 
-	// the grenade explodes after the exact amount of time specified in the call to ShootTimed(). 
-
-	SetThink( &CHandGrenade::TumbleThink );
-	SetNextThink( gpGlobals->curtime + 0.1 );
-
-	// if the delay is < 0.1 seconds, don't fly anywhere
-	if ( ( m_flDetonateTime - gpGlobals->curtime ) < 0.1 )
-	{
-		SetNextThink( gpGlobals->curtime );
-		SetAbsVelocity( vec3_origin );
-	}
-
-	// m_nSequence = RandomInt( 3, 6 ); // FIXME: missing tumble animations
-	m_flPlaybackRate = 1.0;
-
-	SetGravity( 0.5 );  // Don't change or throw calculations will be off!
-	SetFriction( 0.8 );
 }
 
 
 void CHandGrenade::Precache( void )
 {
-	BaseClass::Precache();
+	BaseClass::Precache( );
 
-	engine->PrecacheModel( HANDGRENADE_MODEL );
+	PrecacheScriptSound( "Weapon_HandGrenade.GrenadeBounce" );
+
+	PrecacheModel( HANDGRENADE_MODEL );
+}
+
+
+void CHandGrenade::ShootTimed( CBaseCombatCharacter *pOwner, Vector vecVelocity, float flTime )
+{
+	SetAbsVelocity( vecVelocity );
+
+	SetThrower( pOwner );
+	SetOwnerEntity( pOwner );
+
+	SetTouch( &CHandGrenade::BounceTouch );	// Bounce if touched
+
+	m_flDetonateTime = gpGlobals->curtime + flTime;
+	SetThink( &CBaseGrenade::TumbleThink );
+	SetNextThink( gpGlobals->curtime + 0.1 );
+	if ( flTime < 0.1 )
+	{
+		SetNextThink( gpGlobals->curtime );
+		SetAbsVelocity( vec3_origin );
+	}
+
+//	SetSequence( SelectWeightedSequence( ACT_GRENADE_TOSS ) );
+	SetSequence( 0 );
+	m_flPlaybackRate = 1.0;
+
+	SetAbsAngles( QAngle( 0,0,60) );
+
+	AngularImpulse angImpulse;
+	angImpulse[0] = random->RandomInt( -200, 200 );
+	angImpulse[1] = random->RandomInt( 400, 500 );
+	angImpulse[2] = random->RandomInt( -100, 100 );
+	ApplyLocalAngularVelocityImpulse( angImpulse );	
+
+	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for grenades to make them easier to see
+	SetFriction( 0.8 );
+
+	SetDamage( sk_plr_dmg_grenade.GetFloat() );
+	SetDamageRadius( GetDamage() * 2.5 );
 }
 
 
 void CHandGrenade::BounceSound( void )
 {
-	EmitSound( "Weapon_HandGrenade.GrenadeBounce" );
+	CPASAttenuationFilter filter(this);
+	EmitSound( filter, entindex(), "Weapon_HandGrenade.GrenadeBounce" );
 }
 
 
 void CHandGrenade::BounceTouch( CBaseEntity *pOther )
 {
-	if ( pOther->IsSolidFlagSet( FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS ) )
+	if ( pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) )
 		return;
 
 	// don't hit the guy that launched this grenade
-	if ( pOther == GetOwnerEntity() )
+	if ( pOther == GetThrower() )
 		return;
 
-	// only do damage if we're moving fairly fast
-	if ( ( pOther->m_takedamage != DAMAGE_NO ) && ( m_flNextAttack < gpGlobals->curtime && GetAbsVelocity().Length() > 100 ) )
+	// Do a special test for players
+	if ( pOther->IsPlayer() )
 	{
-		if ( GetOwnerEntity() )
+		// Never hit a player again (we'll explode and fixup anyway)
+		SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+	}
+	// only do damage if we're moving fairly fast
+	if ( (pOther->m_takedamage != DAMAGE_NO) && (m_flNextAttack < gpGlobals->curtime && GetAbsVelocity().Length() > 100))
+	{
+		if ( GetThrower() )
 		{
 			trace_t tr;
-			tr = GetTouchTrace();
-			ClearMultiDamage();
+			tr = CBaseEntity::GetTouchTrace( );
+			ClearMultiDamage( );
 			Vector forward;
 			AngleVectors( GetAbsAngles(), &forward );
 
-			CTakeDamageInfo info( this, GetOwnerEntity(), 1, DMG_CLUB );
+			CTakeDamageInfo info( this, GetThrower(), 1, DMG_CLUB );
 			CalculateMeleeDamageForce( &info, forward, tr.endpos );
-			pOther->DispatchTraceAttack( info, forward, &tr );
+			pOther->DispatchTraceAttack( info, forward, &tr ); 
 			ApplyMultiDamage();
 		}
 		m_flNextAttack = gpGlobals->curtime + 1.0; // debounce
@@ -113,40 +134,40 @@ void CHandGrenade::BounceTouch( CBaseEntity *pOther )
 	// this is my heuristic for modulating the grenade velocity because grenades dropped purely vertical
 	// or thrown very far tend to slow down too quickly for me to always catch just by testing velocity. 
 	// trimming the Z velocity a bit seems to help quite a bit.
-	vecTestVelocity = GetAbsVelocity();
+	vecTestVelocity = GetAbsVelocity(); 
 	vecTestVelocity.z *= 0.45;
 
 	if ( !m_bHasWarnedAI && vecTestVelocity.Length() <= 60 )
 	{
 		// grenade is moving really slow. It's probably very close to where it will ultimately stop moving. 
 		// emit the danger sound.
-
+		
 		// register a radius louder than the explosion, so we make sure everyone gets out of the way
-		CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), m_flDamage / 0.4, 0.3 );
-		m_bHasWarnedAI = true;
+		CSoundEnt::InsertSound ( SOUND_DANGER, GetAbsOrigin(), m_flDamage / 0.4, 0.3 );
+		m_bHasWarnedAI = TRUE;
 	}
 
 	// HACKHACK - On ground isn't always set, so look for ground underneath
 	trace_t tr;
-	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector( 0, 0, 10 ), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,10), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
 
 	if ( tr.fraction < 1.0 )
 	{
 		// add a bit of static friction
 //		SetAbsVelocity( GetAbsVelocity() * 0.8 );
-//		SetSequence( SelectWeightedSequence( ACT_GRENADE_ROLL ) );
+		SetSequence( SelectWeightedSequence( ACT_IDLE ) );
+		SetAbsAngles( vec3_angle );
 	}
 
 	// play bounce sound
 	BounceSound();
 
 	m_flPlaybackRate = GetAbsVelocity().Length() / 200.0;
-	if ( m_flPlaybackRate > 1.0 )
+	if (m_flPlaybackRate > 1.0)
 		m_flPlaybackRate = 1;
-	else if ( m_flPlaybackRate < 0.5 )
+	else if (m_flPlaybackRate < 0.5)
 		m_flPlaybackRate = 0;
 }
-
 
 //-----------------------------------------------------------------------------
 // CWeaponHandGrenade
@@ -155,8 +176,6 @@ void CHandGrenade::BounceTouch( CBaseEntity *pOther )
 class CWeaponHandGrenade : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponHandGrenade, CBaseHL1CombatWeapon );
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
 public:
 
 	CWeaponHandGrenade( void );
@@ -167,12 +186,13 @@ public:
 	bool	Deploy( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 
-private:
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
 
+private:
 	float m_flStartThrow;
 	float m_flReleaseThrow;
 };
-
 LINK_ENTITY_TO_CLASS( weapon_handgrenade, CWeaponHandGrenade );
 
 PRECACHE_WEAPON_REGISTER( weapon_handgrenade );
@@ -188,8 +208,8 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 CWeaponHandGrenade::CWeaponHandGrenade( void )
 {
-	m_bReloadsSingly = false;
-	m_bFiresUnderwater = true;
+	m_bReloadsSingly	= false;
+	m_bFiresUnderwater	= true;
 }
 
 //-----------------------------------------------------------------------------
@@ -208,14 +228,15 @@ void CWeaponHandGrenade::Precache( void )
 void CWeaponHandGrenade::PrimaryAttack( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( pPlayer == NULL )
+	if ( !pPlayer )
+	{
 		return;
+	}
 
 	if ( ( m_flStartThrow <= 0 ) && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
 	{
-		m_flStartThrow = gpGlobals->curtime;
-		m_flReleaseThrow = 0;
+		m_flStartThrow		= gpGlobals->curtime;
+		m_flReleaseThrow	= 0;
 
 		SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
@@ -226,14 +247,16 @@ void CWeaponHandGrenade::PrimaryAttack( void )
 void CWeaponHandGrenade::WeaponIdle( void )
 {
 	if ( m_flReleaseThrow == 0 && m_flStartThrow )
-		m_flReleaseThrow = gpGlobals->curtime;
+		 m_flReleaseThrow = gpGlobals->curtime;
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
 
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
+	if ( !pPlayer )
+	{
 		return;
+	}
 
 	if ( m_flStartThrow )
 	{
@@ -258,41 +281,47 @@ void CWeaponHandGrenade::WeaponIdle( void )
 		Vector vecFwd;
 		AngleVectors( angThrow, &vecFwd );
 
-		Vector vecSrc = pPlayer->EyePosition() + vecFwd * 16;
-		Vector vecThrow = vecFwd * flVel + pPlayer->GetAbsVelocity();
+		Vector vecSrc	= pPlayer->EyePosition() + vecFwd * 16;
+		Vector vecThrow	= vecFwd * flVel + pPlayer->GetAbsVelocity();
 
-		CHandGrenade *pGrenade = ( CHandGrenade * )CreateNoSpawn( "grenade_hand", vecSrc, vec3_angle, this );
+		QAngle angles;
+		VectorAngles( vecThrow, angles );
 
-		// alway explode 3 seconds after the pin was pulled
-		pGrenade->m_flDetonateTime = m_flStartThrow + 3.0;
-		pGrenade->Spawn();
-		pGrenade->SetOwnerEntity( pPlayer );
-		pGrenade->SetGravity( 0.5 );
-		pGrenade->SetFriction( 0.8 );
-		pGrenade->SetAbsOrigin( vecSrc );
-		pGrenade->SetAbsVelocity( vecThrow );
-		VectorAngles( vecThrow, angThrow );
-		pGrenade->SetAbsAngles( angThrow );
-		pGrenade->SetDamage( sk_plr_dmg_grenade.GetFloat() );
-		pGrenade->SetDamageRadius( pGrenade->GetDamage() * 2.5 );
-//		pGrenade->ResetSequence( pGrenade->SelectWeightedSequence( ACT_GRENADE_TOSS ) );
+		CHandGrenade *pGrenade = (CHandGrenade*)Create( "grenade_hand", vecSrc, angles );
+		if ( pGrenade )
+		{
+			// always explode 3 seconds after the pin was pulled
+			float flTime = m_flStartThrow - gpGlobals->curtime + 3.0;
+			if ( flTime < 0 )
+			{
+				flTime = 0;
+			}
+
+			pGrenade->ShootTimed( pPlayer, vecThrow, flTime );
+		}
 
 		if ( flVel < 500 )
+		{
 			SendWeaponAnim( ACT_HANDGRENADE_THROW1 );
+		}
 		else if ( flVel < 1000 )
+		{
 			SendWeaponAnim( ACT_HANDGRENADE_THROW2 );
+		}
 		else
+		{
 			SendWeaponAnim( ACT_HANDGRENADE_THROW3 );
+		}
 
 		// player "shoot" animation
 		pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
-		m_flReleaseThrow = 0;
-		m_flStartThrow = 0;
+		m_flReleaseThrow	= 0;
+		m_flStartThrow		= 0;
 
 		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
-		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
-		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
+		m_flNextPrimaryAttack	= gpGlobals->curtime + 0.5;
+		m_flNextSecondaryAttack	= gpGlobals->curtime + 0.5;
 
 		pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
 
@@ -304,27 +333,29 @@ void CWeaponHandGrenade::WeaponIdle( void )
 		m_flStartThrow = 0;
 
 		if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
+		{
 			SendWeaponAnim( ACT_VM_DRAW );
+		}
 		else
 		{
 //			RetireWeapon();
 			return;
 		}
 
-		SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
+		SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
 		m_flReleaseThrow = -1;
 		return;
 	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
 	{
-		float flRand = RandomFloat( 0, 1 );
+		float flRand = random->RandomFloat( 0, 1 );
 		if ( flRand <= 0.75 )
 		{
 			SendWeaponAnim( ACT_VM_IDLE );
-			SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );// how long till we do this again.
+			SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );// how long till we do this again.
 		}
-		else
+		else 
 		{
 			SendWeaponAnim( ACT_VM_FIDGET );
 		}
@@ -335,26 +366,34 @@ bool CWeaponHandGrenade::Deploy( void )
 {
 	m_flReleaseThrow = -1;
 
-	return DefaultDeploy( ( char * )GetViewModel(), ( char * )GetWorldModel(), ACT_VM_DRAW, ( char * )GetAnimPrefix() );
+	return DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), ACT_VM_DRAW, (char*)GetAnimPrefix() );
 }
 
 bool CWeaponHandGrenade::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
+	if ( !pPlayer )
+	{
 		return false;
+	}
 
 	if ( m_flStartThrow > 0 )
+	{
 		return false;
+	}
 
 	if ( !BaseClass::Holster( pSwitchingTo ) )
+	{
 		return false;
+	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
 		SetThink( &CWeaponHandGrenade::DestroyItem );
 		SetNextThink( gpGlobals->curtime + 0.1 );
 	}
+
+	pPlayer->SetNextAttack( gpGlobals->curtime + 0.5 );
 
 	return true;
 }

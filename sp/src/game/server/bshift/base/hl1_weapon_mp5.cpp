@@ -1,13 +1,18 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
+#include "AI_BaseNPC.h"
+#include "player.h"
 #include "hl1_weapon_mp5.h"
 #include "hl1_grenade_mp5.h"
+#include "gamerules.h"
+#include "game.h"
+#include "in_buttons.h"
 #include "soundent.h"
 
 extern ConVar    sk_plr_dmg_mp5_grenade;	
@@ -37,7 +42,9 @@ void CWeaponMP5::Precache( void )
 {
 	BaseClass::Precache();
 
+#ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "grenade_mp5" );
+#endif
 }
 
 
@@ -45,8 +52,7 @@ void CWeaponMP5::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
-		return;
+	if ( pPlayer == NULL ) return;
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -70,19 +76,32 @@ void CWeaponMP5::PrimaryAttack( void )
 
 	if ( g_pGameRules->IsMultiplayer() )
 	{
-		// optimized multiplayer. Widened to make it easier to hit a moving player
-		pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_6DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
+		// multi player spread
+		FireBulletsInfo_t info( 1, vecSrc, vecAiming, VECTOR_CONE_6DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+		info.m_iTracerFreq = 2;
+
+		pPlayer->FireBullets( info );
 	}
 	else
 	{
 		// single player spread
-		pPlayer->FireBullets( 1, vecSrc, vecAiming, VECTOR_CONE_3DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
+		FireBulletsInfo_t info( 1, vecSrc, vecAiming, VECTOR_CONE_3DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+		info.m_iTracerFreq = 2;
+
+		pPlayer->FireBullets( info );
 	}
 
+	EjectShell( pPlayer, 0 );
+
 	pPlayer->ViewPunch( QAngle( random->RandomFloat( -0.5, 0.5 ), 0, 0 ) );
+
+	pPlayer->DoMuzzleFlash();
+
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
-	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
+	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2 );
 
 	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
@@ -98,8 +117,7 @@ void CWeaponMP5::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
-		return;
+	if ( pPlayer == NULL ) return;
 
 	if ( pPlayer->GetAmmoCount( m_iSecondaryAmmoType ) <= 0 )
 	{
@@ -109,21 +127,18 @@ void CWeaponMP5::SecondaryAttack( void )
 
 	WeaponSound(WPN_DOUBLE);
 
-	pPlayer->DoMuzzleFlash();
-
-
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecThrow = pPlayer->GetAutoaimVector( 0 ) * 800;
 	QAngle angGrenAngle;
 
 	VectorAngles( vecThrow, angGrenAngle );
 
-	CGrenadeMP5 *m_pMyGrenade = (CGrenadeMP5*)Create( "grenade_mp5", vecSrc, angGrenAngle, GetOwner() );
+	CGrenadeMP5 *m_pMyGrenade = static_cast<CGrenadeMP5*>( Create( "grenade_mp5", vecSrc, angGrenAngle, GetOwner() ) );
 	m_pMyGrenade->SetAbsVelocity( vecThrow );
-	m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, -500 ), 0, 0 ) );
+	m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, 500 ), 0, 0 ) );
 	m_pMyGrenade->SetMoveType( MOVETYPE_FLYGRAVITY ); 
-	m_pMyGrenade->SetOwnerEntity( GetOwner() );
-	m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() );
+	m_pMyGrenade->SetThrower( GetOwner() );
+	m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() * g_pGameRules->GetDamageMultiplier() );
 
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -133,7 +148,7 @@ void CWeaponMP5::SecondaryAttack( void )
 	// Register a muzzleflash for the AI.
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 
-	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 400, 0.2 );
+	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2 );
 
 	// Decrease ammo
 	pPlayer->RemoveAmmo( 1, m_iSecondaryAmmoType );
@@ -154,4 +169,13 @@ void CWeaponMP5::DryFire( void )
 	WeaponSound( EMPTY );
 	m_flNextPrimaryAttack	= gpGlobals->curtime + 0.15;
 	m_flNextSecondaryAttack	= gpGlobals->curtime + 0.15;
+}
+
+
+void CWeaponMP5::WeaponIdle( void )
+{
+	BaseClass::WeaponIdle();
+
+	if ( HasWeaponIdleTimeElapsed() )
+		SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 3, 5 ) );
 }

@@ -1,6 +1,6 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
-// Purpose:
+// Purpose: 
 //
 //=============================================================================//
 
@@ -10,11 +10,8 @@
 #pragma once
 #endif
 
-
-#include "in_buttons.h"
 #include "hl1_basegrenade.h"
 #include "hl1_basecombatweapon_shared.h"
-
 
 //-----------------------------------------------------------------------------
 // CWeaponSatchel
@@ -23,8 +20,6 @@
 class CWeaponSatchel : public CBaseHL1CombatWeapon
 {
 	DECLARE_CLASS( CWeaponSatchel, CBaseHL1CombatWeapon );
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
 public:
 
 	CWeaponSatchel( void );
@@ -45,18 +40,21 @@ public:
 
 	bool	HasChargeDeployed() { return ( m_iChargeReady != 0 ); }
 
+	DECLARE_SERVERCLASS();
+	DECLARE_DATADESC();
+
 private:
 	void	Throw( void );
 	void	ActivateSatchelModel( void );
 	void	ActivateRadioModel( void );
 
-	int		m_iRadioViewIndex;
-	int		m_iRadioWorldIndex;
-	int		m_iSatchelViewIndex;
-	int		m_iSatchelWorldIndex;
-	int		m_iChargeReady;
+private:
+	int m_iRadioViewIndex;
+	int m_iRadioWorldIndex;
+	int m_iSatchelViewIndex;
+	int m_iSatchelWorldIndex;
+	int m_iChargeReady;
 };
-
 
 //-----------------------------------------------------------------------------
 // CSatchelCharge
@@ -64,9 +62,8 @@ private:
 
 class CSatchelCharge : public CHL1BaseGrenade
 {
-	DECLARE_CLASS( CSatchelCharge, CHL1BaseGrenade );
-	DECLARE_DATADESC();
 public:
+	DECLARE_CLASS( CSatchelCharge, CHL1BaseGrenade );
 
 	CSatchelCharge();
 
@@ -76,15 +73,16 @@ public:
 	void	SatchelThink( void );
 	void	SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
+	DECLARE_DATADESC();
+
 private:
 	Vector	m_vLastPosition;
 	float	m_flNextBounceSoundTime;
 	bool	m_bInAir;
 
+private:
 	void	BounceSound( void );
 	void	UpdateSlideSound( void );
 	void	Deactivate( void );
 };
-
-
 #endif // HL1_WEAPON_SATCHEL_H

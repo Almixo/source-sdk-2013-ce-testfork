@@ -1,11 +1,13 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
 //
-// Purpose:		Satchel Charge
+// Purpose:		Satchel charge
 //
-//=============================================================================//
+// $NoKeywords: $
+//=============================================================================
 
 #include "cbase.h"
 #include "hl1_weapon_satchel.h"
+#include "in_buttons.h"
 
 
 //-----------------------------------------------------------------------------
@@ -52,8 +54,10 @@ void CWeaponSatchel::Equip( CBaseCombatCharacter *pOwner )
 bool CWeaponSatchel::HasAnyAmmo( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
+	if ( !pPlayer )
+	{
 		return false;
+	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
 	{
@@ -73,9 +77,13 @@ bool CWeaponSatchel::HasAnyAmmo( void )
 bool CWeaponSatchel::CanDeploy( void )
 {
 	if ( HasAnyAmmo() )
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -96,14 +104,18 @@ void CWeaponSatchel::Precache( void )
 void CWeaponSatchel::ItemPostFrame( void )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
-	if ( pOwner == NULL )
+	if (!pOwner)
+	{
 		return;
+	}
 
 	if ( (pOwner->m_nButtons & IN_ATTACK) && (m_flNextPrimaryAttack <= gpGlobals->curtime) )
 	{
 		// If the firing button was just pressed, reset the firing time
 		if ( pOwner->m_afButtonPressed & IN_ATTACK )
+		{
 			 m_flNextPrimaryAttack = gpGlobals->curtime;
+		}
 
 		PrimaryAttack();
 	}
@@ -119,13 +131,17 @@ void CWeaponSatchel::PrimaryAttack( void )
 	switch ( m_iChargeReady )
 	{
 	case 0:
-		Throw();
+		{
+			Throw();
+		}
 		break;
 	case 1:
 		{
 			CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-			if ( pPlayer == NULL )
+			if ( !pPlayer )
+			{
 				return;
+			}
 
 			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 
@@ -158,14 +174,18 @@ void CWeaponSatchel::PrimaryAttack( void )
 void CWeaponSatchel::SecondaryAttack( void )
 {
 	if ( m_iChargeReady != 2 )
+	{
 		Throw();
+	}
 }
 
 void CWeaponSatchel::Throw( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL )
+	if ( !pPlayer )
+	{
 		return;
+	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
 	{
@@ -220,7 +240,9 @@ void CWeaponSatchel::WeaponIdle( void )
 			{
 				m_iChargeReady = 0;
 				if ( !pPlayer->SwitchToNextBestWeapon( pPlayer->GetActiveWeapon() ) )
+				{
 					Holster();
+				}
 
 				return;
 			}
@@ -236,12 +258,12 @@ void CWeaponSatchel::WeaponIdle( void )
 		}
 	}
 
-	SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );// how long till we do this again.
+	SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );// how long till we do this again.
 }
 
 bool CWeaponSatchel::Deploy( void )
 {
-	SetWeaponIdleTime( gpGlobals->curtime + RandomFloat( 10, 15 ) );
+	SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
 
 	if ( HasChargeDeployed() )
 	{
@@ -321,9 +343,13 @@ const char *CWeaponSatchel::GetViewModel( int ) const
 const char *CWeaponSatchel::GetWorldModel( void ) const
 {
 	if ( m_iViewModelIndex == m_iSatchelViewIndex )
+	{
 		return SATCHEL_WORLD_MODEL;
+	}
 	else
+	{
 		return SATCHELRADIO_WORLD_MODEL;
+	}
 }
 
 
@@ -502,7 +528,7 @@ void CSatchelCharge::SatchelThink( void )
 
 void CSatchelCharge::Precache( void )
 {
-	PrecacheModel( SATCHEL_CHARGE_MODEL );
+	engine->PrecacheModel( SATCHEL_CHARGE_MODEL );
 }
 
 void CSatchelCharge::BounceSound( void )
