@@ -147,9 +147,6 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 		// play body "thwack" sound
 		EmitSound( "Weapon_Crossbow.BoltHitBody" );
 
-		SetThink( &CCrossbowBolt::SUB_Remove );
-		SetNextThink( gpGlobals->curtime );// this will get changed below if the bolt is allowed to stick in what it hit.
-
 		Vector vForward;
 
 		AngleVectors( GetAbsAngles(), &vForward );
@@ -171,8 +168,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			DispatchEffect( "BoltImpact", data );
 		}
 
-        //		if ( !g_pGameRules->IsMultiplayer() )
-        if ( g_pGameRules->IsMultiplayer() && !m_bExplode )
+        if ( !g_pGameRules->IsMultiplayer() || !m_bExplode )
 		{
 			UTIL_Remove( this );
 		}
@@ -403,8 +399,11 @@ void CWeaponCrossbow::FireBolt( void )
 
 	pBolt->SetLocalAngularVelocity( QAngle( 0, 0, 10 ) );
 
-    if ( m_bInZoom )
+    if ( m_bInZoom || !g_pGameRules->IsMultiplayer() )
+    {
         pBolt->SetExplode( false );
+        
+    }
 
 	m_iClip1--;
 
