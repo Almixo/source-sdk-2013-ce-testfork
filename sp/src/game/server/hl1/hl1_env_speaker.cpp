@@ -1,11 +1,14 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
-// HL1 Speaker entity. 
+// Purpose: 
 //
-//=============================================================================
+// $NoKeywords: $
+//
+//=============================================================================//
 
 #include "cbase.h"
 #include "player.h"
+#include "mathlib/mathlib.h"
 #include "AI_Speech.h"
 #include "stringregistry.h"
 #include "gamerules.h"
@@ -34,7 +37,7 @@ public:
 	void ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void SpeakerThink( void );
 	
-	virtual int	ObjectCaps( void ) { return (CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION); }
+	virtual int	ObjectCaps( void ) { return (CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION); }
 	
 	int	m_preset;			// preset number
 	string_t m_iszMessage;
@@ -102,7 +105,7 @@ void CSpeaker::SpeakerThink( void )
 		SetNextThink( gpGlobals->curtime + releaseTime + random->RandomFloat( 5, 10 ) );
 		return;
 	}
-
+	
 	if (m_preset)
 	{
 		// go lookup preset text, assign szSoundFile
@@ -127,7 +130,7 @@ void CSpeaker::SpeakerThink( void )
 	if (szSoundFile[0] == '!')
 	{
 		// play single sentence, one shot
-		UTIL_EmitAmbientSound ( GetSoundSourceIndex(), GetAbsOrigin(), szSoundFile,
+		UTIL_EmitAmbientSound ( GetSoundSourceIndex(), GetAbsOrigin(), szSoundFile, 
 			flvolume, SNDLVL_120dB, flags, pitch);
 
 		// shut off and reset
@@ -145,8 +148,8 @@ void CSpeaker::SpeakerThink( void )
 						random->RandomFloat( ANNOUNCE_MINUTES_MIN * 60.0, ANNOUNCE_MINUTES_MAX * 60.0 ) );
 
 		// time delay until it's ok to speak: used so that two NPCs don't talk at once
-		g_AIFriendliesTalkSemaphore.Acquire(5, this);
-		g_AIFoesTalkSemaphore.Acquire(5, this);
+		g_AIFriendliesTalkSemaphore.Acquire( 5, this );		
+		g_AIFoesTalkSemaphore.Acquire( 5, this );		
 	}
 
 	return;
@@ -156,7 +159,7 @@ void CSpeaker::SpeakerThink( void )
 //
 // ToggleUse - if an announcement is pending, cancel it.  If no announcement is pending, start one.
 //
-void CSpeaker :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CSpeaker::ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	int fActive = (GetNextThink() > 0.0);
 

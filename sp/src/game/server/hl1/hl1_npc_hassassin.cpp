@@ -1,9 +1,34 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
-#include	"hl1_ai_basenpc.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"animation.h"
+#include	"basecombatweapon.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
 #include	"ammodef.h"
-#include	"movevars_shared.h"
+#include    "util.h"
+#include	"hl1_ai_basenpc.h"
 #include	"hl1_basegrenade.h"
-#include	"npcevent.h"
+#include	"movevars_shared.h"
+#include	"ai_basenpc.h"
 
 
 ConVar sk_hassassin_health( "sk_hassassin_health", "50" );
@@ -93,7 +118,6 @@ public:
 
 	int		m_iFrustration;
 
-	int		m_iShell;
 	int		m_iAmmoType;
 
 public:
@@ -109,7 +133,7 @@ BEGIN_DATADESC( CNPC_HAssassin )
 	DEFINE_FIELD( m_flDiviation, FIELD_FLOAT ),
 
 	DEFINE_FIELD( m_flNextJump, FIELD_TIME ),
-	DEFINE_FIELD( m_vecJumpVelocity, FIELD_VECTOR),
+	DEFINE_FIELD( m_vecJumpVelocity, FIELD_VECTOR ),
 
 	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
 	DEFINE_FIELD( m_vecTossVelocity, FIELD_VECTOR ),
@@ -117,6 +141,9 @@ BEGIN_DATADESC( CNPC_HAssassin )
 
 	DEFINE_FIELD( m_iTargetRanderamt, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iFrustration, FIELD_INTEGER ),
+
+	//DEFINE_FIELD( m_iAmmoType, FIELD_INTEGER ),
+
 END_DATADESC()
 
 //=========================================================
@@ -137,7 +164,7 @@ void CNPC_HAssassin::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_RED;
-	ClearEffects();
+    ClearEffects();
 	m_iHealth			= sk_hassassin_health.GetFloat();
 	m_flFieldOfView		= VIEW_FIELD_WIDE; // indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -303,6 +330,7 @@ void CNPC_HAssassin::StartTask ( const Task_t *pTask )
 		}
 		break;
 	case TASK_ASSASSIN_FALL_TO_GROUND:
+		m_flWaitFinished = gpGlobals->curtime + 2.0f;
 		break;
 	default:
 		BaseClass::StartTask ( pTask );
@@ -340,10 +368,26 @@ void CNPC_HAssassin::RunTask ( const Task_t *pTask )
 						
 			ResetSequenceInfo( );
 		}
+
 		if ( GetFlags() & FL_ONGROUND)
 		{
-			// ALERT( at_console, "on ground\n");
 			TaskComplete( );
+		}
+		else if( gpGlobals->curtime > m_flWaitFinished || GetAbsVelocity().z == 0.0 )
+		{
+			// I've waited two seconds and haven't hit the ground. Try to force it.
+			trace_t trace;
+			UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin() - Vector( 0, 0, 1 ), MASK_NPCSOLID, this, COLLISION_GROUP_NONE, &trace );
+
+			if( trace.DidHitWorld() )
+			{
+				SetGroundEntity( trace.m_pEnt );
+			}
+			else
+			{
+				// Try again in a couple of seconds.
+				m_flWaitFinished = gpGlobals->curtime + 2.0f;
+			}
 		}
 		break;
 	default: 
@@ -506,7 +550,7 @@ void CNPC_HAssassin::HandleAnimEvent( animevent_t *pEvent )
 	case ASSASSIN_AE_JUMP:
 		{
 			SetMoveType( MOVETYPE_FLYGRAVITY );
-			RemoveFlag( FL_ONGROUND );
+			SetGroundEntity( NULL );
 			SetAbsVelocity( m_vecJumpVelocity );
 			m_flNextJump = gpGlobals->curtime + 3.0;
 		}
@@ -552,8 +596,7 @@ void CNPC_HAssassin::Shoot ( void )
 	AngleVectors( GetAbsAngles(), &vForward, &vRight, &vUp );
 
 	Vector	vecShellVelocity = vRight * random->RandomFloat(40,90) + vUp * random->RandomFloat(75,200) + vForward * random->RandomFloat(-40, 40);
-	//EjectBrass ( pev->origin + gpGlobals->v_up * 32 + gpGlobals->v_forward * 12, vecShellVelocity, pev->angles.y, m_iShell, TE_BOUNCE_SHELL);
-	//EjectShell( GetAbsOrigin() + vUp * 32 + vForward * 12, vecShellVelocity, GetAbsAngles().y, 0 );
+	EjectShell( GetAbsOrigin() + vUp * 32 + vForward * 12, vecShellVelocity, GetAbsAngles().y, 0 ); 
 	FireBullets( 1, vecShootOrigin, vecShootDir, Vector( m_flDiviation, m_flDiviation, m_flDiviation ), 2048, m_iAmmoType ); // shoot +-8 degrees
 
 	//NDebugOverlay::Line( vecShootOrigin, vecShootOrigin + vecShootDir * 2048, 255, 0, 0, true, 2.0 );
@@ -658,7 +701,7 @@ void CNPC_HAssassin::RunAI( void )
 
 	if ( GetActivity() == ACT_RUN || GetActivity() == ACT_WALK)
 	{
-		static bool iStep = false;
+		static int iStep = 0;
 		iStep = ! iStep;
 		if (iStep)
 		{

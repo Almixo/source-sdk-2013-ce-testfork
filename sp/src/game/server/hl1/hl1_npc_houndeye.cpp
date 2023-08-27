@@ -1,12 +1,29 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Cute hound like Alien.
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
+#include "game.h"
+#include "AI_Default.h"
+#include "AI_Schedule.h"
+#include "AI_Hull.h"
+#include "AI_Navigator.h"
+#include "AI_Route.h"
+#include "AI_Squad.h"
+#include "AI_SquadSlot.h"
+#include "AI_Hint.h"
+#include "NPCEvent.h"
+#include "animation.h"
 #include "hl1_npc_houndeye.h"
+#include "gib.h"
+#include "soundent.h"
+#include "ndebugoverlay.h"
+#include "vstdlib/random.h"
+#include "engine/IEngineSound.h"
+#include "movevars_shared.h"
 
 // houndeye does 20 points of damage spread over a sphere 384 units in diameter, and each additional 
 // squad member increases the BASE damage by 110%, per the spec.
@@ -120,7 +137,9 @@ void CNPC_Houndeye::Spawn()
 //=========================================================
 void CNPC_Houndeye::Precache()
 {
-	engine->PrecacheModel("models/houndeye.mdl");
+	PrecacheModel("models/houndeye.mdl");
+
+	m_iSpriteTexture = PrecacheModel( "sprites/shockwave.vmt" );
 
 	PrecacheScriptSound( "HoundEye.Idle" );
 	PrecacheScriptSound( "HoundEye.Warn" );
@@ -132,10 +151,15 @@ void CNPC_Houndeye::Precache()
 	PrecacheScriptSound( "HoundEye.Anger2" );
 	PrecacheScriptSound( "HoundEye.Sonic" );
 
-	m_iSpriteTexture = engine->PrecacheModel( "sprites/shockwave.vmt" );
-
 	BaseClass::Precache();
 }	
+
+void CNPC_Houndeye::Event_Killed( const CTakeDamageInfo &info )
+{
+	// Close the eye to make death more obvious
+	m_nSkin = 1;
+	BaseClass::Event_Killed( info );
+}
 
 int CNPC_Houndeye::RangeAttack1Conditions ( float flDot, float flDist )
 {
@@ -190,7 +214,7 @@ void CNPC_Houndeye::IdleSound ( void )
 void CNPC_Houndeye::WarmUpSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(),"HoundEye.Warn" );
+	EmitSound( filter, entindex(),"HoundEye.Warn" );	
 }
 
 //=========================================================
@@ -199,7 +223,7 @@ void CNPC_Houndeye::WarmUpSound ( void )
 void CNPC_Houndeye::WarnSound ( void )
 {
 	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(), "HoundEye.Hunt" );
+	EmitSound( filter, entindex(), "HoundEye.Hunt" );	
 }
 
 //=========================================================
@@ -207,6 +231,7 @@ void CNPC_Houndeye::WarnSound ( void )
 //=========================================================
 void CNPC_Houndeye::AlertSound ( void )
 {
+
 	if ( m_pSquad && !m_pSquad->IsLeader( this ) )
 		 return; // only leader makes ALERT sound.
 
@@ -217,19 +242,19 @@ void CNPC_Houndeye::AlertSound ( void )
 //=========================================================
 // DeathSound 
 //=========================================================
-void CNPC_Houndeye::DeathSound ( void )
+void CNPC_Houndeye::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(), "HoundEye.Die" );
+	EmitSound( filter, entindex(), "HoundEye.Die" );	
 }
 
 //=========================================================
 // PainSound 
 //=========================================================
-void CNPC_Houndeye::PainSound ( void )
+void CNPC_Houndeye::PainSound ( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(), "HoundEye.Pain" );
+	EmitSound( filter, entindex(), "HoundEye.Pain" );	
 }
 
 //=========================================================
@@ -297,7 +322,7 @@ void CNPC_Houndeye::HandleAnimEvent( animevent_t *pEvent )
 				Vector v_forward;
 				GetVectors( &v_forward, NULL, NULL );
 
-				RemoveFlag( FL_ONGROUND );
+				SetGroundEntity( NULL );
 
 				Vector vecVel = v_forward * -200;
 				vecVel.z += ( 0.6 * flGravity ) * 0.5;
@@ -321,7 +346,7 @@ void CNPC_Houndeye::HandleAnimEvent( animevent_t *pEvent )
 		case HOUND_AE_ANGERSOUND2:
 			{
 				CPASAttenuationFilter filter2( this );
-				EmitSound( filter2, entindex(), "HoundEye.Anger2" );
+				EmitSound( filter2, entindex(), "HoundEye.Anger2" );	
 			}
 			break;
 
@@ -525,7 +550,7 @@ bool CNPC_Houndeye::ShouldGoToIdleState( void )
 		AISquadIter_t iter;
 		for (CAI_BaseNPC *pMember = m_pSquad->GetFirstMember( &iter ); pMember; pMember = m_pSquad->GetNextMember( &iter ) )
 		{
-			if ( pMember != this && pMember->GetHintNode()->HintType() != NO_NODE)
+			if ( pMember != this && pMember->GetHintNode()->HintType() != NO_NODE )
 				 return true;
 		}
 
@@ -645,7 +670,7 @@ void CNPC_Houndeye::StartTask ( const Task_t *pTask )
 		}
 	default: 
 		{
-			BaseClass :: StartTask(pTask);
+			BaseClass::StartTask(pTask);
 			break;
 		}
 	}
@@ -698,7 +723,10 @@ void CNPC_Houndeye::RunTask ( const Task_t *pTask )
 			
 			float life;
 			life = ((255 - GetCycle()) / ( m_flPlaybackRate * m_flPlaybackRate));
-			if (life < 0.1) life = 0.1;
+			if (life < 0.1)
+			{
+				life = 0.1;
+			}
 
 		/*	MessageBegin( MSG_PAS, SVC_TEMPENTITY, GetAbsOrigin() );
 				WRITE_BYTE(  TE_IMPLOSION);
@@ -720,7 +748,7 @@ void CNPC_Houndeye::RunTask ( const Task_t *pTask )
 		}
 	default:
 		{
-			BaseClass :: RunTask(pTask);
+			BaseClass::RunTask(pTask);
 			break;
 		}
 	}

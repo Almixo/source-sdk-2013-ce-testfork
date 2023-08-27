@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
 #include	"AI_Default.h"
 #include	"AI_Task.h"
@@ -36,7 +43,7 @@ ConVar sk_leech_dmg_bite( "sk_leech_dmg_bite", "2" );
 #define		LEECH_SWIM_SPEED		50
 #define		LEECH_SWIM_ACCEL		80
 #define		LEECH_SWIM_DECEL		10
-#define		LEECH_TURN_RATE			90
+#define		LEECH_TURN_RATE			70
 #define		LEECH_SIZEX				10
 #define		LEECH_FRAMETIME			0.1
 
@@ -49,6 +56,8 @@ public:
 	
 	void Spawn( void );
 	void Precache( void );
+
+	static const char *pAlertSounds[];
 
 	void SwimThink( void );
 	void DeadThink( void );
@@ -120,6 +129,7 @@ BEGIN_DATADESC( CNPC_Leech )
 	DEFINE_THINKFUNC( DeadThink ),
 END_DATADESC()
 
+
 bool CNPC_Leech::ShouldGib(	const CTakeDamageInfo &info )
 {
 	return false;
@@ -134,6 +144,11 @@ void CNPC_Leech::Spawn( void )
 	SetHullSizeNormal();
 
 	UTIL_SetSize( this, Vector(-1,-1,0), Vector(1,1,2));
+
+	Vector vecSurroundingMins(-8,-8,0);
+	Vector vecSurroundingMaxs(8,8,2);
+	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
+
 	// Don't push the minz down too much or the water check will fail because this entity is really point-sized
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
@@ -279,8 +294,8 @@ void CNPC_Leech::Precache( void )
 {
 	PrecacheModel("models/leech.mdl");
 
-	PrecacheScriptSound("Leech.Attack");
-	PrecacheScriptSound("Leech.Alert");
+	PrecacheScriptSound( "Leech.Attack" );
+	PrecacheScriptSound( "Leech.Alert" );
 }
 
 
@@ -289,8 +304,8 @@ void CNPC_Leech::AttackSound( void )
 	if ( gpGlobals->curtime > m_attackSoundTime )
 	{
 		CPASAttenuationFilter filter( this );
-		EmitSound(filter, entindex(), "Leech.Attack" );
 
+		EmitSound(filter, entindex(), "Leech.Attack" );
 		m_attackSoundTime = gpGlobals->curtime + 0.5;
 	}
 }
@@ -400,7 +415,7 @@ void CNPC_Leech::SwimThink( void )
 				m_height = m_top;
 			Vector location = pTarget->GetLocalOrigin() - GetLocalOrigin();
 			location.z += (pTarget->GetViewOffset().z);
-			if ( location.Length() < 40 )
+			if ( location.Length() < 80 )
 				SetCondition( COND_CAN_MELEE_ATTACK1 );
 			// Turn towards target ent
 			targetYaw = UTIL_VecToYaw( location );
@@ -409,10 +424,10 @@ void CNPC_Leech::SwimThink( void )
 			
 			targetYaw = UTIL_AngleDiff( targetYaw, UTIL_AngleMod( GetAbsAngles().y ) );
 
-			if ( targetYaw < (-LEECH_TURN_RATE*0.75) )
-				targetYaw = (-LEECH_TURN_RATE*0.75);
-			else if ( targetYaw > (LEECH_TURN_RATE*0.75) )
-				targetYaw = (LEECH_TURN_RATE*0.75);
+			if ( targetYaw < (-LEECH_TURN_RATE) )
+				targetYaw = (-LEECH_TURN_RATE);
+			else if ( targetYaw > (LEECH_TURN_RATE) )
+				targetYaw = (LEECH_TURN_RATE);
 			else
 				targetSpeed *= 2;
 		}
@@ -493,7 +508,7 @@ void CNPC_Leech::SwimThink( void )
 		SetAbsVelocity( vForward * m_flSpeed );
 	}
 	
-	GetMotor()->SetIdealYaw( m_flTurning );
+	GetMotor()->SetIdealYaw( m_flTurning + targetYaw );
 	UpdateMotion();
 }
 
@@ -615,13 +630,12 @@ void CNPC_Leech::UpdateMotion( void )
 		vAngles.z = 0;
 		vAngles.x = 0;
 
-		if ( m_flPlaybackRate < 1.0 )
-			 m_flPlaybackRate = 1.0;
+		m_flPlaybackRate = random->RandomFloat( 0.8, 1.2 );
 	}
 	else if ( GetMoveType() == MOVETYPE_FLYGRAVITY )
 	{
 		SetMoveType( MOVETYPE_FLY );
-		RemoveFlag( FL_ONGROUND );
+		SetGroundEntity( NULL );
 
 	//  TODO
 		RecalculateWaterlevel();
@@ -695,7 +709,7 @@ void CNPC_Leech::Event_Killed( const CTakeDamageInfo &info )
 
 		
 		SetGravity ( 0.02 );
-		RemoveFlag( FL_ONGROUND );
+		SetGroundEntity( NULL );
 		SetActivity( ACT_DIESIMPLE );
 	}
 	else

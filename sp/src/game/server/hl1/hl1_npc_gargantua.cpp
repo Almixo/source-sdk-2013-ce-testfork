@@ -1,24 +1,43 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
 //
 // $Workfile:     $
 // $Date:         $
-//
-//-----------------------------------------------------------------------------
-// $Log: $
-//
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include	"cbase.h"
+#include	"beam_shared.h"
+#include	"Sprite.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"AI_Memory.h"
 #include	"hl1_npc_gargantua.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"animation.h"
+#include	"basecombatweapon.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
+#include	"ammodef.h"
+#include	"shake.h"
+#include	"decals.h"
+#include	"particle_smokegrenade.h"
+#include	"gib.h"
+#include	"func_break.h"
+#include "hl1_shareddefs.h"
+
 
 extern short	g_sModelIndexFireball;
 int				gGargGibModel;
@@ -46,8 +65,6 @@ int				gGargGibModel;
 #define GARG_FLAME_LENGTH			330
 #define GARG_GIB_MODEL				"models/metalplategibs.mdl"
 
-#define ATTN_GARG					( ATTN_NORM )
-
 #define STOMP_SPRITE_COUNT			10
 
 
@@ -68,8 +85,9 @@ enum
 {
 	SCHED_GARG_FLAME = LAST_SHARED_SCHEDULE,
 	SCHED_GARG_SWIPE,
+	SCHED_GARG_CHASE_ENEMY,
+	SCHED_GARG_CHASE_ENEMY_FAILED,
 };
-
 
 LINK_ENTITY_TO_CLASS( monster_gargantua, CNPC_Gargantua );
 
@@ -82,7 +100,8 @@ BEGIN_DATADESC( CNPC_Gargantua )
 	DEFINE_ARRAY( m_pFlame, FIELD_CLASSPTR, 4 ),
 	DEFINE_FIELD( m_flameX, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flameY, FIELD_FLOAT ),
-	DEFINE_FIELD( m_flDmgTime, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flDmgTime, FIELD_TIME ),
+	DEFINE_FIELD( m_painSoundTime, FIELD_TIME ),
 END_DATADESC()
 
 static void MoveToGround( Vector *position, CBaseEntity *ignore, const Vector &mins, const Vector &maxs )
@@ -103,6 +122,10 @@ class CStomp : public CBaseEntity
 	DECLARE_CLASS( CStomp, CBaseEntity );
 
 public:
+	DECLARE_DATADESC();
+		
+	virtual void Precache();
+
 	void Spawn( void );
 	void Think( void );
 	static CStomp *StompCreate( Vector &origin, Vector &end, float speed, CBaseEntity* pOwner );
@@ -118,6 +141,15 @@ private:
 // UNDONE: re-use this sprite list instead of creating new ones all the time
 //	CSprite		*m_pSprites[ STOMP_SPRITE_COUNT ];
 };
+
+BEGIN_DATADESC(CStomp)
+	DEFINE_FIELD( m_vecMoveDir, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flScale, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_uiFramerate, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flDmgTime, FIELD_TIME ),
+	DEFINE_FIELD( m_pOwner, FIELD_CLASSPTR ),
+END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( garg_stomp, CStomp );
 CStomp *CStomp::StompCreate( Vector &origin, Vector &end, float speed, CBaseEntity* pOwner )
@@ -138,8 +170,19 @@ CStomp *CStomp::StompCreate( Vector &origin, Vector &end, float speed, CBaseEnti
 
 }
 
+void CStomp::Precache()
+{
+	BaseClass::Precache();
+
+	PrecacheScriptSound( "Garg.Stomp" );
+	PrecacheModel( GARG_STOMP_SPRITE_NAME );
+}
+
+
 void CStomp::Spawn( void )
 {
+	Precache();
+
 	SetNextThink( gpGlobals->curtime );
 	SetClassname( "garg_stomp" );
 	m_flDmgTime = gpGlobals->curtime;
@@ -182,6 +225,11 @@ void CStomp::Think( void )
 	m_uiFramerate += (gpGlobals->frametime) * 2000;
 	
 	// Move and spawn trails
+	if ( gpGlobals->curtime - m_flDmgTime > 0.2f )
+	{
+		m_flDmgTime = gpGlobals->curtime - 0.2f;
+	}
+
 	while ( gpGlobals->curtime - m_flDmgTime > STOMP_INTERVAL )
 	{
 		SetAbsOrigin( GetAbsOrigin() + m_vecMoveDir * m_flSpeed * STOMP_INTERVAL );
@@ -206,12 +254,9 @@ void CStomp::Think( void )
 		{
 			// Life has run out
 			UTIL_Remove(this);
-//			STOP_SOUND( edict(), CHAN_BODY, GARG_STOMP_BUZZ_SOUND );
 			CPASAttenuationFilter filter( this );
-			StopSound(entindex(), CHAN_STATIC, "Garg.Stomp" );
-
+			StopSound( entindex(), CHAN_STATIC, "Garg.Stomp" );
 		}
-
 	}
 }
 
@@ -234,6 +279,10 @@ void CNPC_Gargantua::Spawn()
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
 
+	Vector vecSurroundingMins( -80, -80, 0 );
+	Vector vecSurroundingMaxs( 80, 80, 214 );
+	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
+
 	m_bloodColor		= BLOOD_COLOR_GREEN;
 	m_iHealth			= sk_gargantua_health.GetFloat();
 	SetViewOffset( Vector ( 0, 0, 96 ) );// taken from mdl file
@@ -243,7 +292,7 @@ void CNPC_Gargantua::Spawn()
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND );
 	CapabilitiesAdd( bits_CAP_INNATE_RANGE_ATTACK1 | bits_CAP_INNATE_MELEE_ATTACK1 | bits_CAP_INNATE_MELEE_ATTACK2 );
 
-	SetHullType( HULL_WIDE_HUMAN );
+	SetHullType( HULL_LARGE );
 	SetHullSizeNormal();
 
 	m_pEyeGlow = CSprite::SpriteCreate( GARG_EYE_SPRITE_NAME, GetAbsOrigin(), FALSE );
@@ -257,6 +306,9 @@ void CNPC_Gargantua::Spawn()
 	NPCInit();
 
 	BaseClass::Spawn();
+
+	// Give garg a healthy free knowledge.
+	GetEnemies()->SetFreeKnowledgeDuration( 59.0f );
 }
 
 //=========================================================
@@ -281,14 +333,15 @@ void CNPC_Gargantua::Precache()
 	PrecacheScriptSound( "Garg.BeamAttackRun" );
 	PrecacheScriptSound( "Garg.BeamAttackOff" );
 	PrecacheScriptSound( "Garg.StompSound" );
-}	
+}
+
 
 Class_T  CNPC_Gargantua::Classify ( void )
 {
 	return CLASS_ALIEN_MONSTER;
 }
 
-void CNPC_Gargantua :: PrescheduleThink( void )
+void CNPC_Gargantua::PrescheduleThink( void )
 {
 	if ( !HasCondition( COND_SEE_ENEMY ) )
 	{
@@ -454,7 +507,9 @@ void CNPC_Gargantua::HandleAnimEvent( animevent_t *pEvent )
 				EmitSound( filter, entindex(), "Garg.AttackHit" );
 			}
 			else // Play a random attack miss sound
-				EmitSound( filter, entindex(), "Garg.AttackMiss ");
+			{
+				EmitSound( filter, entindex(),"Garg.AttackMiss" );
+			}
 		}
 		break;
 
@@ -493,8 +548,12 @@ int CNPC_Gargantua::TranslateSchedule( int scheduleType )
 		case SCHED_MELEE_ATTACK1:
 			return SCHED_GARG_SWIPE;
 
+		case SCHED_CHASE_ENEMY:
+			return SCHED_GARG_CHASE_ENEMY;
 			
 		case SCHED_CHASE_ENEMY_FAILED:
+			return SCHED_GARG_CHASE_ENEMY_FAILED;
+
 		case SCHED_ALERT_STAND:
 			return SCHED_CHASE_ENEMY;
 			 
@@ -560,7 +619,7 @@ void CNPC_Gargantua::RunTask( const Task_t *pTask )
 			SetRenderColor( 255, 0, 0 , 255 );
 			StopAnimation();
 			SetNextThink( gpGlobals->curtime + 0.15 );
-			SetThink( &CNPC_Gargantua::SUB_Remove );
+			SetThink( &CBaseEntity::SUB_Remove );
 
 			int i;
 		
@@ -584,13 +643,13 @@ void CNPC_Gargantua::RunTask( const Task_t *pTask )
 				pGib->SetAbsVelocity( UTIL_RandomBloodVector() * random->RandomFloat( 300, 500 ) );
 	
 				pGib->SetNextThink( gpGlobals->curtime + 1.25 );
-				pGib->SetThink( &CNPC_Gargantua::SUB_FadeOut );
-				pGib->m_flModelScale = 10;
+				pGib->SetThink( &CBaseEntity::SUB_FadeOut );
 			}
 	
 			Vector vecSize = Vector( 200, 200, 128 );
 			CPVSFilter filter( GetAbsOrigin() );
-			te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, gGargGibModel, 200, 50, 3.0, BREAK_FLESH );
+			te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, 
+				gGargGibModel, 200, 50, 3.0, BREAK_FLESH );
 	
 			return;
 		}
@@ -956,6 +1015,7 @@ void CNPC_Gargantua::Event_Killed( const CTakeDamageInfo &info )
 	UTIL_Remove( m_pEyeGlow );
 	m_pEyeGlow = NULL;
 	BaseClass::Event_Killed( info );
+	m_takedamage = DAMAGE_NO;
 }
 
 void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
@@ -1002,6 +1062,14 @@ void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vec
 
 int CNPC_Gargantua::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 {
+	if( GetState() == NPC_STATE_SCRIPT )
+	{
+		// Invulnerable while scripted. This fixes the problem where garg wouldn't
+		// explode in C2A1 because for some reason he wouldn't die while scripted, he'd
+		// only freeze in place. Now he's just immune until he gets to the script and stops.
+		return 0;
+	}
+
 	CTakeDamageInfo subInfo = info;
 
 	float flDamage = subInfo.GetDamage();
@@ -1058,5 +1126,48 @@ DECLARE_TASK ( TASK_FLAME_SWEEP )
 		"	Interrupts"
 		"   COND_CAN_MELEE_ATTACK2"
 	)
+
+	DEFINE_SCHEDULE
+	(
+		SCHED_GARG_CHASE_ENEMY,
+
+		"	Tasks"
+		"		TASK_STOP_MOVING				0"
+		"		TASK_SET_FAIL_SCHEDULE			SCHEDULE:SCHED_GARG_CHASE_ENEMY_FAILED"
+		"		TASK_GET_CHASE_PATH_TO_ENEMY	300"
+		"		TASK_RUN_PATH					0"
+		"		TASK_WAIT_FOR_MOVEMENT			0"
+		"		TASK_FACE_ENEMY					0"
+		""
+		"	Interrupts"
+		"		COND_NEW_ENEMY"
+		"		COND_ENEMY_DEAD"
+		"		COND_ENEMY_UNREACHABLE"
+		"		COND_CAN_RANGE_ATTACK1"
+		"		COND_CAN_MELEE_ATTACK1"
+		"		COND_CAN_RANGE_ATTACK2"
+		"		COND_CAN_MELEE_ATTACK2"
+		"		COND_TOO_CLOSE_TO_ATTACK"
+		"		COND_LOST_ENEMY"
+	);
+
+	DEFINE_SCHEDULE
+	(
+		SCHED_GARG_CHASE_ENEMY_FAILED,
+
+		"	Tasks"
+		"		TASK_SET_ROUTE_SEARCH_TIME		2"	// Spend 2 seconds trying to build a path if stuck
+		"		TASK_GET_PATH_TO_RANDOM_NODE	180"
+		"		TASK_WALK_PATH					0"
+		"		TASK_WAIT_FOR_MOVEMENT			0"
+		""
+		"	Interrupts"
+		"		COND_NEW_ENEMY"
+		"		COND_ENEMY_DEAD"
+		"		COND_CAN_RANGE_ATTACK1"
+		"		COND_CAN_MELEE_ATTACK1"
+		"		COND_CAN_RANGE_ATTACK2"
+		"		COND_CAN_MELEE_ATTACK2"
+	);
 
 AI_END_CUSTOM_NPC()

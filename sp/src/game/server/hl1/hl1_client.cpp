@@ -1,17 +1,10 @@
-/***
-*
-*	Copyright (c) 1999, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   Use, distribution, and modification of this source code and/or resulting
-*   object code is restricted to non-commercial enhancements to products from
-*   Valve LLC.  All other use, distribution, or modification is prohibited
-*   without written permission from Valve LLC.
-*
-****/
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 /*
 
 ===== tf_client.cpp ========================================================
@@ -33,8 +26,7 @@
 
 #include "tier0/vprof.h"
 
-void ClientKill( edict_t *pEdict );
-void Host_Say( edict_t *pEdict, int teamonly );
+void Host_Say( edict_t *pEdict, bool teamonly );
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
@@ -48,24 +40,30 @@ called each time a player is spawned into the game
 */
 void ClientPutInServer( edict_t *pEdict, const char *playername )
 {
+	CHL1_Player *pPlayer = NULL;
+
 	// Allocate a CBasePlayer for pev, and call spawn
-	CHL1_Player *pPlayer = CHL1_Player::CreatePlayer( "player", pEdict );
-	pPlayer->InitialSpawn();
-	pPlayer->PlayerData()->netname = AllocPooledString( playername );
-	pPlayer->Spawn();
+    if ( g_pGameRules->IsMultiplayer() )
+		pPlayer = CHL1_Player::CreatePlayer( "player_mp", pEdict );
+	else
+		pPlayer = CHL1_Player::CreatePlayer( "player", pEdict );
+
+	pPlayer->SetPlayerName( playername );
 }
 
-void ClientActive(edict_t* pEdict, bool bLoadGame)
+
+void ClientActive( edict_t *pEdict, bool bLoadGame )
 {
-	CHL1_Player* pPlayer = dynamic_cast<CHL1_Player*>(CBaseEntity::Instance(pEdict));
+	CHL1_Player *pPlayer = dynamic_cast< CHL1_Player* >( CBaseEntity::Instance( pEdict ) );
 
 	pPlayer->InitialSpawn();
 
-	if (!bLoadGame)
+	if ( !bLoadGame )
 	{
 		pPlayer->Spawn();
 	}
 }
+
 
 /*
 ===============
@@ -82,9 +80,6 @@ const char *GetGameDescription()
 		return "Half-Life 1";
 }
 
-extern int g_iWeaponCheat;
-
-
 //-----------------------------------------------------------------------------
 // Purpose: Given a player and optional name returns the entity of that 
 //			classname that the player is nearest facing
@@ -94,23 +89,22 @@ extern int g_iWeaponCheat;
 //-----------------------------------------------------------------------------
 CBaseEntity* FindEntity( edict_t *pEdict, char *classname)
 {
-
 	// If no name was given set bits based on the picked
 	if (FStrEq(classname,"")) 
 	{
-		return (FindPickerEntityClass(static_cast<CBasePlayer*>(GetContainingEntity(pEdict)), classname)); //hack!
+		return (FindPickerEntityClass( static_cast<CBasePlayer*>(GetContainingEntity(pEdict)), classname ));
 	}
 	return NULL;
 }
 
-//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------	
 // Purpose: Precache game-specific models & sounds
 //-----------------------------------------------------------------------------
 void ClientGamePrecache( void )
 {
-	engine->PrecacheModel("models/player.mdl");
-	engine->PrecacheModel( "models/gibs/metalgibs.mdl");
-	engine->PrecacheModel( "models/gibs/agibs.mdl" );
+	CBaseEntity::PrecacheModel( "models/player.mdl" );
+	CBaseEntity::PrecacheModel( "models/gibs/agibs.mdl" );
+	CBaseEntity::PrecacheScriptSound( "Player.UseDeny" );
 }
 
 
@@ -137,67 +131,43 @@ void respawn( CBaseEntity *pEdict, bool fCopyCorpse )
 void GameStartFrame( void )
 {
 	VPROF("GameStartFrame()");
-	if ( g_pGameRules )
-		g_pGameRules->Think();
 
 	if ( g_fGameOver )
 		return;
 
 	gpGlobals->teamplay = (teamplay.GetInt() != 0);
+
+#ifdef DEBUG
+	extern void Bot_RunAll();
+	Bot_RunAll();
+#endif
 }
 
 //=========================================================
 // instantiate the proper game rules object
 //=========================================================
-void InstallGameRules( void )
+void InstallGameRules()
 {
-//	engine->ServerCommand( "exec game.cfg\n" );
-//	engine->ServerExecute( );
-//
-//	// Create the player resource
-//	g_pPlayerResource = (CPlayerResource*)CBaseEntity::Create( "player_manager", vec3_origin, vec3_angle );
-//
-///*
-//	if ( !gpGlobals->deathmatch )
-//	{
-//		// generic half-life
-//		return new CHalfLife1;
-//	}
-//	else
-//	{
-//		if ( teamplay.GetInt() > 0 )
-//		{
-//			// teamplay
-//			return new CTeamplayRules;
-//		}
-//		// vanilla deathmatch
-//		return new CMultiplayRules;
-//	}
-//*/
-//
-//	CHalfLife1 *pEnt = dynamic_cast< CHalfLife1* >( CreateEntityByName( "hl1_gamerules" ) );
-//	if ( !pEnt )
-//		Error( "InstallGameRules: pEnt == NULL" );
-//
-//	return pEnt;
+	engine->ServerCommand( "exec game.cfg\n" );
+	engine->ServerExecute( );
 
-	engine->ServerCommand("exec game.cfg\n");
-	engine->ServerExecute();
-
-	if (!gpGlobals->deathmatch)
+	if ( !gpGlobals->deathmatch )
 	{
 		// generic half-life
-		CreateGameRulesObject("CHalfLife1");
+		CreateGameRulesObject( "CHalfLife1" );
 	}
 	else
 	{
-		if (teamplay.GetInt() > 0)
+		if ( teamplay.GetBool() )
 		{
 			// teamplay
-			CreateGameRulesObject("CTeamplayRules");
+			CreateGameRulesObject( "CTeamplayRules" );
 		}
-		// vanilla deathmatch
-		CreateGameRulesObject("CMultiplayRules");
+		else
+		{
+			// vanilla deathmatch
+			CreateGameRulesObject( "CMultiplayRules" );
+		}
 	}
 }
 

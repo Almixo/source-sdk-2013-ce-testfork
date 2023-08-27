@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -35,7 +35,7 @@ END_RECV_TABLE()
 void C_RpgRocket::CreateLightEffects( void )
 {
 	dlight_t *dl;
-	if ( GetEffects() & EF_DIMLIGHT)
+	if ( IsEffectActive(EF_DIMLIGHT) )
 	{			
 		dl = effects->CL_AllocDlight ( index );
 		dl->origin = GetAbsOrigin();

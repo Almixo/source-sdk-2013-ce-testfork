@@ -1,11 +1,15 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_ICHTHYOSAUR_H
 #define NPC_ICHTHYOSAUR_H
 
 
 #include "hl1_ai_basenpc.h"
-#include "npcevent.h"
-#include "beam_shared.h"
-#include "ai_route.h"
 
 #define SEARCH_RETRY	16
 
@@ -34,16 +38,34 @@ public:
 	void	Swim ( void );
 	void	StartTask(const Task_t *pTask);
 	void	RunTask( const Task_t *pTask );
+	int		RangeAttack1Conditions( float flDot, float flDist );
 	int		MeleeAttack1Conditions ( float flDot, float flDist );
 	void	BiteTouch( CBaseEntity *pOther );
 	void	HandleAnimEvent( animevent_t *pEvent );
 	int		TranslateSchedule( int scheduleType );
-//	int		SelectSchedule( void ) ;
+	int		SelectSchedule();
+	virtual	bool FVisible ( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 
 	Vector  DoProbe( const Vector &Probe );
 	bool    ProbeZ( const Vector &position, const Vector &probe, float *pFraction);
 
 	float	GetGroundSpeed ( void );
+
+	bool	OverrideMove( float flInterval );
+	void	MoveExecute_Alive(float flInterval);
+
+	void InputStartCombat( inputdata_t &input );
+	void InputEndCombat( inputdata_t &input );
+
+	virtual void	IdleSound( void );
+	virtual void	AlertSound( void );
+	virtual void	DeathSound( const CTakeDamageInfo &info );
+	virtual void	PainSound( const CTakeDamageInfo &info );
+
+	void	AttackSound( void );
+	void	BiteSound( void );
+
+	virtual void GatherEnemyConditions( CBaseEntity *pEnemy );
 
 	DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
@@ -62,20 +84,14 @@ private:
 	float m_flMaxDist;
 
 	float m_flNextAlert;
-
-	CBeam *m_pBeam;
+	float m_flLastAttackSound;
 
 	//Save the info from that run
 	Vector m_vecLastMoveTarget;
 	bool m_bHasMoveTarget;
+
+	float m_flFlyingSpeed;	
 };
-
-LINK_ENTITY_TO_CLASS( monster_ichthyosaur, CNPC_Ichthyosaur );
-
-BEGIN_DATADESC( CNPC_Ichthyosaur )
-	// Function Pointers
-	DEFINE_ENTITYFUNC( BiteTouch ),
-END_DATADESC()
 
 
 #endif //NPC_ICHTHYOSAUR_H

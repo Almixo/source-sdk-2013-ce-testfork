@@ -1,12 +1,12 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
-// hl2_eventlog.cpp: implementation of the CHL1EventLog class.
+// Purpose: 
 //
-//////////////////////////////////////////////////////////////////////
-
+// $NoKeywords: $
+//
+//=============================================================================//
 #include "cbase.h"
 #include "../eventlog.h"
-#include <keyvalues.h>
 
 class CHL1EventLog : public CEventLog
 {
@@ -17,7 +17,7 @@ public:
 	virtual ~CHL1EventLog() {};
 
 public:
-	bool PrintEvent( IGameEvent * event )	// overwrite virual function
+	bool PrintEvent( IGameEvent * event )	// override virtual function
 	{
 		if ( BaseClass::PrintEvent( event ) )
 		{

@@ -93,7 +93,7 @@ void CWeaponMP5::PrimaryAttack( void )
 		pPlayer->FireBullets( info );
 	}
 
-	EjectShell( pPlayer, 0 );
+	//EjectShell( pPlayer, 0 ); tehcooler...
 
 	pPlayer->ViewPunch( QAngle( random->RandomFloat( -0.5, 0.5 ), 0, 0 ) );
 
@@ -174,6 +174,11 @@ void CWeaponMP5::DryFire( void )
 
 void CWeaponMP5::WeaponIdle( void )
 {
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( !pPlayer ) return;
+
+	pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
+
 	BaseClass::WeaponIdle();
 
 	if ( HasWeaponIdleTimeElapsed() )

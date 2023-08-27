@@ -39,7 +39,7 @@ void HL1GaussBeam( const CEffectData &data )
 
 	C_BaseEntity * pEnt = cl_entitylist->GetEnt( BEAMENT_ENTITY(nStartEntity) );
 
-	if ( !pEnt || !pEnt->IsPlayer() )
+	if ( !pEnt->IsPlayer() )
 		return;
 
 	C_BasePlayer * pPlayer = static_cast<C_BasePlayer*>(pEnt);
@@ -72,9 +72,9 @@ void HL1GaussBeam( const CEffectData &data )
 		flEndWidth		= 1.0;
 
 		beamColor.r		= 255;
-		beamColor.g		= 128;
+		beamColor.g		= 255;
 		beamColor.b		= 0;
-		beamColor.a		= 128;
+		beamColor.a		= 255;
 	}
 	else					// secondary
 	{
@@ -84,7 +84,7 @@ void HL1GaussBeam( const CEffectData &data )
 		beamColor.r		= 255;
 		beamColor.g		= 255;
 		beamColor.b		= 255;
-		beamColor.a		= min( data.m_nColor, 255 );
+		beamColor.a		= 255;
 	}
 
 	beams->CreateBeamEntPoint(
@@ -129,9 +129,9 @@ void HL1GaussBeamReflect( const CEffectData &data )
 		flEndWidth		= 1.0;
 
 		beamColor.r		= 255;
-		beamColor.g		= 128;
+		beamColor.g		= 255;
 		beamColor.b		= 0;
-		beamColor.a		= 128;
+		beamColor.a		= 255;
 	}
 	else					// secondary
 	{
@@ -141,7 +141,7 @@ void HL1GaussBeamReflect( const CEffectData &data )
 		beamColor.r		= 255;
 		beamColor.g		= 255;
 		beamColor.b		= 255;
-		beamColor.a		= min( data.m_nColor, 255 );
+		beamColor.a		= 255;
 	}
 
 	beams->CreateBeamPoints(

@@ -1,4 +1,29 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"animation.h"
+#include	"basecombatweapon.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
+#include	"ammodef.h"
 #include	"hl1_ai_basenpc.h"
 
 class CNPC_Bloater : public CHL1BaseNPC
@@ -12,7 +37,7 @@ public:
 	int  Classify ( void );
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 
-	void PainSound( void );
+	void PainSound( const CTakeDamageInfo &info );
 	void AlertSound( void );
 	void IdleSound( void );
 	void AttackSnd( void );
@@ -55,5 +80,5 @@ void CNPC_Bloater::Spawn()
 //=========================================================
 void CNPC_Bloater::Precache()
 {
-	engine->PrecacheModel("models/floater.mdl");
+	PrecacheModel("models/floater.mdl");
 }	

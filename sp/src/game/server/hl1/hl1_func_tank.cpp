@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "Sprite.h"
@@ -64,10 +64,7 @@ public:
 	bool	CreateVPhysics( void );
 	bool	KeyValue( const char *szKeyName, const char *szValue );
 
-	int	ObjectCaps( void ) 
-	{ 
-		return (BaseClass::ObjectCaps() | FCAP_IMPULSE_USE); 
-	}
+	int		ObjectCaps( void );
 	void	Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void	Think( void );
 	void	TrackTarget( void );
@@ -218,6 +215,14 @@ BEGIN_DATADESC( CFuncTank )
 	DEFINE_FIELD( m_vTargetPosition, FIELD_VECTOR ),
 	DEFINE_FIELD( m_persist2burst, FIELD_FLOAT),
 	//DEFINE_FIELD( m_parentMatrix, FIELD_MATRIX ), // DON'T SAVE
+	DEFINE_FIELD( m_hTarget, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hControlVolume, FIELD_EHANDLE ),
+
+
+	// Do not save these. 
+	//DEFINE_FIELD( m_iSmallAmmoType, FIELD_INTEGER ),
+	//DEFINE_FIELD( m_iMediumAmmoType, FIELD_INTEGER ),
+	//DEFINE_FIELD( m_iLargeAmmoType, FIELD_INTEGER ),
 
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "Activate", InputActivate ),
@@ -228,9 +233,9 @@ BEGIN_DATADESC( CFuncTank )
 	DEFINE_INPUTFUNC( FIELD_EHANDLE, "SetTargetEntity", InputSetTargetEntity ),
 
 	// Outputs
-	DEFINE_OUTPUT( m_OnFire, "OnFire" ),
-	DEFINE_OUTPUT( m_OnLoseTarget, "OnLoseTarget" ),
-	DEFINE_OUTPUT( m_OnAquireTarget, "OnAquireTarget" ),
+	DEFINE_OUTPUT(m_OnFire,			"OnFire"),
+	DEFINE_OUTPUT(m_OnLoseTarget,	"OnLoseTarget"),
+	DEFINE_OUTPUT(m_OnAquireTarget,	"OnAquireTarget"),
 
 END_DATADESC()
 
@@ -246,6 +251,20 @@ CFuncTank::~CFuncTank( void )
 		StopSound( entindex(), CHAN_STATIC, STRING(m_soundLoopRotate) );
 	}
 }
+
+
+int	CFuncTank::ObjectCaps( void ) 
+{ 
+	int iCaps = BaseClass::ObjectCaps();
+
+	if ( m_spawnflags & SF_TANK_CANCONTROL )
+	{
+		iCaps |= FCAP_IMPULSE_USE;
+	}
+
+	return iCaps;
+}
+
 
 //------------------------------------------------------------------------------
 // Purpose:
@@ -392,7 +411,7 @@ int CFuncTank::DrawDebugTextOverlays(void)
 		{
 			Q_strncpy(tempstr,"State: Inactive",sizeof(tempstr));
 		}
-		NDebugOverlay::EntityText(entindex(),text_offset,tempstr,0);
+		EntityText(text_offset,tempstr,0);
 		text_offset++;
 		
 		// -------------------
@@ -400,7 +419,7 @@ int CFuncTank::DrawDebugTextOverlays(void)
 		// --------------------
 		Q_snprintf(tempstr,sizeof(tempstr),"Fire Rate: %f",m_fireRate);
 
-		NDebugOverlay::EntityText(entindex(),text_offset,tempstr,0);
+		EntityText(text_offset,tempstr,0);
 		text_offset++;
 		
 		// --------------
@@ -414,7 +433,7 @@ int CFuncTank::DrawDebugTextOverlays(void)
 		{
 			Q_snprintf(tempstr,sizeof(tempstr),"Target:   -  ");
 		}
-		NDebugOverlay::EntityText(entindex(),text_offset,tempstr,0);
+		EntityText(text_offset,tempstr,0);
 		text_offset++;
 
 		// --------------
@@ -428,7 +447,7 @@ int CFuncTank::DrawDebugTextOverlays(void)
 		{
 			Q_snprintf(tempstr,sizeof(tempstr),"Aim Pos:    -  ");
 		}
-		NDebugOverlay::EntityText(entindex(),text_offset,tempstr,0);
+		EntityText(text_offset,tempstr,0);
 		text_offset++;
 
 	}
@@ -589,7 +608,7 @@ void CFuncTank::Activate( void )
 	// Find our control volume
 	if ( m_iszControlVolume != NULL_STRING )
 	{
-		m_hControlVolume = dynamic_cast<CBaseTrigger*>( gEntList.FindEntityByName( NULL, m_iszControlVolume, NULL ) );
+		m_hControlVolume = dynamic_cast<CBaseTrigger*>( gEntList.FindEntityByName( NULL, m_iszControlVolume ) );
 	}
 
 	if (( !m_hControlVolume ) && (m_spawnflags & SF_TANK_CANCONTROL))
@@ -613,16 +632,16 @@ void CFuncTank::Precache( void )
 	m_iLargeAmmoType	= GetAmmoDef()->Index("12mmRound");
 
 	if ( m_iszSpriteSmoke != NULL_STRING )
-		engine->PrecacheModel( STRING(m_iszSpriteSmoke) );
+		PrecacheModel( STRING(m_iszSpriteSmoke) );
 	if ( m_iszSpriteFlash != NULL_STRING )
-		engine->PrecacheModel( STRING(m_iszSpriteFlash) );
+		PrecacheModel( STRING(m_iszSpriteFlash) );
 
 	if ( m_soundStartRotate != NULL_STRING )
-		enginesound->PrecacheSound( STRING(m_soundStartRotate) );
+		PrecacheScriptSound( STRING(m_soundStartRotate) );
 	if ( m_soundStopRotate != NULL_STRING )
-		enginesound->PrecacheSound( STRING(m_soundStopRotate) );
+		PrecacheScriptSound( STRING(m_soundStopRotate) );
 	if ( m_soundLoopRotate != NULL_STRING )
-		enginesound->PrecacheSound( STRING(m_soundLoopRotate) );
+		PrecacheScriptSound( STRING(m_soundLoopRotate) );
 }
 
 
@@ -816,7 +835,7 @@ QAngle CFuncTank::AimBarrelAt( const Vector &parentTarget )
 
 		float targetToCenterPitch = atan2( target.z, sqrt( quadTargetXY ) );
 		float centerToGunPitch = atan2( -m_barrelPos.z, sqrt( quadTarget - (m_barrelPos.z*m_barrelPos.z) ) );
-		return QAngle( -RAD2DEG(targetToCenterPitch+centerToGunPitch), RAD2DEG( targetToCenterYaw + centerToGunYaw ), 0 );
+		return QAngle( -RAD2DEG(targetToCenterPitch+centerToGunPitch), RAD2DEG( targetToCenterYaw - centerToGunYaw ), 0 );		
 	}
 }
 
@@ -901,7 +920,10 @@ void CFuncTank::TrackTarget( void )
 		float range = (worldTargetPosition - barrelEnd).Length();
 		
 		if ( !InRange( range ) )
+		{
+			m_fireLast = 0;
 			return;
+		}
 
 		UTIL_TraceLine( barrelEnd, worldTargetPosition, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
 
@@ -941,12 +963,19 @@ void CFuncTank::TrackTarget( void )
 
 	// Limit against range in y
 
-	if ( ( fabs( offsetY ) > m_yawRange + m_yawTolerance ) ||
-		( fabs( offsetX ) > m_pitchRange + m_pitchTolerance ) )
-	{
-		// Don't update if you saw the player, but out of range
-		updateTime = false;
+	// MDB - don't check pitch! If two func_tanks are meant to align,
+	// and one can pitch and the other cannot, this can lead to them getting 
+	// different values for angles.y. Nothing is lost by not updating yaw
+	// because the target is not in pitch range.
 
+	bool bOutsideYawRange = ( fabs( offsetY ) > m_yawRange + m_yawTolerance );
+	bool bOutsidePitchRange = ( fabs( offsetX ) > m_pitchRange + m_pitchTolerance );
+
+	Vector vecToTarget = m_sightOrigin - GetLocalOrigin();
+
+	// if target is outside yaw range
+	if ( bOutsideYawRange )
+	{
 		if ( angles.y > m_yawCenter + m_yawRange )
 		{
 			angles.y = m_yawCenter + m_yawRange;
@@ -955,6 +984,12 @@ void CFuncTank::TrackTarget( void )
 		{
 			angles.y = (m_yawCenter - m_yawRange);
 		}
+	}
+
+	if ( bOutsidePitchRange || bOutsideYawRange || ( vecToTarget.Length() < ( barrelEnd - GetAbsOrigin() ).Length() ) )
+	{
+		// Don't update if you saw the player, but out of range
+		updateTime = false;
 	}
 
 	if ( updateTime )
@@ -1116,7 +1151,7 @@ void CFuncTank::StartRotSound( void )
 	
 	if ( m_soundLoopRotate != NULL_STRING )
 	{
-		CPASAttenuationFilter filter(this);
+		CPASAttenuationFilter filter( this );
 		filter.MakeReliable();
 
 		EmitSound_t ep;
@@ -1125,7 +1160,7 @@ void CFuncTank::StartRotSound( void )
 		ep.m_flVolume = 0.85f;
 		ep.m_SoundLevel = SNDLVL_NORM;
 
-		EmitSound(filter, entindex(), ep);
+		EmitSound( filter, entindex(), ep );
 	}
 	
 	if ( m_soundStartRotate != NULL_STRING )
@@ -1153,7 +1188,7 @@ void CFuncTank::StopRotSound( void )
 		}
 		if ( m_soundStopRotate != NULL_STRING )
 		{
-			CPASAttenuationFilter filter(this);
+			CPASAttenuationFilter filter( this );
 
 			EmitSound_t ep;
 			ep.m_nChannel = CHAN_BODY;
@@ -1161,7 +1196,7 @@ void CFuncTank::StopRotSound( void )
 			ep.m_flVolume = 1.0f;
 			ep.m_SoundLevel = SNDLVL_NORM;
 
-			EmitSound(filter, entindex(), ep);
+			EmitSound( filter, entindex(), ep );
 		}
 	}
 	m_spawnflags &= ~SF_TANK_SOUNDON;
@@ -1229,12 +1264,12 @@ LINK_ENTITY_TO_CLASS( func_tankpulselaser, CFuncTankPulseLaser );
 
 BEGIN_DATADESC( CFuncTankPulseLaser )
 
-	DEFINE_KEYFIELD( m_flPulseSpeed,	FIELD_FLOAT,		"PulseSpeed" ),
-	DEFINE_KEYFIELD( m_flPulseWidth,	FIELD_FLOAT,		"PulseWidth" ),
-	DEFINE_KEYFIELD( m_flPulseColor,	FIELD_COLOR32,		"PulseColor" ),
-	DEFINE_KEYFIELD( m_flPulseLife,		FIELD_FLOAT,		"PulseLife" ),
-	DEFINE_KEYFIELD( m_flPulseLag,		FIELD_FLOAT,		"PulseLag" ),
-	DEFINE_KEYFIELD( m_sPulseFireSound,	FIELD_SOUNDNAME,	"PulseFireSound" ),
+	DEFINE_KEYFIELD( m_flPulseSpeed,	 FIELD_FLOAT,		"PulseSpeed" ),
+	DEFINE_KEYFIELD( m_flPulseWidth,	 FIELD_FLOAT,		"PulseWidth" ),
+	DEFINE_KEYFIELD( m_flPulseColor,	 FIELD_COLOR32,		"PulseColor" ),
+	DEFINE_KEYFIELD( m_flPulseLife,	 FIELD_FLOAT,		"PulseLife" ),
+	DEFINE_KEYFIELD( m_flPulseLag,		 FIELD_FLOAT,		"PulseLag" ),
+	DEFINE_KEYFIELD( m_sPulseFireSound, FIELD_SOUNDNAME,	"PulseFireSound" ),
 
 END_DATADESC()
 
@@ -1249,7 +1284,7 @@ void CFuncTankPulseLaser::Precache(void)
 
 	if ( m_sPulseFireSound != NULL_STRING )
 	{
-		enginesound->PrecacheSound( STRING(m_sPulseFireSound) );
+		PrecacheScriptSound( STRING(m_sPulseFireSound) );
 	}
 	BaseClass::Precache();
 }
@@ -1286,15 +1321,15 @@ void CFuncTankPulseLaser::Fire( int bulletCount, const Vector &barrelEnd, const 
 
 		if ( m_sPulseFireSound != NULL_STRING )
 		{
-			CPASAttenuationFilter filter(this, 0.6f);
+			CPASAttenuationFilter filter( this, 0.6f );
 
 			EmitSound_t ep;
 			ep.m_nChannel = CHAN_WEAPON;
 			ep.m_pSoundName = (char*)STRING(m_sPulseFireSound);
 			ep.m_flVolume = 1.0f;
-			ep.m_SoundLevel = ATTN_TO_SNDLVL(0.6);
+			ep.m_SoundLevel = ATTN_TO_SNDLVL( 0.6 );
 
-			EmitSound(filter, entindex(), ep);
+			EmitSound( filter, entindex(), ep );
 		}
 
 	}
@@ -1312,6 +1347,7 @@ public:
 	void	Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker );
 	void	Think( void );
 	CEnvLaser *GetLaser( void );
+	void	UpdateOnRemove( void );
 
 	DECLARE_DATADESC();
 
@@ -1347,13 +1383,22 @@ void CFuncTankLaser::Activate( void )
 	}
 }
 
+void CFuncTankLaser::UpdateOnRemove( void )
+{
+	if( GetLaser() )
+	{
+		m_pLaser->TurnOff();
+	}
+
+	BaseClass::UpdateOnRemove();
+}
 
 CEnvLaser *CFuncTankLaser::GetLaser( void )
 {
 	if ( m_pLaser )
 		return m_pLaser;
 
-	CBaseEntity *pLaser = gEntList.FindEntityByName( NULL, m_iszLaserName, NULL );
+	CBaseEntity *pLaser = gEntList.FindEntityByName( NULL, m_iszLaserName );
 	while ( pLaser )
 	{
 		// Found the landmark
@@ -1364,7 +1409,7 @@ CEnvLaser *CFuncTankLaser::GetLaser( void )
 		}
 		else
 		{
-			pLaser = gEntList.FindEntityByName( pLaser, m_iszLaserName, NULL );
+			pLaser = gEntList.FindEntityByName( pLaser, m_iszLaserName );
 		}
 	}
 
@@ -1467,6 +1512,8 @@ BEGIN_DATADESC( CFuncTankMortar )
 	DEFINE_KEYFIELD( m_fireStartSound, FIELD_STRING, "firestartsound" ),
 	DEFINE_KEYFIELD( m_fireEndSound, FIELD_STRING, "fireendsound" ),
 
+	DEFINE_FIELD( m_pAttacker, FIELD_CLASSPTR ),
+
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "ShootGun", InputShootGun ),
 
@@ -1477,9 +1524,9 @@ END_DATADESC()
 void CFuncTankMortar::Precache( void )
 {
 	if ( m_fireStartSound != NULL_STRING )
-		enginesound->PrecacheSound( STRING(m_fireStartSound) );
+		PrecacheScriptSound( STRING(m_fireStartSound) );
 	if ( m_fireEndSound != NULL_STRING )
-		enginesound->PrecacheSound( STRING(m_fireEndSound) );
+		PrecacheScriptSound( STRING(m_fireEndSound) );
 	BaseClass::Precache();
 }
 
@@ -1566,7 +1613,20 @@ void CFuncTankMortar::Fire( int bulletCount, const Vector &barrelEnd, const Vect
 
 	TankTrace( barrelEnd, vecForward, gTankSpread[m_spread], tr );
 
+	const CBaseEntity * ent = NULL;
+	if ( g_pGameRules->IsMultiplayer() )
+	{
+		// temp remove suppress host
+		ent = te->GetSuppressHost();
+		te->SetSuppressHost( NULL );
+	}
+
 	ExplosionCreate( tr.endpos, GetAbsAngles(), this, m_Magnitude, 0, true );
+
+	if ( g_pGameRules->IsMultiplayer() )
+	{
+		te->SetSuppressHost( (CBaseEntity *) ent );
+	}
 
 	BaseClass::Fire( bulletCount, barrelEnd, vecForward, this );
 }
@@ -1593,6 +1653,7 @@ LINK_ENTITY_TO_CLASS( func_tankphyscannister, CFuncTankPhysCannister );
 BEGIN_DATADESC( CFuncTankPhysCannister )
 
 	DEFINE_KEYFIELD( m_iszBarrelVolume, FIELD_STRING, "barrel_volume" ),
+	DEFINE_FIELD( m_hBarrelVolume, FIELD_EHANDLE ),
 
 END_DATADESC()
 
@@ -1608,7 +1669,7 @@ void CFuncTankPhysCannister::Activate( void )
 	// Find our barrel volume
 	if ( m_iszBarrelVolume != NULL_STRING )
 	{
-		m_hBarrelVolume = dynamic_cast<CBaseTrigger*>( gEntList.FindEntityByName( NULL, m_iszBarrelVolume, NULL ) );
+		m_hBarrelVolume = dynamic_cast<CBaseTrigger*>( gEntList.FindEntityByName( NULL, m_iszBarrelVolume ) );
 	}
 
 	if ( !m_hBarrelVolume )

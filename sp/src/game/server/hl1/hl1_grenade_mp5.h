@@ -34,7 +34,7 @@ public:
 	void		Event_Killed( CBaseEntity *pInflictor, CBaseEntity *pAttacker, float flDamage, int bitsDamageType );
 
 public:
-	void EXPORT				Detonate(void);
+	void		Detonate(void);
 
 	DECLARE_DATADESC();
 };

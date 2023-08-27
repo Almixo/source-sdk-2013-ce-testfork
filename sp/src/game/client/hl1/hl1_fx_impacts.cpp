@@ -1,8 +1,8 @@
-//========= Copyright © 1996-2003, Valve Corporation, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Game-specific impact effect hooks
 //
-//=============================================================================
+//=============================================================================//
 #include "cbase.h"
 #include "fx_impact.h"
 
@@ -16,9 +16,9 @@ void ImpactCallback( const CEffectData &data )
 	Vector vecOrigin, vecStart, vecShotDir;
 	int iMaterial, iDamageType, iHitbox;
 	short nSurfaceProp;
-	C_BaseEntity* pEntity = ParseImpactData(data, &vecOrigin, &vecStart, &vecShotDir, nSurfaceProp, iMaterial, iDamageType, iHitbox);
+	C_BaseEntity *pEntity = ParseImpactData( data, &vecOrigin, &vecStart, &vecShotDir, nSurfaceProp, iMaterial, iDamageType, iHitbox );
 
-	if (!pEntity)
+	if ( !pEntity )
 		return;
 
 	// If we hit, perform our custom effects and play the sound
@@ -26,8 +26,9 @@ void ImpactCallback( const CEffectData &data )
 	{
 		// Check for custom effects based on the Decal index
 		PerformCustomEffects( vecOrigin, tr, vecShotDir, iMaterial, 1.0 );
-		PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
 	}
+
+	PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
 }
 
 DECLARE_CLIENT_EFFECT( "Impact", ImpactCallback );

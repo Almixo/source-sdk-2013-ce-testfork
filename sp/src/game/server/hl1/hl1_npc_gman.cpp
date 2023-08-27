@@ -1,26 +1,32 @@
-/***
-*
-*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   This source code contains proprietary and confidential information of
-*   Valve LLC and its suppliers.  Access to this code is restricted to
-*   persons who have executed a written SDK license with Valve.  Any access,
-*   use or distribution of this code by or to any unlicensed person is illegal.
-*
-****/
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 //=========================================================
 // GMan - misunderstood servant of the people
 //=========================================================
 
 #include	"cbase.h"
-#include	"hl1_ai_basenpc.h"
-#include	"ai_baseactor.h"
-#include	"npcevent.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"AI_Motor.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"animation.h"
 #include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"ai_baseactor.h"
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -38,6 +44,8 @@ public:
 	void HandleAnimEvent( animevent_t *pEvent );
 	int GetSoundInterests ( void );
 
+	bool IsInC5A1();
+
 	void StartTask( const Task_t *pTask );
 	void RunTask( const Task_t *pTask );
 	int	 OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
@@ -53,10 +61,25 @@ public:
 LINK_ENTITY_TO_CLASS( monster_gman, CNPC_GMan );
 
 //=========================================================
+// Hack that tells us whether the GMan is in the final map
+//=========================================================
+bool CNPC_GMan::IsInC5A1()
+{
+	const char *pMapName = STRING(gpGlobals->mapname);
+
+	if( pMapName )
+	{
+		return !Q_strnicmp( pMapName, "c5a1", 4 );
+	}
+
+	return false;
+}
+
+//=========================================================
 // Classify - indicates this monster's place in the 
 // relationship table.
 //=========================================================
-Class_T	CNPC_GMan :: Classify ( void )
+Class_T	CNPC_GMan::Classify ( void )
 {
 	return	CLASS_NONE;
 }
@@ -66,7 +89,7 @@ Class_T	CNPC_GMan :: Classify ( void )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-void CNPC_GMan :: HandleAnimEvent( animevent_t *pEvent )
+void CNPC_GMan::HandleAnimEvent( animevent_t *pEvent )
 {
 	switch( pEvent->event )
 	{
@@ -80,7 +103,7 @@ void CNPC_GMan :: HandleAnimEvent( animevent_t *pEvent )
 //=========================================================
 // GetSoundInterests - generic monster can't hear.
 //=========================================================
-int CNPC_GMan :: GetSoundInterests ( void )
+int CNPC_GMan::GetSoundInterests ( void )
 {
 	return	NULL;
 }
@@ -102,7 +125,7 @@ void CNPC_GMan::Spawn()
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
-	SetBloodColor( BLOOD_COLOR_RED );
+	SetBloodColor( BLOOD_COLOR_MECH );
 	m_iHealth			= 8;
 	m_flFieldOfView		= 0.5;// indicates the width of this NPC's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -115,9 +138,9 @@ void CNPC_GMan::Spawn()
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-void CNPC_GMan :: Precache()
+void CNPC_GMan::Precache()
 {
-	engine->PrecacheModel( "models/gman.mdl" );
+	PrecacheModel( "models/gman.mdl" );
 }	
 
 
@@ -126,7 +149,7 @@ void CNPC_GMan :: Precache()
 //=========================================================
 
 
-void CNPC_GMan :: StartTask( const Task_t *pTask )
+void CNPC_GMan::StartTask( const Task_t *pTask )
 {
 	switch( pTask->iTask )
 	{
@@ -141,7 +164,7 @@ void CNPC_GMan :: StartTask( const Task_t *pTask )
 	BaseClass::StartTask( pTask );
 }
 
-void CNPC_GMan :: RunTask( const Task_t *pTask )
+void CNPC_GMan::RunTask( const Task_t *pTask )
 {
 	switch( pTask->iTask )
 	{
@@ -149,27 +172,20 @@ void CNPC_GMan :: RunTask( const Task_t *pTask )
 		// look at who I'm talking to
 		if (m_flTalkTime > gpGlobals->curtime && m_hTalkTarget != NULL)
 		{
-			float yaw = VecToYaw(m_hTalkTarget->GetAbsOrigin() - GetAbsOrigin()) - GetAbsAngles().y;
-
-			if (yaw > 180) yaw -= 360;
-			if (yaw < -180) yaw += 360;
-
-			// turn towards vector
-			SetBoneController( 0, yaw );
+			AddLookTarget( m_hTalkTarget->GetAbsOrigin(), 1.0, 2.0 );
 		}
 		// look at player, but only if playing a "safe" idle animation
-		else if (m_hPlayer != NULL && GetSequence() == 0)
+		else if (m_hPlayer != NULL && (GetSequence() == 0 || IsInC5A1()) )
 		{
-			float yaw = VecToYaw(m_hPlayer->GetAbsOrigin() - GetAbsOrigin()) - GetAbsAngles().y;
-
-			if (yaw > 180) yaw -= 360;
-			if (yaw < -180) yaw += 360;
-
-			// turn towards vector
-			SetBoneController( 0, yaw );
+			 AddLookTarget( m_hPlayer->EyePosition(), 1.0, 3.0 );
 		}
 		else 
 		{
+			// Just center the head forward.
+			Vector forward;
+			GetVectors( &forward, NULL, NULL );
+
+			AddLookTarget( GetAbsOrigin() + forward * 12.0f, 1.0, 1.0 );
 			SetBoneController( 0, 0 );
 		}
 		BaseClass::RunTask( pTask );
@@ -184,7 +200,7 @@ void CNPC_GMan :: RunTask( const Task_t *pTask )
 //=========================================================
 // Override all damage
 //=========================================================
-int CNPC_GMan :: OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
+int CNPC_GMan::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {
 	m_iHealth = m_iMaxHealth / 2; // always trigger the 50% damage aitrigger
 

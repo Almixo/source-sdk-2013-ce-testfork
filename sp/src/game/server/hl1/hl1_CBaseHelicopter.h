@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 //---------------------------------------------------------
 //  Helicopter flags
 //---------------------------------------------------------
@@ -10,9 +17,10 @@ enum HelicopterFlags_t
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-#define SF_NOROTORWASH		0x020
-#define SF_AWAITINPUT		(0x04 | 0x40) // UNDONE: Fix!
+
 #define SF_NOWRECKAGE		0x08
+#define SF_NOROTORWASH		0x20
+#define SF_AWAITINPUT		0x40
 
 
 //---------------------------------------------------------
@@ -68,7 +76,7 @@ public:
 
 	virtual bool IsCrashing( void ) { return m_lifeState != LIFE_ALIVE; }
 	virtual float GetAcceleration( void ) { return 5; }
-	virtual bool HasReachedTarget( void ) { return (WorldSpaceCenter() - m_vecDesiredPosition).Length() < 192; }
+	virtual bool HasReachedTarget( void ); 
 	virtual void OnReachedTarget( CBaseEntity *pTarget ) {};
 
 	virtual void ApplySidewaysDrag( const Vector &vecRight );
@@ -123,4 +131,6 @@ public:
 	// Outputs
 	COutputEvent	m_AtTarget;			// Fired when pathcorner has been reached
 	COutputEvent	m_LeaveTarget;		// Fired when pathcorner is left
+
+	float			m_flNextCrashExplosion;
 };

@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Handling for the suit batteries.
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "player.h"
@@ -31,8 +31,11 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel( BATTERY_MODEL );
+		PrecacheModel( BATTERY_MODEL );
+
+		PrecacheScriptSound( "Item.Pickup" );
 	}
+
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if ((pPlayer->ArmorValue() < MAX_NORMAL_BATTERY) && pPlayer->IsSuitEquipped())

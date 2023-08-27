@@ -1,9 +1,4 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -15,9 +10,27 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include	"cbase.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"animation.h"
+#include	"basecombatweapon.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
+#include	"ammodef.h"
 #include	"hl1_ai_basenpc.h"
 
 #define		AFLOCK_MAX_RECRUIT_RADIUS	1024
@@ -118,6 +131,10 @@ BEGIN_DATADESC( CNPC_FlockingFlyer )
 	DEFINE_THINKFUNC( FlockLeaderThink ),
 	DEFINE_THINKFUNC( FlockFollowerThink ),
 	DEFINE_THINKFUNC( FallHack ),
+
+	DEFINE_FIELD( m_flFlockNextSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flTempVar, FIELD_FLOAT ),
+
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_flyer, CNPC_FlockingFlyer );
@@ -151,7 +168,7 @@ void CNPC_FlockingFlyerFlock::Spawn( void )
 	SpawnFlock();
 
 
-	SetThink( &CNPC_FlockingFlyerFlock::SUB_Remove );
+	SetThink( &CBaseEntity::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -160,7 +177,7 @@ void CNPC_FlockingFlyerFlock::Spawn( void )
 void CNPC_FlockingFlyerFlock::Precache( void )
 {
 	//PRECACHE_MODEL("models/aflock.mdl");		
-	engine->PrecacheModel("models/boid.mdl");		
+	PrecacheModel("models/boid.mdl");		
 
 	PrecacheFlockSounds();
 }
@@ -195,7 +212,7 @@ void CNPC_FlockingFlyerFlock::SpawnFlock( void )
 		UTIL_SetOrigin( pBoid, vecSpot);
 		pBoid->SetMoveType( MOVETYPE_FLY );
 		pBoid->SpawnCommonCode();
-		pBoid->RemoveFlag( FL_ONGROUND );
+		pBoid->SetGroundEntity( NULL );
 		pBoid->SetAbsVelocity( Vector ( 0, 0, 0 ) );
 		pBoid->SetAbsAngles( GetAbsAngles() );
 		
@@ -213,11 +230,6 @@ void CNPC_FlockingFlyerFlock::SpawnFlock( void )
 
 void CNPC_FlockingFlyerFlock::PrecacheFlockSounds( void )
 {
-	//enginesound->PrecacheSound("boid/boid_alert1.wav" );
-	//enginesound->PrecacheSound("boid/boid_alert2.wav" );
-
-	//enginesound->PrecacheSound("boid/boid_idle1.wav" );
-	//enginesound->PrecacheSound("boid/boid_idle2.wav" );
 }
 
 //=========================================================
@@ -260,13 +272,16 @@ void CNPC_FlockingFlyer::SpawnCommonCode( )
 void CNPC_FlockingFlyer::Precache( )
 {
 	//PRECACHE_MODEL("models/aflock.mdl");
-	engine->PrecacheModel("models/boid.mdl");
+	PrecacheModel("models/boid.mdl");
 	CNPC_FlockingFlyerFlock::PrecacheFlockSounds();
+
+	PrecacheScriptSound( "FlockingFlyer.Alert" );
+	PrecacheScriptSound( "FlockingFlyer.Idle" );
 }
 
 //=========================================================
 //=========================================================
-void CNPC_FlockingFlyer :: IdleThink( void )
+void CNPC_FlockingFlyer::IdleThink( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.2 );
 
@@ -696,16 +711,19 @@ void CNPC_FlockingFlyer::SpreadFlock2 ( )
 //=========================================================
 void CNPC_FlockingFlyer::MakeSound( void )
 {
-	CPASAttenuationFilter filter(this);
-
 	if ( m_flAlertTime > gpGlobals->curtime )
 	{
-		EmitSound(filter, entindex(), "FlockingFlyer.Alert");
+		CPASAttenuationFilter filter1( this );
+
+		// make agitated sounds
+		EmitSound( filter1, entindex(), "FlockingFlyer.Alert" );
 		return;
 	}
 
 	// make normal sound
-	EmitSound(filter, entindex(), "FlockingFlyer.Idle");
+	CPASAttenuationFilter filter2( this );
+
+	EmitSound( filter2, entindex(), "FlockingFlyer.Idle" );
 }
 
 //=========================================================
@@ -811,7 +829,7 @@ void CNPC_FlockingFlyer::Event_Killed( const CTakeDamageInfo &info )
 	m_lifeState = LIFE_DEAD;
 
 	m_flPlaybackRate = 0;
-	AddEffects(EF_NOINTERP);
+	AddEffects( EF_NOINTERP );
 
 	UTIL_SetSize( this, Vector(0,0,0), Vector(0,0,0) );
 	SetMoveType( MOVETYPE_FLYGRAVITY );
@@ -828,7 +846,7 @@ void CNPC_FlockingFlyer::FallHack( void )
 
 		if ( !FClassnameIs ( groundentity, "worldspawn" ) )
 		{
-			RemoveFlag( FL_ONGROUND );
+			SetGroundEntity( NULL );
 			SetNextThink( gpGlobals->curtime + 0.1f );
 		}
 		else

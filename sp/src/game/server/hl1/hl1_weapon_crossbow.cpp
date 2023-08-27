@@ -184,17 +184,20 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 		SetThink( &CCrossbowBolt::SUB_Remove );
 		SetNextThink( gpGlobals->curtime );// this will get changed below if the bolt is allowed to stick in what it hit.
 
-		Vector vForward;
-		AngleVectors( GetAbsAngles(), &vForward );
-		VectorNormalize ( vForward );
+		if ( m_bExplode == false )
+		{
+			Vector vForward;
+			AngleVectors( GetAbsAngles(), &vForward );
+			VectorNormalize ( vForward );
 
-		CEffectData	data;
+			CEffectData	data;
 
-		data.m_vOrigin = GetAbsOrigin();
-		data.m_vNormal = vForward;
-		data.m_nEntIndex = 0;
+			data.m_vOrigin = GetAbsOrigin();
+			data.m_vNormal = vForward;
+			data.m_nEntIndex = 0;
 
-		DispatchEffect( "BoltImpact", data );
+			DispatchEffect( "BoltImpact", data );
+		}
 
 		if (  UTIL_PointContents( GetAbsOrigin() ) != CONTENTS_WATER)
 		{
@@ -463,10 +466,10 @@ bool CWeaponCrossbow::Reload( void )
 void CWeaponCrossbow::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->GetAutoaimVector( AUTOAIM_2DEGREES );
-	}
+	if ( !pPlayer ) return;
+	
+
+	pPlayer->GetAutoaimVector( AUTOAIM_2DEGREES );
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;

@@ -1,14 +1,15 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_BULLSQUID_H
 #define NPC_BULLSQUID_H
 
 #include "hl1_ai_basenpc.h"
-#include "Sprite.h"
-#include "hl2_shareddefs.h"
-#include "ammodef.h"
-#include "npcevent.h"
-#include "movevars_shared.h"
-#include "ai_hint.h"
-#include "ai_senses.h"
+
 
 class CNPC_Bullsquid : public CHL1BaseNPC
 {
@@ -20,12 +21,12 @@ public:
 	Class_T	Classify( void );
 	
 	void IdleSound( void );
-	void PainSound( void );
+	void PainSound( const CTakeDamageInfo &info );
 	void AlertSound( void );
-	void DeathSound ( void );
+	void DeathSound( const CTakeDamageInfo &info );
 	void AttackSound( void );
 
-	float MaxYawSpeed ( void );
+	float MaxYawSpeed( void );
 
 	void HandleAnimEvent( animevent_t *pEvent );
 
@@ -61,7 +62,6 @@ private:
 	bool  m_fCanThreatDisplay;// this is so the squid only does the "I see a headcrab!" dance one time. 
 	float m_flLastHurtTime;// we keep track of this, because if something hurts a squid, it will forget about its love of headcrabs for a while.
 	float m_flNextSpitTime;// last time the bullsquid used the spit attack.
-	int   m_nSquidSpitSprite;
 	float m_flHungryTime;// set this is a future time to stop the monster from eating for a while. 
 	
 };

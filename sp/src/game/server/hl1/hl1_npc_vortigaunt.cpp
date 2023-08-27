@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Alien slave monster
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "beam_shared.h"
@@ -24,6 +24,7 @@
 #include "player.h"
 #include "IEffects.h"
 #include "basecombatweapon.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -56,6 +57,8 @@ enum
 	SCHED_VORTIGAUNT_ATTACK = LAST_SHARED_SCHEDULE,
 };
 
+#define VORTIGAUNT_IGNORE_PLAYER 64
+
 //=========================================================
 // Spawn
 //=========================================================
@@ -67,9 +70,9 @@ void CNPC_Vortigaunt::Spawn()
 	
 	SetRenderColor( 255, 255, 255, 255 );
 
-	SetHullType(HULL_WIDE_HUMAN);
+	SetHullType(HULL_HUMAN);
 	SetHullSizeNormal();
-
+	
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
@@ -108,12 +111,23 @@ void CNPC_Vortigaunt::Precache()
 	PrecacheModel("models/islave.mdl");
 	PrecacheModel("sprites/lgtning.vmt");
 
-	PrecacheScriptSound("Vortigaunt.Pain");
-	PrecacheScriptSound("Vortigaunt.Die");
-	PrecacheScriptSound("Vortigaunt.AttackHit");
-	PrecacheScriptSound("Vortigaunt.AttackMiss");
-	PrecacheScriptSound("Vortigaunt.ZapPowerup");
-	PrecacheScriptSound("Vortigaunt.ZapShoot");
+	PrecacheScriptSound( "Vortigaunt.Pain" );
+	PrecacheScriptSound( "Vortigaunt.Die" );
+	PrecacheScriptSound( "Vortigaunt.AttackHit" );
+	PrecacheScriptSound( "Vortigaunt.AttackMiss" );
+	PrecacheScriptSound( "Vortigaunt.ZapPowerup" );
+	PrecacheScriptSound( "Vortigaunt.ZapShoot" );
+}
+
+Disposition_t CNPC_Vortigaunt::IRelationType ( CBaseEntity *pTarget )
+{
+	if ( (pTarget->IsPlayer()) )
+	{
+		if ( (GetSpawnFlags() & VORTIGAUNT_IGNORE_PLAYER ) && !HasMemory( bits_MEMORY_PROVOKED ) )
+			 return D_NU;
+	}
+
+	return BaseClass::IRelationType( pTarget );
 }
 
 //-----------------------------------------------------------------------------
@@ -174,11 +188,12 @@ void CNPC_Vortigaunt::IdleSound( void )
 //=========================================================
 // PainSound
 //=========================================================
-void CNPC_Vortigaunt::PainSound( void )
+void CNPC_Vortigaunt::PainSound( const CTakeDamageInfo &info )
 {
 	if ( random->RandomInt( 0, 2 ) == 0)
 	{
 		CPASAttenuationFilter filter( this );
+
 		CSoundParameters params;
 		if ( GetParametersForSound( "Vortigaunt.Pain", params, NULL ) )
 		{
@@ -194,7 +209,7 @@ void CNPC_Vortigaunt::PainSound( void )
 // DieSound
 //=========================================================
 
-void CNPC_Vortigaunt::DeathSound( void )
+void CNPC_Vortigaunt::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
 	CSoundParameters params;
@@ -564,7 +579,7 @@ void CNPC_Vortigaunt::ArmBeam( int side )
 	if ( flDist == 1.0 )
 		 return;
 
-	if( tr.m_pEnt && tr.m_pEnt->m_takedamage )
+	if( tr.m_pEnt && tr.m_pEnt->m_takedamage && !tr.m_pEnt->IsNPC() )
 	{
 		CTakeDamageInfo info( this, this, 10, DMG_SHOCK );
 		CalculateMeleeDamageForce( &info, vecAim, tr.endpos );
@@ -572,7 +587,7 @@ void CNPC_Vortigaunt::ArmBeam( int side )
 		tr.m_pEnt->TakeDamage( info );
 	}
 
-	UTIL_ImpactTrace( &tr, DMG_CLUB );
+	UTIL_DecalTrace( &tr, "FadingScorch" );
 
 	m_pBeam[m_iBeams] = CBeam::BeamCreate( "sprites/lgtning.vmt", 3.0f );
 
@@ -586,6 +601,7 @@ void CNPC_Vortigaunt::ArmBeam( int side )
 
 	m_pBeam[m_iBeams]->SetBrightness( 64 );
 	m_pBeam[m_iBeams]->SetNoise( 12.8 );
+	m_pBeam[m_iBeams]->AddSpawnFlags( SF_BEAM_TEMPORARY );	
 
 	m_iBeams++;
 }
@@ -602,8 +618,11 @@ void CNPC_Vortigaunt::BeamGlow( )
 
 	for ( int i = 0; i < m_iBeams; i++ )
 	{
-		if ( m_pBeam[i]->GetBrightness() != 255 ) 
-			 m_pBeam[i]->SetBrightness( b );
+		if ( m_pBeam[i] != NULL )
+		{
+			if ( m_pBeam[i]->GetBrightness() != 255 ) 
+				m_pBeam[i]->SetBrightness( b );
+		}
 	}
 }
 
@@ -629,6 +648,7 @@ void CNPC_Vortigaunt::WackBeam( int side, CBaseEntity *pEntity )
 	m_pBeam[m_iBeams]->SetColor( 180, 255, 96 );
 	m_pBeam[m_iBeams]->SetBrightness( 255 );
 	m_pBeam[m_iBeams]->SetNoise( 12.8 );
+	m_pBeam[m_iBeams]->AddSpawnFlags( SF_BEAM_TEMPORARY );
 	m_iBeams++;
 }
 
@@ -662,6 +682,7 @@ void CNPC_Vortigaunt::ZapBeam( int side )
 	m_pBeam[m_iBeams]->SetColor( 180, 255, 96 );
 	m_pBeam[m_iBeams]->SetBrightness( 255 );
 	m_pBeam[m_iBeams]->SetNoise( 3.2f );
+	m_pBeam[m_iBeams]->AddSpawnFlags( SF_BEAM_TEMPORARY );
 	m_iBeams++;
 
 	pEntity = tr.m_pEnt;

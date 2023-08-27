@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "AI_BaseNPC.h"
@@ -22,7 +22,8 @@
 #include "actanimating.h"
 #include "npcevent.h"
 #include "func_break.h"
-#include <hl2_shareddefs.h>
+#include "hl1_shareddefs.h"
+#include "eventqueue.h"
 
 
 /*********************
@@ -56,7 +57,7 @@ BEGIN_DATADESC( CAutoTrigger )
 	DEFINE_KEYFIELD( m_globalstate, FIELD_STRING, "globalstate" ),
 
 	// Outputs
-	DEFINE_OUTPUT( m_OnTrigger, "OnTrigger" ),
+	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger"),
 END_DATADESC()
 
 
@@ -130,7 +131,7 @@ BEGIN_DATADESC( CTriggerRelay )
 	DEFINE_FUNCTION( RefireThink ),
 
 	// Outputs
-	DEFINE_OUTPUT( m_OnTrigger, "OnTrigger" ),
+	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger"),
 END_DATADESC()
 
 CTriggerRelay::CTriggerRelay( void )
@@ -267,7 +268,7 @@ BEGIN_DATADESC( CMultiManager )
 #endif
 
 	// Outputs
-	DEFINE_OUTPUT( m_OnTrigger, "OnTrigger" ),
+	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger"),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Trigger", InputManagerTrigger ),
 END_DATADESC()
 
@@ -304,7 +305,7 @@ bool CMultiManager::KeyValue( const char *szKeyName, const char *szValue )
 }
 
 
-void CMultiManager :: Spawn( void )
+void CMultiManager::Spawn( void )
 {
 	SetSolid( SOLID_NONE );
 	SetUse ( &CMultiManager::ManagerUse );
@@ -332,7 +333,6 @@ void CMultiManager :: Spawn( void )
 			}
 		}
 	}
-	//UTIL_Relink( this );
 }
 
 
@@ -348,7 +348,7 @@ bool CMultiManager::HasTarget( string_t targetname )
 
 // Designers were using this to fire targets that may or may not exist -- 
 // so I changed it to use the standard target fire code, made it a little simpler.
-void CMultiManager :: ManagerThink ( void )
+void CMultiManager::ManagerThink ( void )
 {
 	float	t;
 
@@ -373,7 +373,7 @@ void CMultiManager :: ManagerThink ( void )
 
 
 // The USE function builds the time table and starts the entity thinking.
-void CMultiManager :: ManagerUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CMultiManager::ManagerUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_hActivator = pActivator;
 	m_index = 0;
@@ -393,7 +393,7 @@ void CMultiManager :: ManagerUse ( CBaseEntity *pActivator, CBaseEntity *pCaller
 
 
 #if _DEBUG
-void CMultiManager :: ManagerReport ( void )
+void CMultiManager::ManagerReport ( void )
 {
 	int	cIndex;
 
@@ -430,12 +430,14 @@ BEGIN_DATADESC( CPendulum )
 	DEFINE_FUNCTION( Stop ),
 	DEFINE_FUNCTION( RopeTouch ),
 
+	DEFINE_FIELD( m_hEnemy, FIELD_EHANDLE ),
+
 	DEFINE_INPUTFUNC( FIELD_VOID, "Activate", InputActivate ),
 END_DATADESC()
 
-void CPendulum :: Spawn( void )
+void CPendulum::Spawn( void )
 {
-	CBaseToggle :: AxisDir();
+	CBaseToggle::AxisDir();
 
 	m_flDamp *=  0.001;
 	
@@ -459,7 +461,7 @@ void CPendulum :: Spawn( void )
 
 		if ( FBitSet( m_spawnflags, SF_BRUSH_ROTATE_START_ON ) )
 		{		
-			SetThink( &CPendulum::SUB_CallUseToggle );
+			SetThink( &CBaseEntity::SUB_CallUseToggle );
 			SetNextThink( gpGlobals->curtime + 0.1f );
 		}
 
@@ -477,7 +479,7 @@ void CPendulum :: Spawn( void )
 }
 
 
-void CPendulum :: PendulumUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CPendulum::PendulumUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( m_flSpeed )		// Pendulum is moving, stop it and auto-return if necessary
 	{
@@ -485,7 +487,7 @@ void CPendulum :: PendulumUse( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 		{		
 			float	delta;
 
-			delta = CBaseToggle :: AxisDelta( m_spawnflags, GetAbsAngles(), m_vStart );
+			delta = CBaseToggle::AxisDelta( m_spawnflags, GetAbsAngles(), m_vStart );
 
 			SetLocalAngularVelocity( m_flMaxSpeed * m_vecMoveAng );
 			SetNextThink( gpGlobals->curtime + delta / m_flMaxSpeed);
@@ -515,7 +517,7 @@ void CPendulum::InputActivate( inputdata_t &inputdata )
 	m_flDampSpeed = m_flMaxSpeed;
 }
 
-void CPendulum :: Stop( void )
+void CPendulum::Stop( void )
 {
 	SetAbsAngles( m_vStart );
 	m_flSpeed = 0;
@@ -529,11 +531,11 @@ void CPendulum::Blocked( CBaseEntity *pOther )
 	m_flTime = gpGlobals->curtime;
 }
 
-void CPendulum :: Swing( void )
+void CPendulum::Swing( void )
 {
 	float delta, dt;
 	
-	delta = CBaseToggle :: AxisDelta( m_spawnflags, GetAbsAngles(), m_vCenter );
+	delta = CBaseToggle::AxisDelta( m_spawnflags, GetAbsAngles(), m_vCenter );
 	dt = gpGlobals->curtime - m_flTime;	// How much time has passed?
 	m_flTime = gpGlobals->curtime;		// Remember the last time called
 
@@ -571,7 +573,7 @@ void CPendulum :: Swing( void )
 	}
 }
 
-void CPendulum :: Touch ( CBaseEntity *pOther )
+void CPendulum::Touch ( CBaseEntity *pOther )
 {
 	if ( m_flBlockDamage <= 0 )
 		 return;
@@ -595,7 +597,7 @@ void CPendulum :: Touch ( CBaseEntity *pOther )
 	pOther->SetAbsVelocity( vNewVel * damage );
 }
 
-void CPendulum :: RopeTouch ( CBaseEntity *pOther )
+void CPendulum::RopeTouch ( CBaseEntity *pOther )
 {
 	if ( !pOther->IsPlayer() )
 	{// not a player!
@@ -625,7 +627,7 @@ public:
 	void KeyValue( KeyValueData *pkvd );
 
 	// Bmodels don't go across transitions
-	virtual int	ObjectCaps( void ) { return CBaseToggle :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
+	virtual int	ObjectCaps( void ) { return CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 
 /*	virtual int	Save( CSave &save );
 	virtual int	Restore( CRestore &restore );
@@ -641,7 +643,6 @@ public:
 	string_t	m_iszXController;
 	string_t	m_iszYController;
 	float		m_flSpread;
-	float		m_flDelay;
 	int			m_iCount;
 	int			m_fControl;
 };
@@ -649,33 +650,33 @@ public:
 LINK_ENTITY_TO_CLASS( func_mortar_field, CFuncMortarField );
 
 BEGIN_DATADESC( CFuncMortarField )
-	DEFINE_KEYFIELD( m_iszXController,	FIELD_STRING,	"m_iszXController" ),
-	DEFINE_KEYFIELD( m_iszYController,	FIELD_STRING,	"m_iszYController" ),
-	DEFINE_KEYFIELD( m_flSpread,		FIELD_FLOAT,	"m_flSpread" ),
-	DEFINE_KEYFIELD( m_iCount,			FIELD_INTEGER,	"m_iCount" ),
-	DEFINE_KEYFIELD( m_fControl,		FIELD_INTEGER,	"m_fControl" ),
-
+	DEFINE_KEYFIELD( m_iszXController, FIELD_STRING, "m_iszXController" ),
+	DEFINE_KEYFIELD( m_iszYController, FIELD_STRING, "m_iszYController" ),
+	DEFINE_KEYFIELD( m_flSpread,		FIELD_FLOAT,   "m_flSpread" ),
+	DEFINE_KEYFIELD( m_iCount,		FIELD_INTEGER, "m_iCount" ),
+	DEFINE_KEYFIELD( m_fControl,		FIELD_INTEGER, "m_fControl" ),
+	
 	DEFINE_INPUTFUNC( FIELD_VOID,		"Trigger",		InputTrigger ),
 END_DATADESC()
 
 
 // Drop bombs from above
-void CFuncMortarField :: Spawn( void )
+void CFuncMortarField::Spawn( void )
 {
 	SetSolid( SOLID_NONE );
 	SetModel( STRING(GetModelName()) );    // set size and link into world
 	SetMoveType( MOVETYPE_NONE );
-	AddEffects(EF_NODRAW);
+	AddEffects( EF_NODRAW );
 //	SetUse( FieldUse );
 	Precache();
 }
 
 
-void CFuncMortarField :: Precache( void )
+void CFuncMortarField::Precache( void )
 {
-	PrecacheModel("sprites/lgtning.vmt");
+	PrecacheModel( "sprites/lgtning.vmt" );
 
-	PrecacheScriptSound("MortarField.Trigger");
+	PrecacheScriptSound( "MortarField.Trigger" );
 }
 
 void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
@@ -700,15 +701,15 @@ void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
 
 			if ( m_iszXController != NULL_STRING )
 			{
-				pController = gEntList.FindEntityByName( NULL, STRING(m_iszXController), NULL );
+				pController = gEntList.FindEntityByName( NULL, STRING(m_iszXController) );
 				if (pController != NULL)
 				{
 					if ( FClassnameIs( pController, "momentary_rot_button" ) )
 					{
-						CMomentaryRotButton* pXController = static_cast<CMomentaryRotButton*>(pController);
-						Vector vecNormalizedPos(pXController->GetPos(pXController->GetLocalAngles()), 0.0f, 0.0f);
+						CMomentaryRotButton *pXController = static_cast<CMomentaryRotButton*>( pController );
+						Vector vecNormalizedPos( pXController->GetPos( pXController->GetLocalAngles() ), 0.0f, 0.0f );
 						Vector vecWorldSpace;
-						CollisionProp()->NormalizedToWorldSpace(vecNormalizedPos, &vecWorldSpace);
+						CollisionProp()->NormalizedToWorldSpace( vecNormalizedPos, &vecWorldSpace );
 						vecStart.x = vecWorldSpace.x;
 					}
 					else
@@ -719,15 +720,15 @@ void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
 			}
 			if ( m_iszYController != NULL_STRING )
 			{
-				pController = gEntList.FindEntityByName( NULL, STRING(m_iszYController), NULL );
+				pController = gEntList.FindEntityByName( NULL, STRING(m_iszYController) );
 				if (pController != NULL)
 				{
 					if ( FClassnameIs( pController, "momentary_rot_button" ) )
 					{
-						CMomentaryRotButton* pYController = static_cast<CMomentaryRotButton*>(pController);
-						Vector vecNormalizedPos(0.0f, pYController->GetPos(pYController->GetLocalAngles()), 0.0f);
+						CMomentaryRotButton *pYController = static_cast<CMomentaryRotButton*>( pController );
+						Vector vecNormalizedPos( 0.0f, pYController->GetPos( pYController->GetLocalAngles() ), 0.0f );
 						Vector vecWorldSpace;
-						CollisionProp()->NormalizedToWorldSpace(vecNormalizedPos, &vecWorldSpace);
+						CollisionProp()->NormalizedToWorldSpace( vecNormalizedPos, &vecWorldSpace );
 						vecStart.y = vecWorldSpace.y;
 					}
 					else
@@ -740,8 +741,8 @@ void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
 		break;
 	}
 
-	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(), "MortarField.Trigger" );
+	CPASAttenuationFilter filter( this, ATTN_NONE );
+	EmitSound( filter, entindex(), "MortarField.Trigger" );	
 
 	float t = 2.5;
 	for (int i = 0; i < m_iCount; i++)
@@ -762,6 +763,8 @@ void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
 	}
 }
 
+#ifdef HL1_DLL
+
 class CMortar : public CHL1BaseGrenade
 {
 	DECLARE_CLASS( CMortar, CHL1BaseGrenade );
@@ -779,6 +782,7 @@ public:
 
 BEGIN_DATADESC( CMortar )
 	DEFINE_THINKFUNC( MortarExplode ),
+	//DEFINE_FIELD( m_spriteTexture, FIELD_INTEGER ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_mortar, CMortar );
@@ -800,7 +804,7 @@ void CMortar::Spawn( )
 
 void CMortar::Precache( )
 {
-	m_spriteTexture = engine->PrecacheModel( "sprites/lgtning.vmt" );
+	m_spriteTexture = PrecacheModel( "sprites/lgtning.vmt" );
 }
 
 void CMortar::MortarExplode( void )
@@ -814,69 +818,11 @@ void CMortar::MortarExplode( void )
 	trace_t tr;
 	UTIL_TraceLine( GetAbsOrigin() + Vector( 0, 0, 1024 ), GetAbsOrigin() - Vector( 0, 0, 1024 ), MASK_ALL, this, COLLISION_GROUP_NONE, &tr );
 
+
 	Explode( &tr, DMG_BLAST | DMG_MISSILEDEFENSE );
 	UTIL_ScreenShake( tr.endpos, 25.0, 150.0, 1.0, 750, SHAKE_START );
 }
-#if 0
-//=========================================================
-// Furniture - this is the cool comment I cut-and-pasted
-//=========================================================
-class CNPC_Furniture : public CAI_BaseNPC
-{
-	DECLARE_CLASS( CNPC_Furniture, CAI_BaseNPC );
-public:
-	void Spawn ( void );
-	void Die( void );
-	Class_T	 Classify ( void );
-	float MaxYawSpeed( void ){ return 0; }
-	virtual int	ObjectCaps( void ) { return (CAI_BaseNPC::ObjectCaps() & ~FCAP_ACROSS_TRANSITION); }
-};
 
-
-LINK_ENTITY_TO_CLASS( monster_furniture, CNPC_Furniture );
-
-
-//=========================================================
-// Furniture is killed
-//=========================================================
-void CNPC_Furniture :: Die ( void )
-{
-	SetThink ( &CNPC_Furniture::SUB_Remove );
-	SetNextThink( gpGlobals->curtime );
-}
-
-//=========================================================
-// This used to have something to do with bees flying, but 
-// now it only initializes moving furniture in scripted sequences
-//=========================================================
-void CNPC_Furniture::Spawn( )
-{
-	engine->PrecacheModel((char *)STRING(GetModelName()));
-	SetModel( STRING(GetModelName()) );
-
-	SetMoveType( MOVETYPE_NONE );
-	SetSolid( SOLID_BBOX );
-	m_iHealth		= 80000; //wow
-	m_takedamage = DAMAGE_AIM;
-	ClearEffects();
-	SetSequence( 0 );
-	SetCycle(0);
-
-//	pev->nextthink += 1.0;
-//	SetThink (WalkMonsterDelay);
-
-	ResetSequenceInfo( );
-	SetCycle(0);
-	NPCInit();
-}
-
-//=========================================================
-// ID's Furniture as neutral (noone will attack it)
-//=========================================================
-Class_T CNPC_Furniture::Classify ( void )
-{
-	return	CLASS_NONE;
-}
 #endif
 
 //=========================================================
@@ -887,7 +833,7 @@ class CNPC_DeadHEV : public CAI_BaseNPC
 	DECLARE_CLASS( CNPC_DeadHEV, CAI_BaseNPC );
 public:
 	void Spawn( void );
-	Class_T	Classify ( void ) { return	CLASS_HUMAN_MILITARY; }
+	Class_T	Classify ( void ) { return	CLASS_NONE; }
 	float MaxYawSpeed( void ) { return 8.0f; }
 
 	bool KeyValue( const char *szKeyName, const char *szValue );
@@ -915,7 +861,7 @@ LINK_ENTITY_TO_CLASS( monster_hevsuit_dead, CNPC_DeadHEV );
 //=========================================================
 void CNPC_DeadHEV::Spawn( void )
 {
-	engine->PrecacheModel("models/player.mdl");
+	PrecacheModel("models/player.mdl");
 	SetModel( "models/player.mdl" );
 
 	ClearEffects();
@@ -929,7 +875,8 @@ void CNPC_DeadHEV::Spawn( void )
 	{
 		Msg ( "Dead hevsuit with bad pose\n" );
 		SetSequence( 0 );
-		AddEffects(EF_BRIGHTLIGHT);
+		ClearEffects();
+		AddEffects( EF_BRIGHTLIGHT );
 	}
 
 	// Corpses have less health
@@ -977,7 +924,7 @@ void CRenderFxManager::Spawn( void )
 {
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	SetMoveType( MOVETYPE_NONE );
-	AddEffects(EF_NODRAW);
+	AddEffects( EF_NODRAW );
 }
 
 
@@ -986,7 +933,7 @@ void CRenderFxManager::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	if ( m_target != NULL_STRING )
 	{
 		CBaseEntity *pEntity = NULL;
-		while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING( m_target ), NULL ) ) != NULL )
+		while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING( m_target ) ) ) != NULL )
 		{
 			if ( !HasSpawnFlags( SF_RENDER_MASKFX ) )
 				pEntity->m_nRenderFX = m_nRenderFX;
@@ -1062,7 +1009,7 @@ void CXenPLight::Spawn( void )
 	UTIL_SetSize( this, Vector(-80,-80,0), Vector(80,80,32));
 	SetActivity( ACT_IDLE );
 	SetNextThink( gpGlobals->curtime + 0.1 );
-	SetCycle(RandomFloat(0,1));
+	SetCycle( random->RandomFloat(0,1) );
 
 	m_pGlow = CSprite::SpriteCreate( XEN_PLANT_GLOW_SPRITE, GetLocalOrigin() + Vector(0,0,(WorldAlignMins().z+WorldAlignMaxs().z)*0.5), FALSE );
 	m_pGlow->SetTransparency( kRenderGlow, GetRenderColor().r, GetRenderColor().g, GetRenderColor().b, GetRenderColor().a, m_nRenderFX );
@@ -1072,8 +1019,8 @@ void CXenPLight::Spawn( void )
 
 void CXenPLight::Precache( void )
 {
-	engine->PrecacheModel( "models/light.mdl" );
-	engine->PrecacheModel( XEN_PLANT_GLOW_SPRITE );
+	PrecacheModel( "models/light.mdl" );
+	PrecacheModel( XEN_PLANT_GLOW_SPRITE );
 }
 
 
@@ -1112,7 +1059,7 @@ void CXenPLight::Think( void )
 }
 
 
-void CXenPLight :: Touch( CBaseEntity *pOther )
+void CXenPLight::Touch( CBaseEntity *pOther )
 {
 	if ( pOther->IsPlayer() )
 	{
@@ -1125,22 +1072,23 @@ void CXenPLight :: Touch( CBaseEntity *pOther )
 }
 
 
-void CXenPLight :: LightOn( void )
+void CXenPLight::LightOn( void )
 {
-	FireTargets( STRING(m_target), this, this, USE_ON, 0 );
+	variant_t Value;
+	g_EventQueue.AddEvent( STRING( m_target ), "TurnOn", Value, 0, this, this );
 
 	if ( m_pGlow )
-	     m_pGlow->RemoveEffects(EF_NODRAW);
+	     m_pGlow->RemoveEffects( EF_NODRAW );
 }
 
 
-void CXenPLight :: LightOff( void )
+void CXenPLight::LightOff( void )
 {
-	FireTargets( STRING(m_target), this, this, USE_OFF, 0 );
-
+	variant_t Value;
+	g_EventQueue.AddEvent( STRING( m_target ), "TurnOff", Value, 0, this, this );
 
 	if ( m_pGlow )
-		 m_pGlow->AddEffects(EF_NODRAW);
+		 m_pGlow->AddEffects( EF_NODRAW );
 }
 
 
@@ -1166,7 +1114,7 @@ void CXenHair::Spawn( void )
 	
 	if ( !HasSpawnFlags( SF_HAIR_SYNC ) )
 	{
-		SetCycle(RandomFloat( 0,1));
+		SetCycle( random->RandomFloat( 0,1) );
 		m_flPlaybackRate = random->RandomFloat( 0.7, 1.4 );
 	}
 	ResetSequenceInfo( );
@@ -1180,13 +1128,13 @@ void CXenHair::Spawn( void )
 void CXenHair::Think( void )
 {
 	StudioFrameAdvance();
-	SetNextThink( gpGlobals->curtime + 0.5 );
+	SetNextThink( gpGlobals->curtime + 0.1 );
 }
 
 
 void CXenHair::Precache( void )
 {
-	engine->PrecacheModel( "models/hair.mdl" );
+	PrecacheModel( "models/hair.mdl" );
 }
 
 class CXenTreeTrigger : public CBaseEntity
@@ -1198,7 +1146,7 @@ public:
 };
 LINK_ENTITY_TO_CLASS( xen_ttrigger, CXenTreeTrigger );
 
-CXenTreeTrigger *CXenTreeTrigger :: TriggerCreate( CBaseEntity *pOwner, const Vector &position )
+CXenTreeTrigger *CXenTreeTrigger::TriggerCreate( CBaseEntity *pOwner, const Vector &position )
 {
 	CXenTreeTrigger *pTrigger = CREATE_ENTITY( CXenTreeTrigger, "xen_ttrigger" ); 
 	pTrigger->SetAbsOrigin( position );
@@ -1233,12 +1181,9 @@ public:
 	int			OnTakeDamage( const CTakeDamageInfo &info ) { Attack(); return 0; }
 	void		HandleAnimEvent( animevent_t *pEvent );
 	void		Attack( void );	
-	Class_T			Classify( void ) { return CLASS_ALIEN_PREDATOR; } //CLASS_BARNACLE
+	Class_T			Classify( void ) { return CLASS_ALIEN_PREDATOR; }
 
 	DECLARE_DATADESC();
-
-	static const char *pAttackHitSounds[];
-	static const char *pAttackMissSounds[];
 
 private:
 	CXenTreeTrigger	*m_pTrigger;
@@ -1263,7 +1208,7 @@ void CXenTree::Spawn( void )
 	UTIL_SetSize( this, Vector(-30,-30,0), Vector(30,30,188));
 	SetActivity( ACT_IDLE );
 	SetNextThink( gpGlobals->curtime + 0.1 );
-	SetCycle( RandomFloat( 0,1 ) );
+	SetCycle( random->RandomFloat( 0,1 ) );
 	m_flPlaybackRate = random->RandomFloat( 0.7, 1.4 );
 
 	Vector triggerPosition, vForward;
@@ -1276,11 +1221,11 @@ void CXenTree::Spawn( void )
 	UTIL_SetSize( m_pTrigger, Vector( -24, -24, 0 ), Vector( 24, 24, 128 ) );
 }
 
-
 void CXenTree::Precache( void )
 {
-	engine->PrecacheModel( "models/tree.mdl" );
-	engine->PrecacheModel( XEN_PLANT_GLOW_SPRITE );
+	PrecacheModel( "models/tree.mdl" );
+	PrecacheModel( XEN_PLANT_GLOW_SPRITE );
+
 	PrecacheScriptSound( "XenTree.AttackMiss" );
 	PrecacheScriptSound( "XenTree.AttackHit" );
 }
@@ -1348,7 +1293,7 @@ void CXenTree::HandleAnimEvent( animevent_t *pEvent )
 	BaseClass::HandleAnimEvent( pEvent );
 }
 
-void CXenTree :: Think( void )
+void CXenTree::Think( void )
 {
 	StudioFrameAdvance();
 	SetNextThink( gpGlobals->curtime + 0.1 );
@@ -1410,7 +1355,7 @@ class CXenHull : public CPointEntity
 	DECLARE_CLASS( CXenHull, CPointEntity );
 public:
 	static CXenHull	*CreateHull( CBaseEntity *source, const Vector &mins, const Vector &maxs, const Vector &offset );
-	Class_T			Classify( void ) { return CLASS_ALIEN_PREDATOR; } //CLASS_BARNACLE
+	Class_T			Classify( void ) { return CLASS_ALIEN_PREDATOR; }
 };
 
 CXenHull *CXenHull::CreateHull( CBaseEntity *source, const Vector &mins, const Vector &maxs, const Vector &offset )
@@ -1424,7 +1369,6 @@ CXenHull *CXenHull::CreateHull( CBaseEntity *source, const Vector &mins, const V
 	UTIL_SetSize( pHull, mins, maxs );
 	pHull->SetRenderColorA( 0 );
 	pHull->m_nRenderMode  = kRenderTransTexture;
-	
 	return pHull;
 }
 
@@ -1475,7 +1419,7 @@ void CXenSporeLarge::Spawn( void )
 	}
 }
 
-void CXenSpore :: Spawn( void )
+void CXenSpore::Spawn( void )
 {
 	Precache();
 
@@ -1486,7 +1430,7 @@ void CXenSpore :: Spawn( void )
 
 //	SetActivity( ACT_IDLE );
 	SetSequence( 0 );
-	SetCycle( RandomFloat( 0.0f, 1.0f) );
+	SetCycle( random->RandomFloat( 0.0f, 1.0f ) );
 	m_flPlaybackRate = random->RandomFloat( 0.7f, 1.4f );
 	ResetSequenceInfo( );
 	SetNextThink( gpGlobals->curtime + random->RandomFloat( 0.1f, 0.4f ) );	// Load balance these a bit
@@ -1502,11 +1446,11 @@ const char *CXenSpore::pModelNames[] =
 
 void CXenSpore::Precache( void )
 {
-	engine->PrecacheModel( (char *)pModelNames[m_nSkin] );
+	PrecacheModel( (char *)pModelNames[m_nSkin] );
 }
 
 
-void CXenSpore :: Touch( CBaseEntity *pOther )
+void CXenSpore::Touch( CBaseEntity *pOther )
 {
 }
 
@@ -1533,7 +1477,7 @@ void CHL1Gib::WaitTillLand ( void )
 		AddSolidFlags( FSOLID_NOT_SOLID );*/
 		
 		SetNextThink( gpGlobals->curtime + m_lifeTime );
-		SetThink ( &CHL1Gib::SUB_FadeOut );
+		SetThink ( &CBaseEntity::SUB_FadeOut );
 
 		// If you bleed, you stink!
 	/*	if ( m_bloodColor != DONT_BLEED )
@@ -1660,6 +1604,11 @@ BEGIN_DATADESC( CHL1Gib )
 	DEFINE_FUNCTION( BounceGibTouch ),
 	DEFINE_FUNCTION( StickyGibTouch ),
 	DEFINE_FUNCTION( WaitTillLand ),
+
+	DEFINE_FIELD( m_bloodColor, FIELD_INTEGER ),
+	DEFINE_FIELD( m_cBloodDecals, FIELD_INTEGER ),
+	DEFINE_FIELD( m_material, FIELD_INTEGER ),
+	DEFINE_FIELD( m_lifeTime, FIELD_FLOAT ),
 END_DATADESC()
 
 #define SF_ENDSECTION_USEONLY		0x0001
@@ -1692,7 +1641,7 @@ void CTriggerEndSection::Spawn( void )
 
 void CTriggerEndSection::InputEndSection( inputdata_t &data )
 {
-	CBaseEntity *pPlayer = UTIL_PlayerByIndex( 1 );
+	CBaseEntity *pPlayer = UTIL_GetLocalPlayer();
 
 	if ( pPlayer )
 	{

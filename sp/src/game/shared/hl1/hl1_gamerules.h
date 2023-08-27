@@ -1,9 +1,4 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: The HL2 Game rules object
 //
@@ -14,7 +9,7 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #ifndef HL1_GAMERULES_H
 #define HL1_GAMERULES_H
@@ -35,16 +30,14 @@ public:
 
 	DECLARE_CLASS( CHalfLife1, CSingleplayRules );
 
-	
+	// Damage Queries.
+	virtual int		Damage_GetShowOnHud( void );
+
 	// Client/server shared implementation.
 	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );
 
 
-#ifdef CLIENT_DLL
-
-	virtual void OnDataChanged( DataUpdateType_t type );
-
-#else
+#ifndef CLIENT_DLL
 	
 	CHalfLife1();
 	virtual ~CHalfLife1() {}
@@ -54,13 +47,17 @@ public:
 
 	virtual void			InitDefaultAIRelationships( void );
 	virtual const char *	AIClassText(int classType);
-	virtual const char *	GetGameDescription( void ) { return "Half-Life 1"; }
+	virtual const char *	GetGameDescription( void );
+	virtual float			FlPlayerFallDamage( CBasePlayer *pPlayer );
 
 	// Ammo
 	virtual void			PlayerThink( CBasePlayer *pPlayer );
 	bool					CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon );
 
 	void					RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore );
+
+	int						DefaultFOV( void ) { return 90; }
+
 #endif
 
 };

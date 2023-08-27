@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_VORTIGAUNT_H
 #define NPC_VORTIGAUNT_H
 
@@ -17,8 +24,8 @@ public:
 
 	void AlertSound( void );
 	void IdleSound( void );
-	void PainSound( void );
-	void DeathSound( void );
+	void PainSound( const CTakeDamageInfo &info );
+	void DeathSound( const CTakeDamageInfo &info );
 	
 	int	 GetSoundInterests ( void );
 	
@@ -44,7 +51,9 @@ public:
 	void ClearBeams( void );
 
 	void HandleAnimEvent( animevent_t *pEvent );
-	
+
+	virtual Disposition_t IRelationType ( CBaseEntity *pTarget );
+
 	DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
 

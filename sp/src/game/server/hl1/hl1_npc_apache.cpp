@@ -1,12 +1,35 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
-#include	"hl1_ai_basenpc.h"
-#include	"hl1_CBaseHelicopter.h"
-#include	"beam_shared.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
+#include	"activitylist.h"
+#include	"hl1_basegrenade.h"
+#include	"animation.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
 #include	"ammodef.h"
 #include	"soundenvelope.h"
-#include	"grenade_homer.h"
-#include	"hl1_basegrenade.h"
+#include	"hl1_cbasehelicopter.h"
+#include	"ndebugoverlay.h"
 #include	"smoke_trail.h"
+#include	"beam_shared.h"
+#include	"grenade_homer.h"
 
 #define	 HOMER_TRAIL0_LIFE		0.1
 #define	 HOMER_TRAIL1_LIFE		0.2
@@ -14,11 +37,14 @@
 
 #define  SF_NOTRANSITION 128
 
+extern short g_sModelIndexFireball;
+
 class CNPC_Apache : public CBaseHelicopter
 {
 	DECLARE_CLASS( CNPC_Apache, CBaseHelicopter );
 public:
-	
+	DECLARE_DATADESC();
+
 	void Spawn( void );
 	void Precache( void );
 
@@ -80,7 +106,6 @@ public:
 	
 	int m_iSoundState; // don't save this
 
-	int m_iSpriteTexture;
 	int m_iExplode;
 	int m_iBodyGibs;
 	int	m_nDebrisModel;
@@ -91,15 +116,38 @@ public:
 	CBeam *m_pBeam;
 };
 
-void CNPC_Apache :: Spawn( void )
+BEGIN_DATADESC( CNPC_Apache )
+	DEFINE_FIELD( m_iRockets, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flForce, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flNextRocket, FIELD_TIME ),
+	DEFINE_FIELD( m_vecTarget, FIELD_VECTOR ),
+	DEFINE_FIELD( m_posTarget, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecDesired, FIELD_VECTOR ),
+	DEFINE_FIELD( m_posDesired, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecGoal, FIELD_VECTOR ),
+	DEFINE_FIELD( m_angGun, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flLastSeen, FIELD_TIME ),
+	DEFINE_FIELD( m_flPrevSeen, FIELD_TIME ),
+//	DEFINE_FIELD( m_iSoundState, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iSpriteTexture, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iExplode, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_iBodyGibs, FIELD_INTEGER ),
+	DEFINE_FIELD( m_pBeam, FIELD_CLASSPTR ),
+	DEFINE_FIELD( m_flGoalSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_iDoSmokePuff, FIELD_INTEGER ),
+END_DATADESC()
+
+void CNPC_Apache::Spawn( void )
 {
 	Precache( );
 	SetModel( "models/apache.mdl" );
 
-	UTIL_SetSize( this, Vector( -256, -256, 0 ), Vector( 256, 256, 128 ) );
-	UTIL_SetOrigin( this, GetAbsOrigin() );
+	UTIL_SetSize( this, Vector( -32, -32, -32 ), Vector( 32, 32, 32 ) );
 
-	m_spawnflags &= ~SF_AWAITINPUT;
+	Vector vecSurroundingMins( -300, -300, -172);
+	Vector vecSurroundingMaxs(300, 300, 8);
+	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
+
 	BaseClass::Spawn();
 	m_iHealth			= 100;
 
@@ -126,13 +174,16 @@ int CNPC_Apache::ObjectCaps( void )
 
 void CNPC_Apache::Precache( void )
 {
+	// Get to tha chopper!
 	PrecacheModel( "models/apache.mdl" );
 	PrecacheScriptSound( "Apache.Rotor" );
 	m_nDebrisModel = PrecacheModel(   "models/metalplategibs_green.mdl" );
 
+	// Gun
 	PrecacheScriptSound( "Apache.FireGun" );
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound"); 
 
+	// Rockets
 	UTIL_PrecacheOther( "grenade_homer" );
 	PrecacheScriptSound( "Apache.RPG" );
 	PrecacheModel( "models/weapons/w_missile.mdl" );
@@ -145,7 +196,7 @@ void CNPC_Apache::InitializeRotorSound( void )
 	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
 
 	CPASAttenuationFilter filter( this );
-	m_pRotorSound	= controller.SoundCreate( filter, entindex(), CHAN_STATIC, "apache/ap_rotor2.wav", 0.2 );
+	m_pRotorSound	= controller.SoundCreate( filter, entindex(), "Apache.Rotor" );
 
 	BaseClass::InitializeRotorSound();
 }
@@ -155,7 +206,7 @@ void CNPC_Apache::Flight( void )
 	StudioFrameAdvance( );
 
 	float flDistToDesiredPosition = (GetAbsOrigin() - m_vecDesiredPosition).Length();
-	//NDebugOverlay::Line(GetAbsOrigin(), GetDesiredPosition(), 0,0,255, true, 0.1);
+	// NDebugOverlay::Line(GetAbsOrigin(), m_vecDesiredPosition, 0,0,255, true, 0.1);
 
 	if (m_flGoalSpeed < 800 )
 		m_flGoalSpeed += GetAcceleration();
@@ -182,7 +233,7 @@ void CNPC_Apache::Flight( void )
 	}
 	else
 	{
-		AngleVectors( GetGoalEnt()->GetAbsAngles(), &m_vecGoalOrientation);
+		AngleVectors( GetGoalEnt()->GetAbsAngles(), &m_vecGoalOrientation );
 	}
 //	SetGoalOrientation( vecGoalOrientation );
 	
@@ -196,11 +247,11 @@ void CNPC_Apache::Flight( void )
 			// the desired position, so move on.
 
 			// Fire target that I've reached my goal
-			m_AtTarget.FireOutput( GetGoalEnt(), this);
+			m_AtTarget.FireOutput( GetGoalEnt(), this );
 
 			OnReachedTarget( GetGoalEnt() );
 
-			SetGoalEnt( gEntList.FindEntityByName( NULL, GetGoalEnt()->m_target, NULL));
+			SetGoalEnt( gEntList.FindEntityByName( NULL, GetGoalEnt()->m_target ) );
 
 			if (GetGoalEnt())
 			{
@@ -387,15 +438,8 @@ bool CNPC_Apache::FireGun( )
 
 	VectorAngles( vecOut, angles );
 	
-	angles.x = -angles.x;
-	if (angles.y > 180)
-		angles.y = angles.y - 360;
-	if (angles.y < -180)
-		angles.y = angles.y + 360;
-	if (angles.x > 180)
-		angles.x = angles.x - 360;
-	if (angles.x < -180)
-		angles.x = angles.x + 360;
+	angles.y = AngleNormalize(angles.y);
+	angles.x = AngleNormalize(angles.x);	
 
 	if (angles.x > m_angGun.x)
 		m_angGun.x = min( angles.x, m_angGun.x + 12 );
@@ -406,8 +450,13 @@ bool CNPC_Apache::FireGun( )
 	if (angles.y < m_angGun.y)
 		m_angGun.y = max( angles.y, m_angGun.y - 12 );
 
+	// hacks - shouldn't be hardcoded, oh well.
+	// limit it so it doesn't pop if you try to set it to the max value
+	m_angGun.y = clamp( m_angGun.y, -89.9, 89.9 );
+	m_angGun.x = clamp( m_angGun.x, -9.9, 44.9 );
+
 	m_angGun.y = SetBoneController( 0, m_angGun.y );
-	m_angGun.x = SetBoneController( 1, -m_angGun.x );
+	m_angGun.x = SetBoneController( 1, m_angGun.x );
 
 	Vector posBarrel;
 	QAngle angBarrel;
@@ -416,14 +465,15 @@ bool CNPC_Apache::FireGun( )
 	
 	VectorNormalize( vecGun );
 
-//	NDebugOverlay::Line( posBarrel, posBarrel + vecGun * 4098, 0,255,0, false, 0.1);
-
 	if ( DotProduct( vecGun, vecTarget ) > 0.98 )
 	{
 		CPASAttenuationFilter filter( this, 0.2f );
 
-		EmitSound( filter, entindex(), "Apache.FireGun" );
-		FireBullets( 1, posBarrel, vecGun, VECTOR_CONE_2DEGREES, 8192, m_iAmmoType, 2 );
+		EmitSound( filter, entindex(), "Apache.FireGun" );//<<TEMP>>temp sound
+
+		// gun is a bit dodgy, just fire at the target if we are close
+		FireBullets( 1, posBarrel, vecTarget, VECTOR_CONE_4DEGREES, 8192, m_iAmmoType, 2 );
+
 		return true;
 	}
 
@@ -535,7 +585,10 @@ void CNPC_Apache::AimRocketGun( void )
 void CNPC_Apache::LaunchRocket( Vector &viewDir, int damage, int radius, Vector vecLaunchPoint )
 {
 
-	CGrenadeHomer *pGrenade = CGrenadeHomer::CreateGrenadeHomer( MAKE_STRING("models/weapons/w_missile.mdl"), MAKE_STRING("Apache.RPG"), vecLaunchPoint, vec3_angle, edict());
+	CGrenadeHomer *pGrenade = CGrenadeHomer::CreateGrenadeHomer( 
+		MAKE_STRING("models/weapons/w_missile.mdl"), 
+		MAKE_STRING( "Apache.RPG" ), 
+		vecLaunchPoint, vec3_angle, edict() );
 	pGrenade->Spawn( );
 	pGrenade->SetHoming(MISSILE_HOMING_STRENGTH, MISSILE_HOMING_DELAY,
 						MISSILE_HOMING_RAMP_UP,	MISSILE_HOMING_DURATION,
@@ -556,11 +609,25 @@ void CNPC_Apache::DyingThink( void )
 	StudioFrameAdvance( );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if( random->RandomInt( 0, 50 ) == 1 )
+	if( gpGlobals->curtime > m_flNextCrashExplosion )
 	{
-		Vector vecSize = Vector( 60, 60, 30 );
-		CPVSFilter filter( GetAbsOrigin() );
-		te->BreakModel( filter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
+		CPASFilter pasFilter( GetAbsOrigin() );
+		Vector pos;
+
+		pos = GetAbsOrigin();
+		pos.x += random->RandomFloat( -150, 150 );
+		pos.y += random->RandomFloat( -150, 150 );
+		pos.z += random->RandomFloat( -150, -50 );
+
+		te->Explosion( pasFilter, 0.0,	&pos, g_sModelIndexFireball, 10, 15, TE_EXPLFLAG_NONE, 100, 0 );
+		
+		Vector vecSize = Vector( 500, 500, 60 );
+		CPVSFilter pvsFilter( GetAbsOrigin() );
+
+		te->BreakModel( pvsFilter, 0.0, GetAbsOrigin(), vec3_angle, vecSize, vec3_origin, 
+			m_nDebrisModel, 100, 0, 2.5, BREAK_METAL );
+
+		m_flNextCrashExplosion = gpGlobals->curtime + random->RandomFloat( 0.3, 0.5 );
 	}
 
 	QAngle angVel = GetLocalAngularVelocity();
@@ -569,172 +636,8 @@ void CNPC_Apache::DyingThink( void )
 		angVel.y *= 1.1;
 		SetLocalAngularVelocity( angVel );
 	}
-	Vector vecImpulse( 0, 0, 0 );
-	// add gravity
-	vecImpulse.z -= 38.4; // 32ft/sec
+
+	Vector vecImpulse( 0, 0, -38.4 );	// gravity - 32ft/sec
 	ApplyAbsVelocityImpulse( vecImpulse );
-
 }
 
-
-
-
-
-//**************************************************************************************
-class CApacheHVR : public CHL1BaseGrenade
-{
-	DECLARE_CLASS( CApacheHVR, CHL1BaseGrenade );
-
-	void Spawn( void );
-	void Precache( void );
-	void IgniteThink( void );
-	void AccelerateThink( void );
-	void StartRocketTrail( void );
-	void Detonate( CBaseEntity *pOther );
-
-	DECLARE_DATADESC();
-
-	int m_iTrail;
-	Vector m_vecForward;
-
-	float m_flDamage;
-	EHANDLE		m_hSmokeTrail[2];
-};
-LINK_ENTITY_TO_CLASS( hvr_rocket, CApacheHVR );
-
-BEGIN_DATADESC( CApacheHVR )
-//	DEFINE_FIELD( CApacheHVR, m_iTrail, FIELD_INTEGER ),	// Dont' save, precache
-	DEFINE_FIELD( m_vecForward, FIELD_VECTOR ),
-	DEFINE_THINKFUNC( IgniteThink ),
-	DEFINE_THINKFUNC( AccelerateThink ),
-	DEFINE_ENTITYFUNC( Detonate ),
-END_DATADESC()
-
-
-void CApacheHVR::StartRocketTrail( void )
-{
-	SmokeTrail *pSmokeTrail =  SmokeTrail::CreateSmokeTrail();
-
-	if( pSmokeTrail )
-	{
-		pSmokeTrail->m_SpawnRate = 500;
-		pSmokeTrail->m_ParticleLifetime = HOMER_TRAIL0_LIFE;
-		pSmokeTrail->m_StartColor.Init(0.7, 0.7, 0.7);
-		pSmokeTrail->m_EndColor.Init(0.5,0.5,0.5);
-		pSmokeTrail->m_StartSize = 10;
-		pSmokeTrail->m_EndSize = 10;
-		pSmokeTrail->m_SpawnRadius = 1;
-		pSmokeTrail->m_MinSpeed = 15;
-		pSmokeTrail->m_MaxSpeed = 25;
-		pSmokeTrail->SetLifetime(12);
-		pSmokeTrail->FollowEntity(this);
-
-		m_hSmokeTrail[0] = pSmokeTrail;
-	}
-
-	pSmokeTrail = SmokeTrail::CreateSmokeTrail();
-
-	if( pSmokeTrail )
-	{
-		pSmokeTrail->m_SpawnRate = 150;
-		pSmokeTrail->m_ParticleLifetime = HOMER_TRAIL2_LIFE;
-		pSmokeTrail->m_StartColor.Init(0.7, 0.7, 0.7);
-		pSmokeTrail->m_EndColor.Init(0.5,0.5,0.5);
-		pSmokeTrail->m_StartSize = 12;
-		pSmokeTrail->m_EndSize = 20;
-		pSmokeTrail->m_SpawnRadius = 1;
-		pSmokeTrail->m_MinSpeed = 15;
-		pSmokeTrail->m_MaxSpeed = 25;
-		pSmokeTrail->SetLifetime(12);
-		pSmokeTrail->FollowEntity(this);
-
-		m_hSmokeTrail[1] = pSmokeTrail;
-	}
-}
-
-void CApacheHVR :: Detonate ( CBaseEntity *pOther )
-{
-	for ( int i = 0; i < 2; i++ )
-	{
-		if( m_hSmokeTrail[i] )
-		  ((SmokeTrail*)(CBaseEntity*)m_hSmokeTrail[i])->SetEmit(false);
-	}	
-
-	ExplodeTouch( pOther );
-	
-}
-void CApacheHVR :: Spawn( void )
-{
-	Precache( );
-	// motor
-	SetSolid( SOLID_BBOX );
-	SetMoveType( MOVETYPE_FLY );
-
-	SetModel( "models/HVR.mdl" );
-	UTIL_SetSize(this, Vector( 0, 0, 0), Vector(0, 0, 0));
-	UTIL_SetOrigin( this, GetAbsOrigin() );
-
-	SetThink( &CApacheHVR::IgniteThink );
-	SetTouch( &CApacheHVR::Detonate );
-
-	
-	AngleVectors( GetAbsAngles(), &m_vecForward );
-	SetGravity( 0.5 );
-
-	SetNextThink( gpGlobals->curtime + 0.1f );
-
-	m_flDamage = 150;
-}
-
-
-void CApacheHVR :: Precache( void )
-{
-	PrecacheModel( "models/HVR.mdl" );
-	m_iTrail = PrecacheModel( "sprites/smoke.vmt" );
-	PrecacheSound ( "ApacheHVR.Ignite" );
-}
-
-void TE_BeamFollow( int msg_dest, float delay, const Vector *origin, const edict_t *recipient, int iEntIndex,
-	int modelIndex, int haloIndex, float haloScale, float life, float width, float endWidth, 
-	float fadeLength,float r, float g, float b, float a, float brightness );
-
-void CApacheHVR :: IgniteThink( void  )
-{
-	// make rocket sound
-	CPASAttenuationFilter filter( this, 0.5f );
-	EmitSound( filter, entindex(), "ApacheHVR.Ignite" );
-
-	StartRocketTrail();
-
-	// set to accelerate
-	SetThink( &CApacheHVR::AccelerateThink );
-	SetNextThink( gpGlobals->curtime + 0.1f );
-}
-
-
-void CApacheHVR :: AccelerateThink( void  )
-{
-	// check world boundaries
-	if ( GetAbsOrigin().x < -4096 || GetAbsOrigin().x > 4096 || GetAbsOrigin().y < -4096 || GetAbsOrigin().y > 4096 || GetAbsOrigin().z < -4096 || GetAbsOrigin().z > 4096 )
-	{
-		 UTIL_Remove( this );
-		 return;
-	}
-
-	// accelerate
-	float flSpeed = GetAbsVelocity().Length();
-
-	if ( flSpeed < 1800 )
-	{
-		 SetAbsVelocity( GetAbsVelocity() + m_vecForward * 200 );
-	}
-
-	Vector vVel = GetAbsVelocity();
-	VectorNormalize ( vVel );
-
-	QAngle angTmp;
-	VectorAngles( vVel, angTmp );
-	SetAbsAngles( angTmp );
-
-	SetNextThink( gpGlobals->curtime + 0.1f );
-}

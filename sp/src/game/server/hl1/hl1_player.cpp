@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Player for HL1.
 //
@@ -20,7 +20,6 @@
 #include "ndebugoverlay.h"
 #include "globals.h"
 #include "ai_interactions.h"
-#include "engine/ienginesound.h"
 #include "vphysics/player_controller.h"
 #include "vphysics/constraints.h"
 #include "predicted_viewmodel.h"
@@ -537,13 +536,28 @@ void CHL1_Player::UpdatePullingObject()
 //-----------------------------------------------------------------------------
 void CHL1_Player::Spawn(void)
 {
-	SetModel( "models/player.mdl" );
-	SetMoveType( MOVETYPE_WALK );
-	RemoveSolidFlags( FSOLID_NOT_SOLID );
+	// In multiplayer ,this is handled in the super class
+	if ( !g_pGameRules->IsMultiplayer () )
+		SetModel( "models/player.mdl" );
 
-	SetMaxSpeed( 320 );
-	
 	BaseClass::Spawn();
+
+	//
+	// Our player movement speed is set once here. This will override the cl_xxxx
+	// cvars unless they are set to be lower than this.
+	//
+	SetMaxSpeed( 1000 );
+
+	SetDefaultFOV( 0 );
+
+	m_nFlashBattery = 99;
+	m_flFlashLightTime = 1;
+
+	m_flFieldOfView	= 0.5;
+
+	StopPullingObject();
+
+	m_Local.m_iHideHUD = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -604,7 +618,7 @@ void CHL1_Player::CheckTimeBasedDamage( void )
 				// after the player has been drowning and finally takes a breath
 				if (m_idrowndmg > m_idrownrestored)
 				{
-					int idif = min(m_idrowndmg - m_idrownrestored, 10);
+					int idif = MIN(m_idrowndmg - m_idrownrestored, 10);
 
 					TakeHealth(idif, DMG_GENERIC);
 					m_idrownrestored += idif;
@@ -670,7 +684,7 @@ static CPhysicsPlayerCallback playerCallback;
 //-----------------------------------------------------------------------------
 void CHL1_Player::InitVCollision( const Vector &vecAbsOrigin, const Vector &vecAbsVelocity )
 {
-	BaseClass::InitVCollision(vecAbsOrigin, vecAbsVelocity);
+	BaseClass::InitVCollision( vecAbsOrigin, vecAbsVelocity );
 
 	// Setup the HL2 specific callback.
 	GetPhysicsController()->SetEventHandler( &playerCallback );
@@ -775,7 +789,7 @@ int	CHL1_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	// go take the damage first
 
 	
-	if (!g_pGameRules->FPlayerCanTakeDamage(this, info.GetAttacker(), inputInfo))
+	if ( !g_pGameRules->FPlayerCanTakeDamage( this, info.GetAttacker(), info ) )
 	{
 		// Refuse the damage
 		return 0;
@@ -1009,6 +1023,19 @@ int CHL1_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	int nRet;
 	int nSavedHealth = m_iHealth;
 
+	// Drown
+	if( info.GetDamageType() & DMG_DROWN )
+	{
+		if( m_idrowndmg == m_idrownrestored )
+		{
+			EmitSound( "Player.DrownStart" );
+		}
+		else
+		{
+			EmitSound( "Player.DrownContinue" );
+		}
+	}
+
 	nRet = BaseClass::OnTakeDamage_Alive( info );
 
 	if ( GetFlags() & FL_GODMODE )
@@ -1216,173 +1243,6 @@ void CHL1_Player::OnRestore( void )
 	{
 		m_iTrain |= TRAIN_NEW;
 	}
-}
-
-void CHL1_Player::SetAnimation( PLAYER_ANIM playerAnim )
-{
-	int animDesired;
-	char szAnim[64];
-
-	float speed;
-
-	speed = GetAbsVelocity().Length2D();
-
-	if (GetFlags() & (FL_FROZEN|FL_ATCONTROLS))
-	{
-		speed = 0;
-		playerAnim = PLAYER_IDLE;
-	}
-
-	Activity idealActivity = ACT_WALK;// TEMP!!!!!
-
-	// This could stand to be redone. Why is playerAnim abstracted from activity? (sjb)
-	if (playerAnim == PLAYER_JUMP)
-	{
-		idealActivity = ACT_HOP;
-	}
-	else if (playerAnim == PLAYER_SUPERJUMP)
-	{
-		idealActivity = ACT_LEAP;
-	}
-	else if (playerAnim == PLAYER_DIE)
-	{
-		if ( m_lifeState == LIFE_ALIVE )
-		{
-			idealActivity = GetDeathActivity();
-		}
-	}
-	else if (playerAnim == PLAYER_ATTACK1)
-	{
-		if ( GetActivity() == ACT_HOVER ||
-			GetActivity() == ACT_SWIM		||
-			GetActivity() == ACT_HOP		||
-			GetActivity() == ACT_LEAP		||
-			GetActivity() == ACT_DIESIMPLE )
-		{
-			idealActivity = GetActivity();
-		}
-		else
-		{
-			idealActivity = ACT_RANGE_ATTACK1;
-		}
-	}
-	else if (playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK)
-	{
-		if ( !( GetFlags() & FL_ONGROUND ) && (GetActivity() == ACT_HOP || GetActivity() == ACT_LEAP) )	// Still jumping
-		{
-			idealActivity = GetActivity();
-		}
-		else if ( GetWaterLevel() > 1 )
-		{
-			if ( speed == 0 )
-				idealActivity = ACT_HOVER;
-			else
-				idealActivity = ACT_SWIM;
-		}
-		else
-		{
-			idealActivity = ACT_WALK;
-		}
-	}
-	else if (playerAnim == PLAYER_RELOAD)
-	{
-		Q_strncpy(szAnim, "reload_", sizeof(szAnim));
-		Q_strncat(szAnim, m_szAnimExtension, sizeof(szAnim), COPY_ALL_CHARACTERS);
-
-		animDesired = LookupSequence(szAnim);
-		if (animDesired == -1)
-			animDesired = 0;
-
-		if (GetSequence() != animDesired || !SequenceLoops())
-			SetCycle(0);
-
-		if (!SequenceLoops())
-			IncrementInterpolationFrame();
-
-		SetActivity(idealActivity);
-		ResetSequence(animDesired);
-	}
-	
-	if (idealActivity == ACT_RANGE_ATTACK1)
-	{
-		if ( GetFlags() & FL_DUCKING )	// crouching
-		{
-			Q_strncpy( szAnim, "crouch_shoot_" ,sizeof(szAnim));
-		}
-		else
-		{
-			Q_strncpy( szAnim, "ref_shoot_" ,sizeof(szAnim));
-		}
-		Q_strncat( szAnim, m_szAnimExtension ,sizeof(szAnim), COPY_ALL_CHARACTERS );
-		animDesired = LookupSequence( szAnim );
-		if (animDesired == -1)
-			animDesired = 0;
-
-		if ( GetSequence() != animDesired || !SequenceLoops() )
-		{
-			SetCycle( 0 );
-		}
-
-		// Tracker 24588:  In single player when firing own weapon this causes eye and punchangle to jitter
-		//fuckoff
-		if (!SequenceLoops())
-		{
-			IncrementInterpolationFrame();
-		}
-
-		SetActivity( idealActivity );
-		ResetSequence( animDesired );
-	}
-	else if (idealActivity == ACT_WALK)
-	{
-		if (GetActivity() != ACT_RANGE_ATTACK1 || IsActivityFinished())
-		{
-			if ( GetFlags() & FL_DUCKING )	// crouching
-			{
-				Q_strncpy( szAnim, "crouch_aim_" ,sizeof(szAnim));
-			}
-			else
-			{
-				Q_strncpy( szAnim, "ref_aim_" ,sizeof(szAnim));
-			}
-			Q_strncat( szAnim, m_szAnimExtension, sizeof(szAnim), COPY_ALL_CHARACTERS );
-			animDesired = LookupSequence( szAnim );
-			if (animDesired == -1)
-				animDesired = 0;
-			SetActivity( ACT_WALK );
-		}
-		else
-		{
-			animDesired = GetSequence();
-		}
-	}
-	else
-	{
-		if ( GetActivity() == idealActivity)
-			return;
-	
-		SetActivity( idealActivity );
-
-		animDesired = SelectWeightedSequence( GetActivity() );
-
-		// Already using the desired animation?
-		if (GetSequence() == animDesired)
-			return;
-
-		ResetSequence( animDesired );
-		SetCycle( 0 );
-		return;
-	}
-
-	// Already using the desired animation?
-	if (GetSequence() == animDesired)
-		return;
-
-	//Msg( "Set animation to %d\n", animDesired );
-	// Reset to first frame of desired animation
-	ResetSequence( animDesired );
-	SetCycle( 0 );
-
 }
 
 

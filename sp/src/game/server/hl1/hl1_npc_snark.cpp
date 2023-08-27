@@ -1,9 +1,4 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Projectile shot from the MP5 
 //
@@ -14,7 +9,7 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -22,6 +17,7 @@
 #include "engine/IEngineSound.h"
 #include "ai_senses.h"
 #include "hl1_npc_snark.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 
 ConVar sk_snark_health		( "sk_snark_health",				"0" );
@@ -42,6 +38,8 @@ BEGIN_DATADESC( CSnark )
 	DEFINE_FIELD( m_flNextHit, FIELD_TIME ),
 	DEFINE_FIELD( m_posPrev, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_iMyClass, FIELD_INTEGER ),
+
 	DEFINE_ENTITYFUNC( SuperBounceTouch ),
 	DEFINE_THINKFUNC( HuntThink ),
 END_DATADESC()
@@ -58,18 +56,20 @@ enum w_squeak_e {
 	WSQUEAK_RUN,
 };
 
+float CSnark::m_flNextBounceSoundTime = 0;
 
 void CSnark::Precache( void )
 {
 	BaseClass::Precache();
 
-	PrecacheModel("models/w_squeak2.mdl");
+	PrecacheModel( "models/w_squeak2.mdl" );
 
-	PrecacheScriptSound("Snark.Die");
-	PrecacheScriptSound("Snark.Gibbed");
-	PrecacheScriptSound("Snark.Squeak");
-	PrecacheScriptSound("Snark.Deploy");
-	PrecacheScriptSound("Snark.Bounce");
+	PrecacheScriptSound( "Snark.Die" );
+	PrecacheScriptSound( "Snark.Gibbed" );
+	PrecacheScriptSound( "Snark.Squeak" );
+	PrecacheScriptSound( "Snark.Deploy" );
+	PrecacheScriptSound( "Snark.Bounce" );
+
 }
 
 
@@ -79,9 +79,10 @@ void CSnark::Spawn( void )
 
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
-	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
+	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM );
+	SetFriction(1.0);	
 
-	SetModel( "models/w_squeak.mdl" );
+	SetModel( "models/w_squeak2.mdl" );
 	UTIL_SetSize( this, Vector( -4, -4, 0 ), Vector( 4, 4, 8 ) );
 
 	SetBloodColor( BLOOD_COLOR_YELLOW );
@@ -100,7 +101,7 @@ void CSnark::Spawn( void )
 	m_iHealth		= sk_snark_health.GetFloat();
 	m_iMaxHealth	= m_iHealth;
 
-	SetGravity( 0.5 );
+	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for snarks
 	SetFriction( 0.5 );
 
 	SetDamage( sk_snark_dmg_pop.GetFloat() );
@@ -168,11 +169,11 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 
 	if ( m_hOwner != NULL )
 	{
-		RadiusDamage( CTakeDamageInfo( this, m_hOwner, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, this );
+		RadiusDamage( CTakeDamageInfo( this, m_hOwner, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, NULL );
 	}
 	else
 	{
-		RadiusDamage( CTakeDamageInfo( this, this, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, this );
+		RadiusDamage( CTakeDamageInfo( this, this, GetDamage(), DMG_BLAST ), GetAbsOrigin(), GetDamage() * 2.5, CLASS_NONE, NULL );
 	}
 
 	// reset owner so death message happens
@@ -182,7 +183,6 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 	CTakeDamageInfo info = inputInfo;
 	int iGibDamage = g_pGameRules->Damage_GetShouldGibCorpse();
 	info.SetDamageType( iGibDamage );
-
 
 	BaseClass::Event_Killed( info );
 }
@@ -208,6 +208,12 @@ void CSnark::HuntThink( void )
 	
 	StudioFrameAdvance( );
 	SetNextThink( gpGlobals->curtime + 0.1f );
+	
+	//FIXME: There's a problem in this movetype that causes it to set a ground entity but never recheck to clear it
+	//		 For now, we stomp it clear and force it to revalidate -- jdw
+
+	SetGroundEntity( NULL );
+	PhysicsStepRecheckGround();
 
 	// explode when ready
 	if ( gpGlobals->curtime >= m_flDie )
@@ -225,7 +231,7 @@ void CSnark::HuntThink( void )
 	{
 		if ( GetMoveType() == MOVETYPE_FLYGRAVITY )
 		{
-			SetMoveType( MOVETYPE_FLY, MOVECOLLIDE_FLY_BOUNCE );
+			SetMoveType( MOVETYPE_FLY, MOVECOLLIDE_FLY_CUSTOM );
 		}
 
 		Vector vecVel = GetAbsVelocity();
@@ -235,7 +241,7 @@ void CSnark::HuntThink( void )
 	}
 	else if ( GetMoveType() == MOVETYPE_FLY )
 	{
-		SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
+		SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM );
 	}
 
 	// return if not time to hunt
@@ -251,7 +257,7 @@ void CSnark::HuntThink( void )
 	if ( GetEnemy() == NULL || !GetEnemy()->IsAlive() )
 	{
 		// find target, bounce a bit towards it.
-		GetSenses()->Look( 512 );
+		GetSenses()->Look( 1024 );
 		SetEnemy( BestEnemy() );
 	}
 
@@ -321,19 +327,94 @@ void CSnark::HuntThink( void )
 	SetAbsAngles( angles );
 }
 
+unsigned int CSnark::PhysicsSolidMaskForEntity( void ) const
+{
+	unsigned int iMask = BaseClass::PhysicsSolidMaskForEntity();
+
+	iMask &= ~CONTENTS_MONSTERCLIP;
+
+	return iMask;
+}
+
+
+// Custom collision that provides a good bounce when we hit walls
+// and also gives gravity velocity so the snarks fall off of edges.
+void CSnark::ResolveFlyCollisionCustom( trace_t &trace, Vector &vecVelocity )
+{
+	// Get the impact surface's friction.
+	float flSurfaceFriction;
+	physprops->GetPhysicsProperties( trace.surface.surfaceProps, NULL, NULL, &flSurfaceFriction, NULL );
+
+	Vector vecAbsVelocity = GetAbsVelocity();
+
+	// If we hit a wall
+	if ( trace.plane.normal.z <= 0.7 )			// Floor
+	{
+		Vector vecDir = vecAbsVelocity;
+
+		float speed = vecDir.Length();
+
+		VectorNormalize( vecDir );
+
+		float hitDot = DotProduct( trace.plane.normal, -vecDir );
+			
+		Vector vReflection = 2.0f * trace.plane.normal * hitDot + vecDir;
+		
+		SetAbsVelocity( vReflection * speed * 0.6f );
+
+		return;
+	}
+
+	// Stop if on ground.
+	// Get the total velocity (player + conveyors, etc.)
+	VectorAdd( vecAbsVelocity, GetBaseVelocity(), vecVelocity );
+	float flSpeedSqr = DotProduct( vecVelocity, vecVelocity );
+
+	// Verify that we have an entity.
+	CBaseEntity *pEntity = trace.m_pEnt;
+	Assert( pEntity );
+
+	if ( vecVelocity.z < ( 800 * gpGlobals->frametime ) )
+	{
+		vecAbsVelocity.z = 0.0f;
+
+		// Recompute speedsqr based on the new absvel
+		VectorAdd( vecAbsVelocity, GetBaseVelocity(), vecVelocity );
+		flSpeedSqr = DotProduct( vecVelocity, vecVelocity );
+	}
+	SetAbsVelocity( vecAbsVelocity );
+
+	if ( flSpeedSqr < ( 30 * 30 ) )
+	{
+		if ( pEntity->IsStandable() )
+		{
+			SetGroundEntity( pEntity );
+		}
+
+		// Reset velocities.
+		SetAbsVelocity( vec3_origin );
+		SetLocalAngularVelocity( vec3_angle );
+	}
+	else
+	{
+		vecAbsVelocity += GetBaseVelocity();
+		vecAbsVelocity *= ( 1.0f - trace.fraction ) * gpGlobals->frametime * flSurfaceFriction;
+		PhysicsPushEntity( vecAbsVelocity, &trace );
+	}
+}
 
 void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 {
 	float	flpitch;
 	trace_t tr;
-	tr = GetTouchTrace();
+	tr = CBaseEntity::GetTouchTrace( );
 
 	// don't hit the guy that launched this grenade
-	if ( m_hOwner && ( pOther == m_hOwner ) )
+	if ( GetOwnerEntity() && ( pOther == GetOwnerEntity() ) )
 		return;
 
 	// at least until we've bounced once
-	m_hOwner = NULL;
+	SetOwnerEntity( NULL );
 
 	QAngle angles = GetAbsAngles();
 	angles.x = 0;
@@ -417,6 +498,7 @@ void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 	{
 		// play bounce sound
 		CPASAttenuationFilter filter2( this );
+
 		CSoundParameters params;
 		if ( GetParametersForSound( "Snark.Bounce", params, NULL ) )
 		{
@@ -436,3 +518,10 @@ void CSnark::SuperBounceTouch( CBaseEntity *pOther )
 
 	m_flNextBounceSoundTime = gpGlobals->curtime + 0.5;// half second.
 }
+
+
+bool CSnark::IsValidEnemy( CBaseEntity *pEnemy )
+{
+	return CHL1BaseNPC::IsValidEnemy( pEnemy );
+}
+

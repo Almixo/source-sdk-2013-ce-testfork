@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -23,10 +23,12 @@ public:
 		Precache( );
 		SetModel( "models/w_longjump.mdl" );
 		BaseClass::Spawn( );
+
+		CollisionProp()->UseTriggerBounds( true, 16.0f );
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ("models/w_longjump.mdl");
+		PrecacheModel ("models/w_longjump.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{

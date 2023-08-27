@@ -134,7 +134,7 @@ void CWeaponGlock::GlockFire( float flSpread , float flCycleTime, bool fUseAutoA
 	info.m_pAttacker = pPlayer;
 	pPlayer->FireBullets( info );
 
-	EjectShell( pPlayer, 0 );
+	//EjectShell( pPlayer, 0 ); tehcooler...
 
 	pPlayer->ViewPunch( QAngle( -2, 0, 0 ) );
 

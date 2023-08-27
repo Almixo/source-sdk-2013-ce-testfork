@@ -1,22 +1,19 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
 void CBaseHL1CombatWeapon::Precache()
 {
 	BaseClass::Precache();
 
-	PrecacheScriptSound( "Item.Pickup" );
 	PrecacheScriptSound( "BaseCombatWeapon.WeaponDrop" );
 }
 
@@ -26,8 +23,7 @@ void CBaseHL1CombatWeapon::Precache()
 void CBaseHL1CombatWeapon::FallInit( void )
 {
 	SetModel( GetWorldModel() );
-	SetSize( Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );	// Pointsize until it lands on the ground
-	SetMoveType( MOVETYPE_FLYGRAVITY );
+	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_TRIGGER );
 	AddSolidFlags( FSOLID_NOT_SOLID );
@@ -37,7 +33,19 @@ void CBaseHL1CombatWeapon::FallInit( void )
 	SetThink( &CBaseHL1CombatWeapon::FallThink );
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
+
+	// HACKHACK - On ground isn't always set, so look for ground underneath
+	trace_t tr;
+	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,2), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+
+	if ( tr.fraction < 1.0 )
+	{
+		SetGroundEntity( tr.m_pEnt );
+	}
+
+	SetViewOffset( Vector(0,0,8) );
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Items that have just spawned run this think to catch them when 
@@ -49,14 +57,13 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if ( CBaseEntity::GetFlags() & FL_ONGROUND )
+	if ( GetFlags() & FL_ONGROUND )
 	{
 		// clatter if we have an owner (i.e., dropped by someone)
 		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
 		if ( GetOwnerEntity() )
 		{
-			CPASAttenuationFilter filter(this);
-			EmitSound( filter, entindex(), "BaseCombatWeapon.WeaponDrop" );
+			EmitSound( "BaseCombatWeapon.WeaponDrop" );
 		}
 
 		// lie flat
@@ -66,9 +73,14 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 		SetAbsAngles( ang );
 
 		Materialize(); 
+
+		SetSize( Vector( -24, -24, 0 ), Vector( 24, 24, 16 ) );
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Eject boolets!
+//-----------------------------------------------------------------------------
 void CBaseHL1CombatWeapon::EjectShell( CBaseEntity *pPlayer, int iType )
 {
 	QAngle angShellAngles = pPlayer->GetAbsAngles();

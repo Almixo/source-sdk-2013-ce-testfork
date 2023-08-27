@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
 #include	"AI_Default.h"
 #include	"AI_Task.h"
@@ -26,7 +33,6 @@
 #define TURRET_TURNRATE	30		//angles per 0.1 second
 #define TURRET_MAXWAIT	15		// seconds turret will stay active w/o a target
 #define TURRET_MAXSPIN	5		// seconds turret barrel will spin w/o a target
-#define TURRET_MACHINE_VOLUME	0.5
 
 typedef enum
 {
@@ -164,6 +170,9 @@ BEGIN_DATADESC( CNPC_BaseTurret )
 	DEFINE_FIELD( m_flPingTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flSpinUpTime, FIELD_TIME ),
 
+	DEFINE_FIELD( m_flDamageTime, FIELD_TIME ),
+	//DEFINE_FIELD( m_iAmmoType, FIELD_INTEGER ),
+
 	//KEYFIELDS
 	DEFINE_KEYFIELD( m_flMaxWait, FIELD_FLOAT, "maxsleep" ),
 	DEFINE_KEYFIELD( m_iOrientation, FIELD_INTEGER, "orientation" ),
@@ -229,7 +238,7 @@ void CNPC_BaseTurret::Spawn()
 	if ( GetSpawnFlags() & SF_MONSTER_TURRET_STARTINACTIVE )
 	{
 		 SetTurretAnim( TURRET_ANIM_RETIRE );
-		 SetCycle( 0 );
+		 SetCycle( 0.0f );
 		 m_flPlaybackRate = 0.0f;
 	}
 }
@@ -410,11 +419,11 @@ void CNPC_BaseTurret::SetTurretAnim( TURRET_ANIM anim )
 			}
 			break;
 		case TURRET_ANIM_RETIRE:
-			SetCycle( 1 );
+			SetCycle( 1.0 );
 			m_flPlaybackRate		= -1.0;	//play the animation backwards
 			break;
 		case TURRET_ANIM_DIE:
-			SetCycle( 0 );
+			SetCycle( 0.0 );
 			m_flPlaybackRate		= 1.0;
 			break;
 		default:
@@ -471,7 +480,7 @@ void CNPC_BaseTurret::Initialize(void)
 	}
 	else
 	{
-		SetThink( &CNPC_BaseTurret::SUB_DoNothing ); 
+		SetThink( &CBaseEntity::SUB_DoNothing ); 
 	}
 }
 
@@ -899,7 +908,7 @@ void CNPC_BaseTurret::Retire(void)
 		{
 			SetTurretAnim(TURRET_ANIM_RETIRE);
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), "Turret.Deploy" );
+			EmitSound( filter, entindex(), "Turret.Undeploy" );
 			m_OnDeactivate.FireOutput(this, this);
 		}
 		//else if (IsSequenceFinished()) 
@@ -917,7 +926,6 @@ void CNPC_BaseTurret::Retire(void)
 			curmins.z = -m_iRetractHeight;
 
 			SetCollisionBounds( curmins, curmaxs );
-
 			if (m_iAutoStart)
 			{
 				SetThink(&CNPC_BaseTurret::AutoSearchThink);	
@@ -925,7 +933,7 @@ void CNPC_BaseTurret::Retire(void)
 			}
 			else
 			{
-				SetThink( &CNPC_BaseTurret::SUB_DoNothing );
+				SetThink( &CBaseEntity::SUB_DoNothing );
 			}
 		}
 	}
@@ -1158,6 +1166,8 @@ class CNPC_Turret : public CNPC_BaseTurret
 	DECLARE_CLASS( CNPC_Turret, CNPC_BaseTurret );
 
 public:
+	DECLARE_DATADESC();
+
 	void Spawn(void);
 	void Precache(void);
 
@@ -1171,6 +1181,10 @@ public:
 private:
 	int m_iStartSpin;
 };
+
+BEGIN_DATADESC(CNPC_Turret)
+	DEFINE_FIELD( m_iStartSpin, FIELD_INTEGER ),
+END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_turret, CNPC_Turret );
 LINK_ENTITY_TO_CLASS( monster_miniturret, CNPC_MiniTurret );
@@ -1215,6 +1229,12 @@ void CNPC_Turret::Precache()
 	PrecacheModel (TURRET_GLOW_SPRITE);
 
 	PrecacheModel( "sprites/xspark4.vmt" );
+
+	PrecacheScriptSound( "Turret.Shoot" );
+
+	PrecacheScriptSound( "Turret.SpinUpCall" );
+	PrecacheScriptSound( "Turret.Spinup" );
+	PrecacheScriptSound( "Turret.SpinDownCall" );
 	//precache sounds
 }
 
@@ -1243,7 +1263,7 @@ void CNPC_Turret::SpinUpCall(void)
 		{
 			SetNextThink( gpGlobals->curtime + 1.0 );	//spinup delay
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), "Turret.Shoot" );
+			EmitSound( filter, entindex(), "Turret.SpinUpCall" );
 			m_iStartSpin = 1;
 			m_flPlaybackRate = 0.1;
 		}
@@ -1325,6 +1345,8 @@ void CNPC_MiniTurret::Precache()
 
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
 
+	PrecacheScriptSound( "Turret.Shoot" );
+
 	PrecacheModel ("models/miniturret.mdl");	
 }
 
@@ -1357,10 +1379,14 @@ public:
 	void SentryTouch( CBaseEntity *pOther );
 
 	DECLARE_DATADESC();
+
+private:
+	bool m_bStartedDeploy;	//set to true when the turret begins its deploy
 };
 
 BEGIN_DATADESC( CNPC_Sentry )
 	DEFINE_ENTITYFUNC( SentryTouch ),
+	DEFINE_FIELD( m_bStartedDeploy, FIELD_BOOLEAN ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( monster_sentry, CNPC_Sentry );
@@ -1370,6 +1396,9 @@ void CNPC_Sentry::Precache()
 	BaseClass::Precache( );
 
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
+
+	PrecacheScriptSound( "Sentry.Shoot" );
+	PrecacheScriptSound( "Sentry.Die" );
 
 	PrecacheModel ("models/sentry.mdl");
 }
@@ -1390,7 +1419,7 @@ void CNPC_Sentry::Spawn()
 	BaseClass::Spawn();
 
 	SetSequence( TURRET_ANIM_RETIRE );
-	SetCycle( 0 );
+	SetCycle( 0.0 );
 	m_flPlaybackRate = 0.0;
 
 	m_iRetractHeight = 64;
@@ -1403,6 +1432,8 @@ void CNPC_Sentry::Spawn()
 	SetThink(&CNPC_Sentry::Initialize);	
 
 	SetNextThink(gpGlobals->curtime + 0.3); 
+
+	m_bStartedDeploy = false;
 }
 
 void CNPC_Sentry::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
@@ -1410,9 +1441,8 @@ void CNPC_Sentry::Shoot(Vector &vecSrc, Vector &vecDirToEnemy)
 	FireBullets( 1, vecSrc, vecDirToEnemy, TURRET_SPREAD, TURRET_RANGE, m_iAmmoType, 1 );
 
 	CPASAttenuationFilter filter( this );
-
 	EmitSound( filter, entindex(), "Sentry.Shoot" );
-
+	
 	DoMuzzleFlash();
 }
 
@@ -1421,14 +1451,31 @@ int CNPC_Sentry::OnTakeDamage_Alive(const CTakeDamageInfo &info)
 	if ( m_takedamage == DAMAGE_NO )
 		return 0;
 
-	if (!m_iOn)
+	if (!m_iOn && !m_bStartedDeploy)
 	{
+		m_bStartedDeploy = true;
 		SetThink( &CNPC_Sentry::Deploy );
 		SetUse( NULL );
 		SetNextThink( gpGlobals->curtime + 0.1 );
 	}
 
-	return BaseClass::OnTakeDamage_Alive( info );
+	m_iHealth -= info.GetDamage();
+	if (m_iHealth <= 0)
+	{
+		m_iHealth = 0;
+		m_takedamage = DAMAGE_NO;
+		m_flDamageTime = gpGlobals->curtime;
+
+		SetUse(NULL);
+		SetThink(&CNPC_BaseTurret::TurretDeath);		//should be SentryDeath ?
+		SetNextThink( gpGlobals->curtime + 0.1 );
+
+		m_OnDeactivate.FireOutput(this, this);
+
+		return 0;
+	}
+
+	return 1;
 }
 
 void CNPC_Sentry::Event_Killed( const CTakeDamageInfo &info )
@@ -1438,7 +1485,7 @@ void CNPC_Sentry::Event_Killed( const CTakeDamageInfo &info )
 
 	StopSound( entindex(), "Turret.Spinup" );
 
-	SetSolidFlags( FSOLID_NOT_STANDABLE );
+	AddSolidFlags( FSOLID_NOT_STANDABLE );
 
 	Vector vecSrc;
 	QAngle vecAng;

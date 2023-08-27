@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -9,8 +9,6 @@
 #define NPC_HORNET_H
 
 #include "hl1_ai_basenpc.h"
-#include "ammodef.h"
-#include "ai_senses.h"
 
 //=========================================================
 // Hornets

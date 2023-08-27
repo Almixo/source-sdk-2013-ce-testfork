@@ -1,10 +1,10 @@
-//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: The Half-Life 1 game rules, such as the relationship tables and ammo
 //			damage cvars.
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "hl1_gamerules.h"
@@ -23,7 +23,6 @@
 	#include "voice_gamemgr.h"
 	#include "hl1_weapon_satchel.h"
 #endif
-
 
 
 REGISTER_GAMERULES_CLASS( CHalfLife1 );
@@ -77,38 +76,46 @@ ConVar sk_max_satchel				( "sk_max_satchel",				"0", FCVAR_REPLICATED );
 
 ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATED );
 
+ConVar sk_mp_dmg_multiplier ( "sk_mp_dmg_multiplier", "2.0" );
 
+// Damage Queries.
 
-#ifdef CLIENT_DLL
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int	CHalfLife1::Damage_GetShowOnHud( void )
+{
+	int iDamage = (DMG_POISON | DMG_ACID | DMG_DISSOLVE/*DMG_FREEZE | DMG_SLOWFREEZE*/ | DMG_DROWN | DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS | DMG_RADIATION | DMG_SHOCK);
+	return iDamage;
+}
 
-
-	void CHalfLife1::OnDataChanged( DataUpdateType_t type )
-	{
-		if ( type == DATA_UPDATE_CREATED )
-		{
-			ConVar *viewmodel_fov = ( ConVar * )cvar->FindVar( "viewmodel_fov" );
-			if ( viewmodel_fov )
-			{
-				viewmodel_fov->SetValue( 90 );
-			}
-		}
-	}
-
-
-#else
+#ifndef CLIENT_DLL
 
 	extern bool		g_fGameOver;
+
+	const char *CHalfLife1::GetGameDescription( void )
+	{
+		if ( IsMultiplayer() )
+		{
+			return "Half-Life 1: Deathmatch";
+		}
+		else
+		{
+			return "Half-Life 1";
+		}
+	}
 
 	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
 	{
 	public:
-		virtual bool CanPlayerHearPlayer( CBasePlayer* pListener, CBasePlayer* pTalker, bool& bProximity )
+		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool & b )
 		{
+			b = true;
 			return true;
 		}
 	};
 	CVoiceGameMgrHelper g_VoiceGameMgrHelper;
-	IVoiceGameMgrHelper* g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
+	IVoiceGameMgrHelper *g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
 
 
 	//-----------------------------------------------------------------------------
@@ -120,9 +127,6 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	{
 	}
 
-	void TE_StickyBolt( IRecipientFilter& filter, float delay,
-		int iIndex, Vector vecDirection, const Vector * origin );
-
 	//-----------------------------------------------------------------------------
 	// Purpose: called each time a player uses a "cmd" command
 	// Input  : *pEdict - the player who issued the command
@@ -131,40 +135,11 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	//-----------------------------------------------------------------------------
 	bool CHalfLife1::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	{
-		if( BaseClass::ClientCommand( pEdict, args) )
+		if( BaseClass::ClientCommand( pEdict, args ) )
 			return true;
 
 		CHL1_Player *pPlayer = (CHL1_Player *) pEdict;
 		
-	/*
-		//Sticky Bolt test
-		if ( FStrEq( pcmd, "teststickybolt" ) )
-		{
-			trace_t tr;
-			Vector start = pEdict->GetAbsOrigin();
-			Vector v_forward;
-			AngleVectors( pEdict->GetAbsAngles(), &v_forward, NULL, NULL );
-			Vector end = start + v_forward * 4096;
-
-			UTIL_TraceLine( start, end, MASK_SHOT, pEdict, COLLISION_GROUP_NONE, &tr );
-
-			if ( tr.m_pEnt )
-			{
-				CBaseEntity *pEntity = GetContainingEntity( tr.m_pEnt->edict() );
-				
-				if ( FStrEq( STRING(pEntity->m_iClassname), "monster_scientist" ) )
-					 pEntity->TakeDamage( CTakeDamageInfo( pEdict, pEdict, 75, DMG_GENERIC ) );
-				 
-			
-			}
-			
-			CPASFilter filter( pEdict->GetAbsOrigin() );
-			TE_StickyBolt( filter, 0.0, 20, v_forward, &pEdict->GetAbsOrigin() );
-
-			return true;
-		}
-	*/
-
 		if ( pPlayer->ClientCommand( args ) )
 			return true;
 			
@@ -208,6 +183,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	void InitBodyQue(void)
 	{
 		CCorpse *pEntity = ( CCorpse * )CreateEntityByName( "bodyque" );
+		pEntity->AddEFlags( EFL_KEEP_ON_RECREATE_ENTITIES );
 		g_pBodyQueueHead = pEntity;
 		CCorpse *p = g_pBodyQueueHead;
 		
@@ -215,6 +191,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 		for ( int i = 0; i < 3; i++ )
 		{
 			CCorpse *next = ( CCorpse * )CreateEntityByName( "bodyque" );
+			next->AddEFlags( EFL_KEEP_ON_RECREATE_ENTITIES );
 			p->SetOwnerEntity( next );
 			p = next;
 		}
@@ -228,7 +205,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 	//-----------------------------------------------------------------------------
 	void CopyToBodyQue( CBaseAnimating *pCorpse ) 
 	{
-		if ( pCorpse->GetEffects() & EF_NODRAW )
+		if ( pCorpse->IsEffectActive( EF_NODRAW ) )
 			return;
 
 		CCorpse *pHead	= g_pBodyQueueHead;
@@ -547,6 +524,51 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 		return true;
 	}
 
+		
+	float CHalfLife1::FlPlayerFallDamage( CBasePlayer *pPlayer )
+	{
+		CBaseEntity *pGroundEntity = pPlayer->GetGroundEntity();
+
+		if( pGroundEntity && pGroundEntity->ClassMatches( "func_breakable" ) )
+		{		
+			// FIXME touchtrace will be wrong.
+			pGroundEntity->Touch( pPlayer );
+
+			if( pGroundEntity->m_iHealth <= 0 )
+			{
+				// The breakable broke when we hit it, don't take falling damage
+				return 0;
+			}
+		}
+
+		return BaseClass::FlPlayerFallDamage( pPlayer );
+	}
+
+
+	class CTraceFilterHitAllExcept : public CTraceFilter
+	{
+	public:
+		// It does have a base, but we'll never network anything below here..
+		DECLARE_CLASS_NOBASE( CTraceFilterHitAllExcept );
+
+		CTraceFilterHitAllExcept( const IHandleEntity *passedict )
+		{
+			m_pPassEnt = passedict;
+		}
+
+		bool ShouldHitEntity( IHandleEntity *pServerEntity, int contentsMask )
+		{ 
+			if ( m_pPassEnt && ( m_pPassEnt == pServerEntity ) )
+			{
+				return false;
+			}
+		
+			return true;
+		}
+
+	private:
+		const IHandleEntity *m_pPassEnt;
+	};
 
 	void CHalfLife1::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore )
 	{
@@ -586,7 +608,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 				// radius damage can only be blocked by the world
 				vecSpot = pEntity->BodyTarget( vecSrc );
 
- 				CTraceFilterHitAll traceFilter;
+				CTraceFilterHitAllExcept traceFilter( info.GetInflictor() );
   				UTIL_TraceLine( vecSrc, vecSpot, CONTENTS_SOLID, &traceFilter, &tr );
 				
 				if ( tr.fraction == 1.0 || tr.m_pEnt == pEntity )
@@ -675,8 +697,6 @@ bool CHalfLife1::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
 }
 
-
-
 // ------------------------------------------------------------------------------------- //
 // Global functions.
 // ------------------------------------------------------------------------------------- //
@@ -701,8 +721,8 @@ CAmmoDef *GetAmmoDef()
 	{
 		bInitted = true;
 		
-		def.AddAmmoType( "9mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, "sk_plr_dmg_9mm_bullet",	"sk_npc_dmg_9mm_bullet","sk_max_9mm_bullet",	BULLET_IMPULSE(500, 1325), 0 );
-		def.AddAmmoType( "357Round",		DMG_BULLET | DMG_NEVERGIB,					TRACER_NONE, "sk_plr_dmg_357_bullet",	NULL,					"sk_max_357_bullet",	BULLET_IMPULSE(650, 6000), 0 );
+		def.AddAmmoType( "9mmRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_9mm_bullet",	"sk_npc_dmg_9mm_bullet","sk_max_9mm_bullet",	BULLET_IMPULSE(500, 1325), 0 );
+		def.AddAmmoType( "357Round",		DMG_BULLET | DMG_NEVERGIB,	TRACER_NONE, "sk_plr_dmg_357_bullet",	NULL,					"sk_max_357_bullet",	BULLET_IMPULSE(650, 6000), 0 );
 		def.AddAmmoType( "Buckshot",		DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE, "sk_plr_dmg_buckshot",		NULL,					"sk_max_buckshot",		BULLET_IMPULSE(200, 1200), 0 );
 		def.AddAmmoType( "XBowBolt",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_xbow_bolt_plr",NULL,					"sk_max_xbow_bolt",		BULLET_IMPULSE( 200, 1200), 0 );
 		def.AddAmmoType( "MP5_Grenade",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_mp5_grenade",	NULL,					"sk_max_mp5_grenade",	0, 0 );
@@ -714,9 +734,9 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType( "TripMine",		DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_tripmine",		NULL,					"sk_max_tripmine",		0, 0 );
 		def.AddAmmoType( "Satchel",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_satchel",		NULL,					"sk_max_satchel",		0, 0 );
 
-		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,					TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
+		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
 
-		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,							8,					0, 0 );
+		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,						8,					0, 0 );
 	}
 
 	return &def;

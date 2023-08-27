@@ -303,3 +303,5 @@ void CHudHistoryResource::Paint( void )
 		}
 	}
 }
+
+

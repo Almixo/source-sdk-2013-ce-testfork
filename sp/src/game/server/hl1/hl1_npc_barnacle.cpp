@@ -1,23 +1,25 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		barnacle - stationary ceiling mounted 'fishing' monster	
 //
 // $Workfile:     $
 // $Date:         $
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "hl1_npc_barnacle.h"
+#include "NPCEvent.h"
 #include "gib.h"
-#include "npcevent.h"
+#include "AI_Default.h"
+#include "activitylist.h"
+#include "hl2_player.h"
+#include "vstdlib/random.h"
+#include "physics_saverestore.h"
+#include "vcollide_parse.h"
+#include "engine/IEngineSound.h"
 
-ConVar	sk_barnacle_health( "sk_barnacle_health","0");
+ConVar	sk_barnacle_health( "sk_barnacle_health","25");
 
 //-----------------------------------------------------------------------------
 // Private activities.
@@ -56,9 +58,9 @@ BEGIN_DATADESC( CNPC_Barnacle )
 	DEFINE_FIELD( m_flAltitude, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flKillVictimTime, FIELD_TIME ),
 	DEFINE_FIELD( m_cGibs, FIELD_INTEGER ),// barnacle loads up on gibs each time it kills something.
-	DEFINE_FIELD( m_fTongueExtended, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_fLiftingPrey, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flTongueAdj, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flIgnoreTouchesUntil, FIELD_TIME ),
 
 	// Function pointers
 	DEFINE_THINKFUNC( BarnacleThink ),
@@ -126,8 +128,10 @@ void CNPC_Barnacle::Spawn()
 
 	SetThink ( &CNPC_Barnacle::BarnacleThink );
 	SetNextThink( gpGlobals->curtime + 0.5f );
+	//Do not have a shadow
+	AddEffects( EF_NOSHADOW );
 
-	AddEffects(EF_NOSHADOW);
+	m_flIgnoreTouchesUntil = gpGlobals->curtime;
 }
 
 //-----------------------------------------------------------------------------
@@ -220,7 +224,7 @@ void CNPC_Barnacle::BarnacleThink ( void )
 			m_flAltitude -= BARNACLE_PULL_SPEED;
 			vecNewEnemyOrigin.z += BARNACLE_PULL_SPEED;
 
-			if ( fabs( GetLocalOrigin().z - ( vecNewEnemyOrigin.z + GetEnemy()->GetViewOffset().z - 12 ) ) < BARNACLE_BODY_HEIGHT )
+			if ( fabs( GetLocalOrigin().z - ( vecNewEnemyOrigin.z + GetEnemy()->GetViewOffset().z ) ) < BARNACLE_BODY_HEIGHT )
 			{
 		// prey has just been lifted into position ( if the victim origin + eye height + 8 is higher than the bottom of the barnacle, it is assumed that the head is within barnacle's body )
 				m_fLiftingPrey = FALSE;
@@ -233,9 +237,33 @@ void CNPC_Barnacle::BarnacleThink ( void )
 						
 				if ( pVictim )
 				{
-					pVictim->HandleInteraction( g_interactionBarnacleVictimDangle, NULL, this );
+					pVictim->DispatchInteraction( g_interactionBarnacleVictimDangle, NULL, this );
 					SetActivity ( (Activity)ACT_EAT );
 				}
+			}
+
+			CBaseEntity *pEnemy = GetEnemy();
+
+			trace_t trace;
+			UTIL_TraceEntity( pEnemy, pEnemy->GetAbsOrigin(), vecNewEnemyOrigin, MASK_SOLID_BRUSHONLY, pEnemy, COLLISION_GROUP_NONE, &trace );
+
+			if( trace.fraction != 1.0 )
+			{
+				// The victim cannot be moved from their current origin to this new origin. So drop them.
+				SetEnemy( NULL );
+				m_fLiftingPrey = FALSE;
+
+				if( pEnemy->MyCombatCharacterPointer() )
+				{
+					pEnemy->MyCombatCharacterPointer()->DispatchInteraction( g_interactionBarnacleVictimReleased, NULL, this );
+				}
+
+				// Ignore touches long enough to let the victim move away.
+				m_flIgnoreTouchesUntil = gpGlobals->curtime + 1.5;
+
+				SetActivity( ACT_IDLE );
+
+				return;
 			}
 
 			UTIL_SetOrigin ( GetEnemy(), vecNewEnemyOrigin );
@@ -259,13 +287,13 @@ void CNPC_Barnacle::BarnacleThink ( void )
 
 			// bite prey every once in a while
 			if ( pVictim && ( random->RandomInt( 0, 49 ) == 0 ) )
-			{				
+			{
 				CPASAttenuationFilter filter( this );
 				EmitSound( filter, entindex(), "Barnacle.Chew" );
 
 				if ( pVictim )
 				{
-					pVictim->HandleInteraction( g_interactionBarnacleVictimDangle, NULL, this );
+					pVictim->DispatchInteraction( g_interactionBarnacleVictimDangle, NULL, this );
 				}
 			}
 		}
@@ -274,9 +302,21 @@ void CNPC_Barnacle::BarnacleThink ( void )
 	{
 // barnacle has no prey right now, so just idle and check to see if anything is touching the tongue.
 
-		// If idle and no nearby client, don't think so often
-		if ( !UTIL_FindClientInPVS( edict() ) )
-			SetNextThink( random->RandomFloat(1,1.5) );	// Stagger a bit to keep barnacles from thinking on the same frame
+		// If idle and no nearby client, don't think so often. Client should be out of PVS and not within 50 feet.
+		if ( !UTIL_FindClientInPVS(edict()) )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+
+			if( pPlayer )
+			{
+				Vector vecDist = pPlayer->GetAbsOrigin() - GetAbsOrigin();
+
+				if( vecDist.Length2DSqr() >= Square(600.0f) )
+				{
+					SetNextThink( gpGlobals->curtime + 1.5f );
+				}
+			}
+		}
 
 		if ( IsActivityFinished() )
 		{// this is done so barnacle will fidget.
@@ -295,7 +335,9 @@ void CNPC_Barnacle::BarnacleThink ( void )
 
 		pTouchEnt = TongueTouchEnt( &flLength );
 
-		if ( pTouchEnt != NULL && m_fTongueExtended )
+		//NDebugOverlay::Box( GetAbsOrigin() - Vector( 0, 0, flLength ), Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), 255,0,0, 0, 0.1 );
+
+		if ( pTouchEnt != NULL )
 		{
 			// tongue is fully extended, and is touching someone.
 			CBaseCombatCharacter* pBCC = (CBaseCombatCharacter *)pTouchEnt;
@@ -303,7 +345,7 @@ void CNPC_Barnacle::BarnacleThink ( void )
 			// FIXME: humans should return neck position
 			Vector vecGrabPos = pTouchEnt->GetAbsOrigin();
 
-			if ( pBCC && pBCC->HandleInteraction( g_interactionBarnacleVictimGrab, &vecGrabPos, this ) )
+			if ( pBCC && pBCC->DispatchInteraction( g_interactionBarnacleVictimGrab, &vecGrabPos, this ) )
 			{
 				CPASAttenuationFilter filter( this );
 				EmitSound( filter, entindex(), "Barnacle.Alert" );
@@ -332,12 +374,10 @@ void CNPC_Barnacle::BarnacleThink ( void )
 			{
 				// if tongue is higher than is should be, lower it kind of slowly.
 				m_flAltitude += BARNACLE_PULL_SPEED;
-				m_fTongueExtended = FALSE;
 			}
 			else
 			{
 				m_flAltitude = flLength;
-				m_fTongueExtended = TRUE;
 			}
 
 		}
@@ -345,9 +385,8 @@ void CNPC_Barnacle::BarnacleThink ( void )
 	}
 
 	// ALERT( at_console, "tounge %f\n", m_flAltitude + m_flTongueAdj );
-	// NDebugOverlay::Box( GetAbsOrigin() - Vector( 0, 0, m_flAltitude ), Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), 255,255,255, 0, 0.1 );
+	//NDebugOverlay::Box( GetAbsOrigin() - Vector( 0, 0, m_flAltitude ), Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), 255,255,255, 0, 0.1 );
 
-	//SetBoneController( 0, 0 );//-(m_flAltitude + m_flTongueAdj) );
 	SetBoneController( 0, -(m_flAltitude + m_flTongueAdj) );
 	StudioFrameAdvance();
 }
@@ -359,19 +398,19 @@ void CNPC_Barnacle::Event_Killed( const CTakeDamageInfo &info )
 {
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	m_takedamage		= DAMAGE_NO;
-
+	m_lifeState			= LIFE_DEAD;
 	if ( GetEnemy() != NULL )
 	{
 		CBaseCombatCharacter *pVictim = GetEnemyCombatCharacterPointer();
 
 		if ( pVictim )
 		{
-			pVictim->HandleInteraction( g_interactionBarnacleVictimReleased, NULL, this );
+			pVictim->DispatchInteraction( g_interactionBarnacleVictimReleased, NULL, this );
 		}
 	}
 
 	CGib::SpawnRandomGibs( this, 4, GIB_HUMAN );
-				
+
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Barnacle.Die" );
 
@@ -440,11 +479,18 @@ CBaseEntity *CNPC_Barnacle::TongueTouchEnt ( float *pflLength )
 		*pflLength = length;
 	}
 
+	// Don't try to touch any prey.
+	if ( m_flIgnoreTouchesUntil > gpGlobals->curtime )
+		return NULL;
+
 	Vector delta = Vector( BARNACLE_CHECK_SPACING, BARNACLE_CHECK_SPACING, 0 );
 	Vector mins = GetAbsOrigin() - delta;
 	Vector maxs = GetAbsOrigin() + delta;
 	maxs.z = GetAbsOrigin().z;
-	mins.z -= length;
+	
+	// Take our current tongue's length or a point higher if we hit a wall 
+	// NOTENOTE: (this relieves the need to know if the tongue is currently moving)
+	mins.z -= min( m_flAltitude, length );
 
 	CBaseEntity *pList[10];
 	int count = UTIL_EntitiesInBox( pList, 10, mins, maxs, (FL_CLIENT|FL_NPC) );

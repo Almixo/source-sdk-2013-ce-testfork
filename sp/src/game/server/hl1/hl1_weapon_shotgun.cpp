@@ -112,7 +112,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 //		pPlayer->FireBullets( 6, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 	}
 
-	EjectShell( pPlayer, 1 );
+	//EjectShell( pPlayer, 1 ); tehcooler...
 
 #if !defined(CLIENT_DLL)
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 1.0 );
@@ -197,8 +197,8 @@ void CWeaponShotgun::SecondaryAttack( void )
 //		pPlayer->FireBullets( 12, vecSrc, vecAiming, VECTOR_CONE_10DEGREES, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 	}
 
-	EjectShell( pPlayer, 1 );
-	EjectShell( pPlayer, 1 );
+	//EjectShell( pPlayer, 1 ); tehcooler...
+	//EjectShell( pPlayer, 1 ); tehcooler...
 
 	pPlayer->ViewPunch( QAngle( -10, 0, 0 ) );
 

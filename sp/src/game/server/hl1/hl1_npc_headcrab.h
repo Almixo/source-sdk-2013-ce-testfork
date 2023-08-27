@@ -1,11 +1,16 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_HEADCRAB_H
 #define NPC_HEADCRAB_H
 #pragma once
 
 
 #include "hl1_ai_basenpc.h"
-#include "npcevent.h"
-#include "movevars_shared.h"
 
 class CNPC_Headcrab : public CHL1BaseNPC
 {
@@ -26,8 +31,6 @@ public:
 
 	void LeapTouch ( CBaseEntity *pOther );
 	void BiteSound( void );
-	void PainSound( const CTakeDamageInfo &info );
-	void DeathSound( const CTakeDamageInfo &info );
 	void AttackSound( void );
 	void TouchDamage( CBaseEntity *pOther );
 	void HandleAnimEvent( animevent_t *pEvent );
@@ -40,8 +43,8 @@ public:
 	float GetDamageAmount( void );
 
 	virtual int		GetVoicePitch( void ) { return 100; }
-	virtual float	GetSoundVolue( void ) { return 1.0; }
-
+	virtual float	GetSoundVolume( void ) { return 1.0; }
+	
 	int	m_nGibCount;
 
 	DEFINE_CUSTOM_AI;

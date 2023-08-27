@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef	NPC_SCIENTIST_H
 #define	NPC_SCIENTIST_H
 
@@ -16,6 +23,7 @@ public:
 
 	void	Precache( void );
 	void	Spawn( void );
+	void	Activate();
 	Class_T Classify( void );
 	int		GetSoundInterests ( void );
 
@@ -24,9 +32,9 @@ public:
 	virtual int ObjectCaps( void ) { return UsableNPCObjectCaps(BaseClass::ObjectCaps()); }
 	float	MaxYawSpeed( void );
 
-	//bool	OnUpcomingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult );
-
 	float	TargetDistance( void );
+	bool	IsValidEnemy( CBaseEntity *pEnemy );
+
 
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 	void	Event_Killed( const CTakeDamageInfo &info );
@@ -50,16 +58,19 @@ public:
 	
 	void	DeclineFollowing( void );
 
+	bool	CanBecomeRagdoll( void );
+	bool	ShouldGib( const CTakeDamageInfo &info );
+	
+	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
+	void	SUB_LVFadeOut( void  );
+
 	void	Scream( void );
 	
 	Activity GetStoppedActivity( void );
 	Activity NPC_TranslateActivity( Activity newActivity );
 
-
-
-	void PainSound ( void );
-	void DeathSound( void );
-
+	void PainSound( const CTakeDamageInfo &info );
+	void DeathSound( const CTakeDamageInfo &info );
 
 	enum
 	{

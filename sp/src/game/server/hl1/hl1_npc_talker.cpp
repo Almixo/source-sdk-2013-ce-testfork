@@ -1,17 +1,10 @@
-/***
-*
-*	Copyright (c) 1999, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   This source code contains proprietary and confidential information of
-*   Valve LLC and its suppliers.  Access to this code is restricted to
-*   persons who have executed a written SDK license with Valve.  Any access,
-*   use or distribution of this code by or to any unlicensed person is illegal.
-*
-****/
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include "cbase.h"
 #include "hl1_npc_talker.h"
 #include "scripted.h"
@@ -25,10 +18,15 @@
 #include "engine/IEngineSound.h"
 #include "NPCevent.h"
 #include "ai_interactions.h"
+#include "doors.h"
 
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 #include "hl1_ai_basenpc.h"
+#include "soundemittersystem/isoundemittersystembase.h"
+
+ConVar hl1_debug_sentence_volume( "hl1_debug_sentence_volume", "0" );
+ConVar hl1_fixup_sentence_sndlevel( "hl1_fixup_sentence_sndlevel", "1" );
 
 //#define TALKER_LOOK 0
 
@@ -64,10 +62,8 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 		case TASK_TALKER_CLIENT_STARE:
 		case TASK_TALKER_LOOK_AT_CLIENT:
 		{
-			CBasePlayer *pPlayer;
+			CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 			
-			pPlayer = (CBasePlayer *)CBaseEntity::Instance( engine->PEntityOfEntIndex( 1 ) );
-
 			// track head to the client for a while.
 			if ( m_NPCState == NPC_STATE_IDLE		&& 
 				 !IsMoving()								&&
@@ -76,7 +72,7 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 			
 				if ( pPlayer )
 				{
-					IdleHeadTurn( pPlayer->GetAbsOrigin() );
+					IdleHeadTurn( pPlayer );
 				}
 			}
 			else
@@ -117,33 +113,26 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 			if ( GetExpresser()->IsSpeaking() && GetSpeechTarget() != NULL)
 			{
 				// ALERT(at_console, "walking, talking\n");
-				IdleHeadTurn( GetSpeechTarget()->GetAbsOrigin(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
+				IdleHeadTurn( GetSpeechTarget(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
 			}
 			else if ( GetEnemy() )
 			{
-				IdleHeadTurn( GetEnemy()->GetAbsOrigin() );
+				IdleHeadTurn( GetEnemy() );
 			}
-			else
-				IdleHeadTurn( vec3_origin );
 
 			BaseClass::RunTask( pTask );
-
-			if ( TaskIsComplete() )
-				 IdleHeadTurn( vec3_origin );
 
 			break;
 		}
 
 		case TASK_FACE_PLAYER:
 		{
-			CBasePlayer *pPlayer;
+			CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 			
-			pPlayer = (CBasePlayer *)CBaseEntity::Instance( engine->PEntityOfEntIndex( 1 ) );
-
 			if ( pPlayer )
 			{
 				//GetMotor()->SetIdealYaw( pPlayer->GetAbsOrigin() );
-				IdleHeadTurn( pPlayer->GetAbsOrigin() );
+				IdleHeadTurn( pPlayer );
 				if ( gpGlobals->curtime > m_flWaitFinished && GetMotor()->DeltaIdealYaw() < 10 )
 				{
 					TaskComplete();
@@ -162,7 +151,7 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 			if (!IsMoving() && GetExpresser()->IsSpeaking() && GetSpeechTarget() != NULL)
 			{
 				// ALERT( at_console, "waiting %f\n", m_flStopTalkTime - gpGlobals->time );
-				IdleHeadTurn( GetSpeechTarget()->GetAbsOrigin(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
+				IdleHeadTurn( GetSpeechTarget(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
 			}
 			
 			BaseClass::RunTask( pTask );
@@ -174,22 +163,17 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 				
 		default:
 		{
-		
 			if ( GetExpresser()->IsSpeaking() && GetSpeechTarget() != NULL)
 			{
-				IdleHeadTurn( GetSpeechTarget()->GetAbsOrigin(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
-			}
-			else if ( GetFollowTarget() )
-			{
-				IdleHeadTurn( GetFollowTarget()->GetAbsOrigin() );
+				IdleHeadTurn( GetSpeechTarget(), GetExpresser()->GetTimeSpeechComplete() - gpGlobals->curtime );
 			}
 			else if ( GetEnemy() && m_NPCState == NPC_STATE_COMBAT )
 			{
-				IdleHeadTurn( GetEnemy()->GetAbsOrigin() );
+				IdleHeadTurn( GetEnemy() );
 			}
-			else
+			else if ( GetFollowTarget() )
 			{
-				IdleHeadTurn( vec3_origin );
+				IdleHeadTurn( GetFollowTarget() );
 			}
 
 			BaseClass::RunTask( pTask );
@@ -245,6 +229,13 @@ int CHL1NPCTalker::SelectSchedule ( void )
 	return BaseClass::SelectSchedule();
 }
 
+void CHL1NPCTalker::Precache()
+{
+	BaseClass::Precache();
+
+	PrecacheScriptSound( "Barney.Close" );
+}
+
 bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
 {
 	if (interactionType == g_interactionBarnacleVictimDangle)
@@ -259,6 +250,7 @@ bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseComb
 		SetState ( NPC_STATE_IDLE );
 
 		CPASAttenuationFilter filter( this );
+
 		CSoundParameters params;
 
 		if ( GetParametersForSound( "Barney.Close", params, NULL ) )
@@ -278,16 +270,19 @@ bool CHL1NPCTalker::HandleInteraction(int interactionType, void *data, CBaseComb
 	{
 		if ( GetFlags() & FL_ONGROUND )
 		{
-			RemoveFlag( FL_ONGROUND );
+			SetGroundEntity( NULL );
 		}
 		
 		if ( GetState() == NPC_STATE_SCRIPT )
 		{
-			 m_hCine->CancelScript();
-			 ClearSchedule( "idk man... hl1_npc_talker.cpp line 277+" );
+			if ( m_hCine )
+			{
+				 m_hCine->CancelScript();
+			}
 		}
 
 		SetState( NPC_STATE_PRONE );
+		ClearSchedule( "NPC talker grabbed by a barnacle" );
 		
 		CTakeDamageInfo info;
 		PainSound( info );
@@ -300,11 +295,37 @@ void CHL1NPCTalker::StartFollowing(	CBaseEntity *pLeader )
 {
 	if ( !HasSpawnFlags( SF_NPC_GAG ) )
 	{
-		Speak( TLK_USE );
+		if ( m_iszUse != NULL_STRING )
+		{
+			PlaySentence( STRING( m_iszUse ), 0.0f );
+		}
+		else
+		{
+			Speak( TLK_STARTFOLLOW );
+		}
+
 		SetSpeechTarget( pLeader );
 	}
 
 	BaseClass::StartFollowing( pLeader );
+}
+
+int CHL1NPCTalker::PlayScriptedSentence( const char *pszSentence, float delay, float volume, soundlevel_t soundlevel, bool bConcurrent, CBaseEntity *pListener )
+{
+	if( hl1_debug_sentence_volume.GetBool() )
+	{
+		Msg( "SENTENCE: %s Vol:%f SndLevel:%d\n", GetDebugName(), volume, soundlevel );
+	}
+
+	if( hl1_fixup_sentence_sndlevel.GetBool() )
+	{
+		if( soundlevel < SNDLVL_TALKING )
+		{
+			soundlevel = SNDLVL_TALKING;
+		}
+	}
+
+	return BaseClass::PlayScriptedSentence( pszSentence, delay, volume, soundlevel, bConcurrent, pListener );
 }
 
 Disposition_t CHL1NPCTalker::IRelationType( CBaseEntity *pTarget )
@@ -334,7 +355,15 @@ void CHL1NPCTalker::StopFollowing( void )
 	{
 		if ( !HasSpawnFlags( SF_NPC_GAG ) )
 		{
-			Speak( TLK_STOPFOLLOW );
+			if ( m_iszUnUse != NULL_STRING )
+			{
+				PlaySentence( STRING( m_iszUnUse ), 0.0f );
+			}
+			else
+			{
+				Speak( TLK_STOPFOLLOW );
+			}
+
 			SetSpeechTarget( GetFollowTarget() );
 		}
 	}
@@ -346,7 +375,7 @@ void CHL1NPCTalker::TraceAttack( const CTakeDamageInfo &info, const Vector &vecD
 {
 	if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
 	{
-		UTIL_BloodSpray( ptr->endpos, vecDir, BloodColor(), 4, FX_BLOODSPRAY_ALL );	
+		UTIL_BloodImpact( ptr->endpos, vecDir, BloodColor(), 4 );
 	}
 
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
@@ -380,32 +409,33 @@ int CHL1NPCTalker::TranslateSchedule( int scheduleType )
 	return BaseClass::TranslateSchedule( scheduleType );
 }
 
-float CHL1NPCTalker::PickRandomLookTarget( bool bExcludePlayers, float minTime, float maxTime )
+float CHL1NPCTalker::PickLookTarget( bool bExcludePlayers, float minTime, float maxTime )
 {
 	return random->RandomFloat( 5.0f, 10.0f );
 }
 
-void CHL1NPCTalker::IdleHeadTurn( const Vector &vTargetPos, float flDuration, float flImportance )
+void CHL1NPCTalker::IdleHeadTurn( CBaseEntity *pTarget, float flDuration, float flImportance )
 {
+	// Must be able to turn our head
 	if (!(CapabilitiesGet() & bits_CAP_TURN_HEAD))
 		return;
 
-	if ( flDuration == 0.0f )
-		 flDuration = random->RandomFloat( 2.0, 4.0 );
+	// If the target is invalid, or we're in a script, do nothing
+	if ( ( !pTarget ) || ( m_NPCState == NPC_STATE_SCRIPT ) )
+		return;
 
-	if ( vTargetPos == vec3_origin || m_NPCState == NPC_STATE_SCRIPT )
+	// Fill in a duration if we haven't specified one
+	if ( flDuration == 0.0f )
 	{
-		SetHeadDirection( vTargetPos, GetAnimTimeInterval() );
+		 flDuration = random->RandomFloat( 2.0, 4.0 );
 	}
-	else
-	{
-		 AddLookTarget( vTargetPos, 1.0, flDuration );
-	}
+
+	// Add a look target
+	AddLookTarget( pTarget, 1.0, flDuration );
 }
 
 void CHL1NPCTalker::SetHeadDirection( const Vector &vTargetPos, float flInterval)
 {
-
 #ifdef TALKER_LOOK
 	// Draw line in body, head, and eye directions
 	Vector vEyePos = EyePosition();
@@ -421,8 +451,6 @@ void CHL1NPCTalker::SetHeadDirection( const Vector &vTargetPos, float flInterval
 	NDebugOverlay::Line( vEyePos, vTargetPos, 0, 0, 255, false, 0.1 );
 #endif
 
-	if ( m_NPCState != NPC_STATE_SCRIPT )
-		 BaseClass::SetHeadDirection( vTargetPos, flInterval );
 }
 
 //-----------------------------------------------------------------------------
@@ -451,6 +479,45 @@ bool CHL1NPCTalker::CorpseGib( const CTakeDamageInfo &info )
 
 	return true;
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CHL1NPCTalker::OnObstructingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult )
+{
+	// If we can't get through the door, try and open it
+	if ( BaseClass::OnObstructingDoor( pMoveGoal, pDoor, distClear, pResult ) )
+	{
+		if  ( IsMoveBlocked( *pResult ) && pMoveGoal->directTrace.vHitNormal != vec3_origin )
+		{
+			// Can't do anything if the door's locked
+			if ( !pDoor->m_bLocked && !pDoor->HasSpawnFlags(SF_DOOR_NONPCS) )
+			{
+				// Tell the door to open
+				variant_t emptyVariant;
+				pDoor->AcceptInput( "Open", this, this, emptyVariant, USE_TOGGLE );
+				*pResult = AIMR_OK;
+			}
+		}
+		return true;
+	}
+
+	return false;
+}
+
+// HL1 version - never return Ragdoll as the automatic schedule at the end of a 
+// scripted sequence
+int CHL1NPCTalker::SelectDeadSchedule()
+{
+	// Alread dead (by animation event maybe?)
+	// Is it safe to set it to SCHED_NONE?
+	if ( m_lifeState == LIFE_DEAD )
+		 return SCHED_NONE;
+
+	CleanupOnDeath();
+	return SCHED_DIE;
+}
+
 
 AI_BEGIN_CUSTOM_NPC( monster_hl1talker, CHL1NPCTalker )
 

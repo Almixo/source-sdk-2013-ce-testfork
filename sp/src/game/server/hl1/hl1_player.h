@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Player for HL1.
 //
@@ -100,8 +100,6 @@ public:
 	virtual CBaseEntity	*GiveNamedItem( const char *pszName, int iSubType = 0 );
 
 	virtual void OnRestore( void );
-
-	void		SetAnimation( PLAYER_ANIM playerAnim );
 
 	bool		IsPullingObject() { return m_bIsPullingObject; }
 	void		StartPullingObject( CBaseEntity *pObject );

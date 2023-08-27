@@ -120,7 +120,7 @@ void ClientModeHL1Normal::InitViewport()
 float ClientModeHL1Normal::GetViewModelFOV( void )
 {
 	ConVarRef viewmodel_fov( "viewmodel_fov" );
-	return viewmodel_fov.GetFloat() == 54.0f ? 90.0f : viewmodel_fov.GetFloat();
+	return viewmodel_fov.GetInt() == 54 ? 90 : viewmodel_fov.GetInt();
 }
 
 
@@ -148,3 +148,8 @@ IViewPortPanel* CHudViewport::CreatePanelByName( const char *szPanelName )
 {
 	return BaseClass::CreatePanelByName( szPanelName ); 
 }
+
+
+
+
+

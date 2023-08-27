@@ -1,25 +1,14 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $Workfile:     $
 // $Date:         $
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "hl1_grenade_spit.h"
-#include "soundent.h"
-#include "decals.h"
-#include "smoke_trail.h"
-#include "hl2_shareddefs.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
 
 ConVar sk_bullsquid_dmg_spit ( "sk_bullsquid_dmg_spit", "0" );
 
@@ -28,6 +17,10 @@ BEGIN_DATADESC( CGrenadeSpit )
 	// Function pointers
 	DEFINE_THINKFUNC( SpitThink ),
 	DEFINE_ENTITYFUNC( GrenadeSpitTouch ),
+
+	//DEFINE_FIELD( m_nSquidSpitSprite, FIELD_INTEGER ),
+
+	DEFINE_FIELD( m_fSpitDeathTime, FIELD_TIME ),
 
 END_DATADESC()
 
@@ -49,7 +42,7 @@ void CGrenadeSpit::Spawn( void )
 	m_nRenderFX		= kRenderFxNone;
 
 	SetThink( &CGrenadeSpit::SpitThink );
-	SetUse( &CGrenadeSpit::DetonateUse ); 
+	SetUse( &CBaseGrenade::DetonateUse ); 
 	SetTouch( &CGrenadeSpit::GrenadeSpitTouch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
@@ -118,7 +111,7 @@ void CGrenadeSpit::GrenadeSpitTouch( CBaseEntity *pOther )
 	}
 	else
 	{
-		RadiusDamage ( CTakeDamageInfo( this, GetOwnerEntity(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, 0 );
+		RadiusDamage ( CTakeDamageInfo( this, GetThrower(), m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 	}
 
 	Detonate();
@@ -149,15 +142,20 @@ void CGrenadeSpit::Detonate(void)
 	UTIL_Remove( this );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CGrenadeSpit::Precache( void )
 {
-	BaseClass::Precache();
-
 	m_nSquidSpitSprite = PrecacheModel("sprites/bigspit.vmt");// client side spittle.
 
 	PrecacheModel("models/spitball_large.mdl"); 
 	PrecacheModel("models/spitball_medium.mdl"); 
 	PrecacheModel("models/spitball_small.mdl"); 
+
+	PrecacheScriptSound( "GrenadeSpit.Acid" );	
+	PrecacheScriptSound( "GrenadeSpit.Hit" );	
+
 }
 
 

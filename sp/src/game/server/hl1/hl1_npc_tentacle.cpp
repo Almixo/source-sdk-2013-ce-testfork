@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -933,15 +933,18 @@ void CNPC_Tentacle::HitTouch( CBaseEntity *pOther )
 	//Right now the BoneFollower will always be hit in box 0, and 
 	//will pass that to us. Make *any* touch by the physics objects a kill
 	//as the ragdoll only covers the top portion of the tentacle.
-	CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
+	if ( pOther->m_takedamage )
+	{
+		CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
 
-	Vector vDamageForce = pOther->GetAbsOrigin() - GetAbsOrigin();
-	VectorNormalize( vDamageForce );
+		Vector vDamageForce = pOther->GetAbsOrigin() - GetAbsOrigin();
+		VectorNormalize( vDamageForce );
 
-	CalculateMeleeDamageForce( &info, vDamageForce, pOther->GetAbsOrigin() );
-	pOther->TakeDamage( info );
+		CalculateMeleeDamageForce( &info, vDamageForce, pOther->GetAbsOrigin() );
+		pOther->TakeDamage( info );
 
-	m_flHitTime = gpGlobals->curtime + 0.5;
+		m_flHitTime = gpGlobals->curtime + 0.5;
+	}
 }
 
 int CNPC_Tentacle::OnTakeDamage( const CTakeDamageInfo &info )

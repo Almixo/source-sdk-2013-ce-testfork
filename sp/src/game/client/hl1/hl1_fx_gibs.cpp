@@ -1,8 +1,8 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "fx.h"
@@ -19,8 +19,8 @@
 #define	HUMAN_GIB_COUNT			6
 #define ALIEN_GIB_COUNT			4
 
-const char *pHumanGibsModel = "models/hgibs.mdl";
-const char *pAlienGibsModel = "models/agibs.mdl";
+const char *pHumanGibsModel = "models/gibs/hgibs.mdl";
+const char *pAlienGibsModel = "models/gibs/agibs.mdl";
 
 void GetBloodColorHL1( int bloodtype, unsigned char &r, unsigned char &g, unsigned char &b )
 {
@@ -65,10 +65,13 @@ public:
 	// Decal the surface
 	virtual	void HitSurface( C_BaseEntity *pOther )
 	{
-		int index;
-		if ( m_iType == HUMAN_GIBS)
+		int index = -1;
+		if ( m_iType == HUMAN_GIBS )
 		{
-			index = decalsystem->GetDecalIndexForName( "Blood" );
+			if ( !UTIL_IsLowViolence() ) // no blood decals if we're low violence.
+			{
+				index = decalsystem->GetDecalIndexForName( "Blood" );
+			}
 		}
 		else
 		{
@@ -105,7 +108,7 @@ public:
 
 void C_HL1Gib::ClientThink( void )
 {
-	SetRenderMode(kRenderTransAlpha);
+	SetRenderMode( kRenderTransAlpha );
 	m_nRenderFX		= kRenderFxFadeSlow;
 
 	if ( m_clrRender->a == 5 )
@@ -124,6 +127,7 @@ void C_HL1Gib::ClientThink( void )
 void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int iType, int iHealth, int iColor )
 {
 	Vector	offset;
+	int i;
 	
 	offset = RandomVector( -16, 16 ) + origin;
 
@@ -165,7 +169,7 @@ void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int 
 	}
 
 	// Spawn all the unique gibs
-	for ( int i = 0; i < MAX_GIBS; i++ )
+	for ( i = 0; i < MAX_GIBS; i++ )
 	{
 		const char *pModelName = NULL;
 		int  iNumBody = 0;
@@ -225,21 +229,21 @@ void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int 
 	}
 
 	//
-	// Throw some blood
+	// Throw some blood (unless we're low violence, then we're done)
 	//
+	if ( iColor == BLOOD_COLOR_RED && UTIL_IsLowViolence() )
+		return;
 
 	CSmartPtr<CSimpleEmitter> pSimple = CSimpleEmitter::Create( "FX_HL1Gib" );
 	pSimple->SetSortOrigin( origin );
-
-	PMaterialHandle	hMaterial = pSimple->GetPMaterial( "effects/blood" );
 
 	Vector	vDir;
 
 	vDir.Random( -1.0f, 1.0f );
 
-	for ( int i = 0; i < 4; i++ )
+	for ( i = 0; i < 4; i++ )
 	{
-		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), hMaterial, origin );
+		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), g_Mat_BloodPuff[0], origin );
 			
 		if ( sParticle == NULL )
 			return;
@@ -262,11 +266,9 @@ void FX_HL1Gib( const Vector &origin, const Vector &direction, float scale, int 
 		sParticle->m_flRollDelta	= random->RandomFloat( -4.0f, 4.0f );
 	}
 
-	hMaterial = pSimple->GetPMaterial( "effects/blood2" );
-
-	for ( int i = 0; i < 4; i++ )
+	for ( i = 0; i < 4; i++ )
 	{
-		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), hMaterial, origin );
+		SimpleParticle *sParticle = (SimpleParticle *) pSimple->AddParticle( sizeof( SimpleParticle ), g_Mat_BloodPuff[1], origin );
 			
 		if ( sParticle == NULL )
 		{

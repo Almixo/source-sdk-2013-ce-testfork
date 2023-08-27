@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #ifndef C_HL1_PLAYER_H
 #define C_HL1_PLAYER_H
@@ -12,7 +12,10 @@
 
 #include "c_baseplayer.h"
 
-class C_HL1_Player : public CBasePlayer
+
+#define CHL1_Player C_HL1_Player
+
+class C_HL1_Player : public C_BasePlayer
 {
 public:
 	DECLARE_CLASS( C_HL1_Player, C_BasePlayer );
@@ -20,13 +23,20 @@ public:
 
 	C_HL1_Player();
 
-	int m_nFlashBattery;	// Flashlight Battery Draw
-	float m_flStartCharge, m_flAmmoStartCharge, m_flPlayAftershock, m_flNextAmmoBurn, m_flFlashLightTime;
-	bool m_bIsPullingObject, m_bHasLongJump;
+	bool IsPullingObject() { return m_bIsPullingObject; }
+
+	CNetworkVar( bool, m_bHasLongJump );
+	CNetworkVar( int, m_nFlashBattery );
+	CNetworkVar( bool, m_bIsPullingObject );
+
+	CNetworkVar( float, m_flStartCharge );
+	CNetworkVar( float, m_flAmmoStartCharge );
+	CNetworkVar( float, m_flPlayAftershock );
+	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
 
 private:
 	C_HL1_Player( const C_HL1_Player & );
-
+	
 };
 
 inline C_HL1_Player *ToHL1Player( CBaseEntity *pEntity )

@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: A slow-moving, once-human headcrab victim with only melee attacks.
 //
@@ -6,19 +6,21 @@
 // UNDONE: Don't flinch every time you get hit.
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "game.h"
-#include "ai_default.h"
-#include "ai_schedule.h"
-#include "ai_hull.h"
-#include "ai_route.h"
-#include "npcevent.h"
+#include "AI_Default.h"
+#include "AI_Schedule.h"
+#include "AI_Hull.h"
+#include "AI_Route.h"
+#include "NPCEvent.h"
 #include "hl1_npc_zombie.h"
 #include "gib.h"
-//#include "ai_interactions.h"
+//#include "AI_Interactions.h"
 #include "ndebugoverlay.h"
+#include "vstdlib/random.h"
+#include "engine/IEngineSound.h"
 
 ConVar	sk_zombie_health( "sk_zombie_health","50");
 ConVar  sk_zombie_dmg_one_slash( "sk_zombie_dmg_one_slash", "20" );
@@ -27,6 +29,7 @@ ConVar  sk_zombie_dmg_both_slash( "sk_zombie_dmg_both_slash", "40" );
 
 
 LINK_ENTITY_TO_CLASS( monster_zombie, CNPC_Zombie );
+
 
 //=========================================================
 // Spawn
@@ -61,14 +64,14 @@ void CNPC_Zombie::Spawn()
 //=========================================================
 void CNPC_Zombie::Precache()
 {
-	PrecacheModel("models/zombie.mdl");
+	PrecacheModel( "models/zombie.mdl" );
 
-	PrecacheScriptSound("Zombie.AttackHit");
-	PrecacheScriptSound("Zombie.AttackMiss");
-	PrecacheScriptSound("Zombie.Pain");
-	PrecacheScriptSound("Zombie.Idle");
-	PrecacheScriptSound("Zombie.Alert");
-	PrecacheScriptSound("Zombie.Attack");
+	PrecacheScriptSound( "Zombie.AttackHit" );
+	PrecacheScriptSound( "Zombie.AttackMiss" );
+	PrecacheScriptSound( "Zombie.Pain" );
+	PrecacheScriptSound( "Zombie.Idle" );
+	PrecacheScriptSound( "Zombie.Alert" );
+	PrecacheScriptSound( "Zombie.Attack" );
 
 	BaseClass::Precache();
 }
@@ -86,7 +89,7 @@ Class_T	CNPC_Zombie::Classify( void )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-void CNPC_Zombie :: HandleAnimEvent( animevent_t *pEvent )
+void CNPC_Zombie::HandleAnimEvent( animevent_t *pEvent )
 {
 	Vector v_forward, v_right;
 	switch( pEvent->event )
@@ -149,7 +152,9 @@ void CNPC_Zombie :: HandleAnimEvent( animevent_t *pEvent )
 				EmitSound( filter2, entindex(), "Zombie.AttackHit" );
 			}
 			else
+			{
 				EmitSound( filter2, entindex(), "Zombie.AttackMiss" );
+			}
 
 			if ( random->RandomInt( 0,1 ) ) 
 				 AttackSound();
@@ -231,12 +236,12 @@ int CNPC_Zombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 
 	// HACK HACK -- until we fix this.
 	if ( IsAlive() )
-		 PainSound();
+		 PainSound( info );
 	
 	return BaseClass::OnTakeDamage_Alive( info );
 }
 
-void CNPC_Zombie::PainSound( void )
+void CNPC_Zombie::PainSound( const CTakeDamageInfo &info )
 {
 	if ( random->RandomInt(0,5) < 2)
 	{
@@ -265,15 +270,31 @@ void CNPC_Zombie::AttackSound( void )
 	EmitSound( filter, entindex(), "Zombie.Attack" );
 }
 
+int CNPC_Zombie::MeleeAttack1Conditions ( float flDot, float flDist )
+{
+	if ( flDist > 64)
+	{
+		return COND_TOO_FAR_TO_ATTACK;
+	}
+	else if (flDot < 0.7)
+	{
+		return 0;
+	}
+	else if (GetEnemy() == NULL)
+	{
+		return 0;
+	}
+
+	return COND_CAN_MELEE_ATTACK1;
+}
+
 void CNPC_Zombie::RemoveIgnoredConditions ( void )
 {
-	if (( GetActivity() == ACT_MELEE_ATTACK1 ) || ( GetActivity() == ACT_MELEE_ATTACK1 ))
+	if ( GetActivity() == ACT_MELEE_ATTACK1 )
 	{
-		if ( m_flNextFlinch >= gpGlobals->curtime)
-		{
-			 ClearCondition( COND_LIGHT_DAMAGE );
-			 ClearCondition( COND_HEAVY_DAMAGE );
-		}
+		// Nothing stops an attacking zombie.
+		ClearCondition( COND_LIGHT_DAMAGE );
+		ClearCondition( COND_HEAVY_DAMAGE );
 	}
 
 	if (( GetActivity() == ACT_SMALL_FLINCH ) || ( GetActivity() == ACT_BIG_FLINCH ))

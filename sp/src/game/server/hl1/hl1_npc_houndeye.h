@@ -1,12 +1,15 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_HOUNDEYE_H
 #define NPC_HOUNDEYE_H
 #pragma once
 
 #include "hl1_ai_basenpc.h"
-#include "ai_squad.h"
-#include "ai_hint.h"
-#include "npcevent.h"
-#include "movevars_shared.h"
 
 class CNPC_Houndeye : public CHL1BaseNPC
 {
@@ -16,11 +19,13 @@ public:
 	void Spawn( void );
 	void Precache( void );
 
+	void Event_Killed( const CTakeDamageInfo &info );
+
 	void WarmUpSound ( void );
 	void AlertSound( void );
-	void DeathSound( void );
+	void DeathSound( const CTakeDamageInfo &info );
 	void WarnSound( void );
-	void PainSound( void );
+	void PainSound( const CTakeDamageInfo &info );
 	void IdleSound( void );
 	
 	float MaxYawSpeed  ( void );

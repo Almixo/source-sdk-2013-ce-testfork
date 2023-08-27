@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
 #include	"AI_Default.h"
 #include	"AI_Task.h"
@@ -50,15 +57,14 @@ public:
 	
 	int  TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType);
-	
-
-	// x_teleattack1.wav	the looping sound of the teleport attack ball.*/
+	*/
 
 	int	OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	bool ShouldGib( const CTakeDamageInfo &info ) { return false; }
 
-	void PainSound( void );
-	void DeathSound( void );
+	void PainSound( const CTakeDamageInfo &info );
+	void DeathSound( const CTakeDamageInfo &info );
 	
 	void StartupThink( void );
 	void NullThink( void );
@@ -127,6 +133,8 @@ public:
 
 	EHANDLE m_hFriend[3];
 
+	bool m_bDead;
+
 	DECLARE_DATADESC();
 };
 
@@ -163,6 +171,7 @@ BEGIN_DATADESC( CNPC_Nihilanth )
 	DEFINE_FIELD( m_flShootEnd, FIELD_TIME ),
 	DEFINE_FIELD( m_flShootTime, FIELD_TIME ),
 	DEFINE_ARRAY( m_hFriend, FIELD_EHANDLE, 3 ),
+	DEFINE_FIELD( m_bDead, FIELD_BOOLEAN ),
 	DEFINE_THINKFUNC( NullThink ),
 	DEFINE_THINKFUNC( StartupThink ),
 	DEFINE_THINKFUNC( HuntThink ),
@@ -175,7 +184,7 @@ END_DATADESC()
 
 class CNihilanthHVR : public CAI_BaseNPC
 {
-	DECLARE_CLASS( CNihilanthHVR, CBaseEntity );
+	DECLARE_CLASS( CNihilanthHVR, CAI_BaseNPC );
 public:
 	void Spawn( void );
 	void Precache( void );
@@ -256,9 +265,11 @@ BEGIN_DATADESC( CNihilanthHVR )
 	DEFINE_FIELD( m_pNihilanth, FIELD_CLASSPTR ),
 	DEFINE_FIELD( m_hTouch, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_hSprite, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hBeam, FIELD_EHANDLE ),
+
 	DEFINE_THINKFUNC( HoverThink ),
 	DEFINE_ENTITYFUNC( BounceTouch ),
-	DEFINE_THINKFUNC(ZapThink ),
+	DEFINE_THINKFUNC( ZapThink ),
 	DEFINE_ENTITYFUNC( ZapTouch ),
 	DEFINE_THINKFUNC( DissipateThink ),
 	DEFINE_THINKFUNC( TeleportThink ),
@@ -270,6 +281,7 @@ END_DATADESC()
 //=========================================================
 // Nihilanth, final Boss monster
 //=========================================================
+
 void CNPC_Nihilanth::Spawn( void )
 {
 	Precache( );
@@ -283,6 +295,10 @@ void CNPC_Nihilanth::Spawn( void )
 
 	UTIL_SetSize(this, Vector( -16 * N_SCALE, -16 * N_SCALE, -48 * N_SCALE ), Vector( 16 * N_SCALE, 16 * N_SCALE, 28 * N_SCALE ) );
 	
+	Vector vecSurroundingMins( -16 * N_SCALE, -16 * N_SCALE, -48 * N_SCALE );
+	Vector vecSurroundingMaxs( 16 * N_SCALE, 16 * N_SCALE, 28 * N_SCALE );
+	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
+
 	UTIL_SetOrigin( this, GetAbsOrigin() - Vector( 0, 0, 64 ) );
 
 	AddFlag( FL_NPC );
@@ -306,12 +322,12 @@ void CNPC_Nihilanth::Spawn( void )
 	m_iLevel = 1; 
 	m_iTeleport = 1;
 
-	if (m_szRechargerTarget[0] == '\0')	strcpy( m_szRechargerTarget, "n_recharger" );
-	if (m_szDrawUse[0] == '\0')			strcpy( m_szDrawUse, "n_draw" );
-	if (m_szTeleportUse[0] == '\0')		strcpy( m_szTeleportUse, "n_leaving" );
-	if (m_szTeleportTouch[0] == '\0')	strcpy( m_szTeleportTouch, "n_teleport" );
-	if (m_szDeadUse[0] == '\0')			strcpy( m_szDeadUse, "n_dead" );
-	if (m_szDeadTouch[0] == '\0')		strcpy( m_szDeadTouch, "n_ending" );
+	if (m_szRechargerTarget[0] == '\0')	Q_strncpy( m_szRechargerTarget, "n_recharger", sizeof( m_szRechargerTarget ) );
+	if (m_szDrawUse[0] == '\0')			Q_strncpy( m_szDrawUse, "n_draw", sizeof( m_szDrawUse ) );
+	if (m_szTeleportUse[0] == '\0')		Q_strncpy( m_szTeleportUse, "n_leaving", sizeof( m_szTeleportUse ) );
+	if (m_szTeleportTouch[0] == '\0')	Q_strncpy( m_szTeleportTouch, "n_teleport", sizeof( m_szTeleportTouch ) );
+	if (m_szDeadUse[0] == '\0')			Q_strncpy( m_szDeadUse, "n_dead", sizeof( m_szDeadUse ) );
+	if (m_szDeadTouch[0] == '\0')		Q_strncpy( m_szDeadTouch, "n_ending", sizeof( m_szDeadTouch ) );
 
 	SetBloodColor( BLOOD_COLOR_YELLOW );
 }
@@ -321,27 +337,28 @@ void CNPC_Nihilanth::Precache( void )
 {
 	PrecacheModel("models/nihilanth.mdl");
 	PrecacheModel("sprites/lgtning.vmt");
-	UTIL_PrecacheOther("nihilanth_energy_ball");
-	UTIL_PrecacheOther("monster_alien_controller");
-	UTIL_PrecacheOther("monster_alien_slave");
+	UTIL_PrecacheOther( "nihilanth_energy_ball" );
+	UTIL_PrecacheOther( "monster_alien_controller" );
+	UTIL_PrecacheOther( "monster_alien_slave" );
 
-	PrecacheScriptSound("Nihilanth.PainLaugh");
-	PrecacheScriptSound("Nihilanth.Pain");
-	PrecacheScriptSound("Nihilanth.Die");
-	PrecacheScriptSound("Nihilanth.FriendBeam");
-	PrecacheScriptSound("Nihilanth.Attack");
-	PrecacheScriptSound("Nihilanth.BallAttack");
-	PrecacheScriptSound("Nihilanth.Recharge");
+	PrecacheScriptSound( "Nihilanth.PainLaugh" );
+	PrecacheScriptSound( "Nihilanth.Pain" );
+	PrecacheScriptSound( "Nihilanth.Die" );
+	PrecacheScriptSound( "Nihilanth.FriendBeam" );
+	PrecacheScriptSound( "Nihilanth.Attack" );
+	PrecacheScriptSound( "Nihilanth.BallAttack" );
+	PrecacheScriptSound( "Nihilanth.Recharge" );
+
 }
 
-void CNPC_Nihilanth::PainSound( void )
+void CNPC_Nihilanth::PainSound( const CTakeDamageInfo &info )
 {
 	if (m_flNextPainSound > gpGlobals->curtime)
 		return;
 	
 	m_flNextPainSound = gpGlobals->curtime + random->RandomFloat( 2, 5 );
 
-	if ( m_iHealth > sk_nihilanth_health.GetFloat() / 2)
+	if ( m_iHealth > sk_nihilanth_health.GetFloat() / 2 )
 	{
 		CPASAttenuationFilter filter( this );
 		EmitSound( filter, entindex(), "Nihilanth.PainLaugh" ); 
@@ -353,7 +370,7 @@ void CNPC_Nihilanth::PainSound( void )
 	}
 }	
 
-void CNPC_Nihilanth::DeathSound( void )
+void CNPC_Nihilanth::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Nihilanth.Die" ); 
@@ -364,6 +381,9 @@ int	CNPC_Nihilanth::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( info.GetInflictor() == this )
 		 return 0;
 
+	if ( m_bDead )
+		return 0;
+
 	if ( info.GetDamage() >= m_iHealth )
 	{
 		m_iHealth = 1;
@@ -371,9 +391,16 @@ int	CNPC_Nihilanth::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			 return 0;
 	}
 	
-	PainSound( );
+	PainSound( info );
 
 	m_iHealth -= info.GetDamage();
+
+	if( m_iHealth < 0 )
+	{
+		m_iHealth = 1;
+		m_bDead = true;
+		m_takedamage = DAMAGE_NO;
+	}
 
 	return 0;
 }
@@ -448,13 +475,13 @@ void CNPC_Nihilanth::StartupThink( void )
 
 	CBaseEntity *pEntity;
 
-	pEntity = gEntList.FindEntityByName( NULL, "n_min", NULL );
+	pEntity = gEntList.FindEntityByName( NULL, "n_min" );
 	if (pEntity)
 		m_flMinZ = pEntity->GetAbsOrigin().z;
 	else
 		m_flMinZ = -4096;
 
-	pEntity = gEntList.FindEntityByName( NULL, "n_max", NULL );
+	pEntity = gEntList.FindEntityByName( NULL, "n_max" );
 	if (pEntity)
 		m_flMaxZ = pEntity->GetAbsOrigin().z;
 	else
@@ -486,7 +513,7 @@ void CNPC_Nihilanth::InputTurnBabyOn( inputdata_t &inputdata )
 
 void CNPC_Nihilanth::InputTurnBabyOff( inputdata_t &inputdata )
 {
-	CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, m_szDeadTouch, NULL );
+	CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, m_szDeadTouch );
 	
 	if ( pTouch && GetEnemy() != NULL )
 		 pTouch->Touch( GetEnemy() );
@@ -517,10 +544,10 @@ void CNPC_Nihilanth::HuntThink( void )
 	ShootBalls();
 
 	// if dead, force cancelation of current animation
-	if ( m_iHealth <= 0)
+	if ( m_bDead )
 	{
 		SetThink( &CNPC_Nihilanth::DyingThink );
-		SetCycle( 0 );
+		SetCycle( 1.0f );
 
 		StudioFrameAdvance();
 		return;
@@ -638,7 +665,7 @@ void CNPC_Nihilanth::Flight( void )
 			m_flForce -= 10;
 	}
 
-	UTIL_SetOrigin( this, GetAbsOrigin() + m_velocity * 0.1 );
+	SetAbsVelocity( m_velocity );
 
 	vAngle = QAngle( GetAbsAngles().x + m_avelocity.x * 0.1, GetAbsAngles().y + m_avelocity.y * 0.1, GetAbsAngles().z + m_avelocity.z * 0.1 );
 
@@ -693,7 +720,7 @@ void CNPC_Nihilanth::NextActivity( )
 
 		Q_snprintf(szName, sizeof( szName ), "%s%d", m_szRechargerTarget, m_iLevel );
 
-		while ((pEnt = gEntList.FindEntityByName( pEnt, szName , NULL )) != NULL )
+		while ((pEnt = gEntList.FindEntityByName( pEnt, szName )) != NULL )
 		{
 			float flLocal = (pEnt->GetAbsOrigin() - GetAbsOrigin() ).Length();
 
@@ -791,10 +818,10 @@ void CNPC_Nihilanth::NextActivity( )
 					char szText[64];
 
 					Q_snprintf( szText, sizeof( szText ), "%s%d", m_szTeleportTouch, m_iTeleport );
-					CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, szText, NULL );
+					CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, szText );
 
 					Q_snprintf( szText, sizeof( szText ), "%s%d", m_szTeleportUse, m_iTeleport );
-					CBaseEntity *pTrigger = gEntList.FindEntityByName( NULL, szText, NULL );
+					CBaseEntity *pTrigger = gEntList.FindEntityByName( NULL, szText );
 
 					if (pTrigger != NULL || pTouch != NULL)
 					{
@@ -865,7 +892,7 @@ void CNPC_Nihilanth::MakeFriend( Vector vecStart )
 			if (m_hFriend[i] != NULL)
 			{
 				CPASAttenuationFilter filter( this );
-				enginesound->EmitSound( filter, m_hFriend[i]->entindex(), CHAN_WEAPON, "debris/beamstart7.wav", 1.0, ATTN_NORM ); 
+				EmitSound( filter, m_hFriend[i]->entindex(), "Nihilanth.FriendBeam" ); 
 			}
 
 			return;
@@ -963,7 +990,8 @@ void CNPC_Nihilanth::DyingThink( void )
 
 	if ( m_lifeState == LIFE_ALIVE )
 	{
-		DeathSound( );
+		CTakeDamageInfo info;
+		DeathSound( info );
 		m_lifeState = LIFE_DYING;
 
 		m_posDesired.z = m_flMaxZ;
@@ -986,7 +1014,7 @@ void CNPC_Nihilanth::DyingThink( void )
 			SetAbsVelocity( Vector( 0, 0, 0 ) );
 			SetGravity( 0 );
 
-			while( ( pTrigger = gEntList.FindEntityByName( pTrigger, m_szDeadUse, NULL ) ) != NULL )
+			while( ( pTrigger = gEntList.FindEntityByName( pTrigger, m_szDeadUse ) ) != NULL )
 			{
 				CLogicRelay *pRelay = (CLogicRelay*)pTrigger;
 				pRelay->m_OnTrigger.FireOutput( this, this );
@@ -1080,7 +1108,7 @@ void CNPC_Nihilanth::DyingThink( void )
 	pBeam->SetScrollRate( 1.0 );
 	pBeam->LiveForTime( 0.5 );
 	
-	GetAttachment( 0, vecSrc, vecAngles ); 
+	GetAttachment( 2, vecSrc, vecAngles ); 
 	CNihilanthHVR *pEntity = (CNihilanthHVR *)CREATE_ENTITY( CNihilanthHVR, "nihilanth_energy_ball" );
 	
 	pEntity->SetAbsOrigin( vecSrc );
@@ -1132,15 +1160,15 @@ void CNPC_Nihilanth::HandleAnimEvent( animevent_t *pEvent )
 			char szText[32];
 
 			Q_snprintf( szText, sizeof( szText ), "%s%d", m_szTeleportTouch, m_iTeleport );
-			CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, szText, NULL );
+			CBaseEntity *pTouch = gEntList.FindEntityByName( NULL, szText );
 
 			Q_snprintf( szText, sizeof( szText ), "%s%d", m_szTeleportUse, m_iTeleport );
-			CBaseEntity *pTrigger = gEntList.FindEntityByName( NULL, szText, NULL );
+			CBaseEntity *pTrigger = gEntList.FindEntityByName( NULL, szText );
 
 			if (pTrigger != NULL || pTouch != NULL)
 			{
 				CPASAttenuationFilter filter( this );
-				EmitSound( filter, entindex(), "Nihilanth.Attack" );
+				EmitSound( filter, entindex(), "Nihilanth.Attack" ); 
 
 				Vector vecSrc;
 				QAngle vecAngles;
@@ -1200,7 +1228,7 @@ void CNPC_Nihilanth::HandleAnimEvent( animevent_t *pEvent )
 	case 5:	// start up sphere machine
 		{
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), "Nihilanth.Recharge" );
+			EmitSound( filter, entindex(), "Nihilanth.Recharge" ); 
 		}
 		break;
 	case 6:
@@ -1258,8 +1286,8 @@ void CNihilanthHVR::Precache( void )
 
 	PrecacheModel("sprites/laserbeam.vmt");
 
-	PrecacheScriptSound("NihilanthHVR.Zap");
-	PrecacheScriptSound("NihilanthHVR.TeleAttack");
+	PrecacheScriptSound( "NihilanthHVR.Zap" );
+	PrecacheScriptSound( "NihilanthHVR.TeleAttack" );
 }
 
 void CNihilanthHVR::CircleInit( CBaseEntity *pTarget )
@@ -1323,8 +1351,7 @@ void CNihilanthHVR::BounceTouch( CBaseEntity *pOther )
 
 	VectorNormalize( vecDir );
 
-	trace_t tr;
-	tr = GetTouchTrace();
+	const trace_t &tr = GetTouchTrace();
 
 	float n = -DotProduct(tr.plane.normal, vecDir);
 
@@ -1392,9 +1419,9 @@ bool CNihilanthHVR::CircleTarget( Vector vecTarget )
 	// move up/down
 	d1 = vecTarget.z - GetAbsOrigin().z;
 	if (d1 > 0 && m_vecIdeal.z < 200)
-		m_vecIdeal.z += 20;
+		m_vecIdeal.z += 200;
 	else if (d1 < 0 && m_vecIdeal.z > -200)
-		m_vecIdeal.z -= 20;
+		m_vecIdeal.z -= 200;
 
 	SetAbsVelocity( m_vecIdeal );
 
@@ -1428,10 +1455,10 @@ void CNihilanthHVR::ZapInit( CBaseEntity *pEnemy )
 	SetNextThink( gpGlobals->curtime + 0.1 );
 
 	CPASAttenuationFilter filter( this );
-	enginesound->EmitSound( filter, entindex(), CHAN_WEAPON, "debris/zap4.wav", 1, ATTN_NORM, 0, 100 );
+	EmitSound( filter, entindex(), "NihilanthHVR.Zap" );
 }
 
-void CNihilanthHVR :: ZapThink( void  )
+void CNihilanthHVR::ZapThink( void  )
 {
 	SetNextThink( gpGlobals->curtime + 0.05 );
 
@@ -1478,11 +1505,11 @@ void CNihilanthHVR :: ZapThink( void  )
 		pBeam->SetScrollRate( 10 );
 		pBeam->LiveForTime( 0.1 );
 
-		UTIL_EmitAmbientSound( entindex(), tr.endpos, "Controller.ElectroSound", 0.5, SNDLVL_NORM, 0, random->RandomInt(140, 160));
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), tr.endpos, "Controller.ElectroSound", 0.5, SNDLVL_NORM, 0, random->RandomInt( 140, 160 ) );
 
 		SetTouch( NULL );
-		GetSprite()->SetThink( &CSprite::SUB_Remove );
-		SetThink( &CNihilanthHVR::SUB_Remove );
+		GetSprite()->SetThink( &CBaseEntity::SUB_Remove );
+		SetThink( &CBaseEntity::SUB_Remove );
 		SetNextThink( gpGlobals->curtime + 0.2 );
 		GetSprite()->SetNextThink( gpGlobals->curtime + 0.2 );
 		return;
@@ -1495,9 +1522,9 @@ void CNihilanthHVR :: ZapThink( void  )
 
 void CNihilanthHVR::ZapTouch( CBaseEntity *pOther )
 {
-	UTIL_EmitAmbientSound( entindex(), GetAbsOrigin(), "Controller.ElectroSound", 1.0, SNDLVL_NORM, 0, random->RandomInt(90, 95));
+	UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin(), "Controller.ElectroSound", 1.0, SNDLVL_NORM, 0, random->RandomInt( 90, 95 ) );
 
-	RadiusDamage( CTakeDamageInfo( this, this, 50, DMG_SHOCK ), GetAbsOrigin(), 125,  CLASS_NONE, this );
+	RadiusDamage( CTakeDamageInfo( this, this, 50, DMG_SHOCK ), GetAbsOrigin(), 125,  CLASS_NONE, NULL );
 	SetAbsVelocity( GetAbsVelocity() * 0 );
 
 	SetTouch( NULL );
@@ -1598,7 +1625,7 @@ void CNihilanthHVR::TeleportInit( CNPC_Nihilanth *pOwner, CBaseEntity *pEnemy, C
 	SetNextThink( gpGlobals->curtime + 0.1 );
 
 	CPASAttenuationFilter filter( this );
-	EmitSound( filter, entindex(), "NihilanthHVR.TeleAttack" );
+	EmitSound( filter, entindex(), "NihilanthHVR.TeleAttack" ); 
 }
 
 void CNihilanthHVR::MovetoTarget( Vector vecTarget )
@@ -1690,7 +1717,7 @@ void CNihilanthHVR::TeleportTouch( CBaseEntity *pOther )
 	UTIL_Remove( GetSprite() );
 }
 
-void CNihilanthHVR :: GreenBallInit( )
+void CNihilanthHVR::GreenBallInit( )
 {
 	SetMoveType( MOVETYPE_FLY );
 	SetSolid( SOLID_BBOX );

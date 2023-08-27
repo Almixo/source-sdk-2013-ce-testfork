@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Ammo boxes for HL1
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
@@ -31,13 +31,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel( AMMO_CROSSBOW_MODEL );
+		PrecacheModel( AMMO_CROSSBOW_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_CROSSBOW_GIVE, "XBowBolt" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -66,13 +69,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_EGON_MODEL );
+		PrecacheModel ( AMMO_EGON_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_EGON_GIVE, "Uranium" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );	
+			}
 			return true;
 		}
 		return false;
@@ -101,13 +107,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_GAUSS_MODEL );
+		PrecacheModel ( AMMO_GAUSS_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_GAUSS_GIVE, "Uranium" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -136,13 +145,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_GLOCK_MODEL );
+		PrecacheModel ( AMMO_GLOCK_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_GLOCK_GIVE, "9mmRound" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -173,13 +185,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_MP5_MODEL );
+		PrecacheModel ( AMMO_MP5_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_MP5_GIVE, "9mmRound" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -210,13 +225,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_MP5CHAIN_MODEL );
+		PrecacheModel ( AMMO_MP5CHAIN_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_MP5CHAIN_GIVE, "9mmRound" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -245,13 +263,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_MP5GRENADE_MODEL );
+		PrecacheModel ( AMMO_MP5GRENADE_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_MP5GRENADE_GIVE, "MP5_Grenade" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -282,13 +303,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_357_MODEL );
+		PrecacheModel ( AMMO_357_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_357_GIVE, "357Round" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -317,7 +341,7 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_RPG_MODEL );
+		PrecacheModel ( AMMO_RPG_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -335,7 +359,10 @@ public:
 
 		if (pPlayer->GiveAmmo( nGive, "RPG_Rocket" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;
@@ -364,13 +391,16 @@ public:
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel ( AMMO_SHOTGUN_MODEL );
+		PrecacheModel ( AMMO_SHOTGUN_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer->GiveAmmo( AMMO_SHOTGUN_GIVE, "Buckshot" ) )
 		{
-			UTIL_Remove( this );	
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove( this );
+			}
 			return true;
 		}
 		return false;

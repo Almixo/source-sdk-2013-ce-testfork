@@ -12,19 +12,19 @@
 
 #include "clientmode_shared.h"
 
-class ClientModeHL1Normal : public ClientModeShared
+class ClientModeHL1Normal : public ClientModeShared 
 {
-	DECLARE_CLASS(ClientModeHL1Normal, ClientModeShared);
+DECLARE_CLASS( ClientModeHL1Normal, ClientModeShared );
 
 public:
-	ClientModeHL1Normal();
+					ClientModeHL1Normal();
 	virtual			~ClientModeHL1Normal();
 
 	virtual	void	InitViewport();
 
-	virtual float	GetViewModelFOV(void);
+	virtual float	GetViewModelFOV( void );
 
-	virtual int		GetDeathMessageStartHeight(void);
+	virtual int		GetDeathMessageStartHeight( void );
 };
 
 

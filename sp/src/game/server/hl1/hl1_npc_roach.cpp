@@ -1,3 +1,10 @@
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include	"cbase.h"
 #include	"hl1_ai_basenpc.h"
 #include	"AI_Default.h"
@@ -63,6 +70,8 @@ public:
 	void Eat( float flFullDuration );
 	bool ShouldEat( void );
 
+	bool ShouldGib( const CTakeDamageInfo &info ) { return false; }
+
 	float	m_flLastLightLevel;
 	float	m_flNextSmellTime;
 		
@@ -78,7 +87,7 @@ LINK_ENTITY_TO_CLASS( monster_cockroach, CNPC_Roach );
 
 //BEGIN_DATADESC( CNPC_Roach )
 
-//	DEFINE_FUNCTION( CNPC_Roach, RoachTouch ),
+//	DEFINE_FUNCTION( RoachTouch ),
 	
 //END_DATADESC()
 
@@ -113,6 +122,8 @@ void CNPC_Roach::Spawn()
 	m_flLastLightLevel	= -1;
 	m_iMode				= ROACH_IDLE;
 	m_flNextSmellTime	= gpGlobals->curtime;
+
+	AddEffects( EF_NOSHADOW );
 }
 
 //=========================================================
@@ -122,9 +133,9 @@ void CNPC_Roach::Precache()
 {
 	PrecacheModel("models/roach.mdl");
 
-	PrecacheScriptSound("Roach.Walk");
-	PrecacheScriptSound("Roach.Die");
-	PrecacheScriptSound("Roach.Smash");
+	PrecacheScriptSound( "Roach.Walk" );
+	PrecacheScriptSound( "Roach.Die" );
+	PrecacheScriptSound( "Roach.Smash" );
 }
 
 float CNPC_Roach::MaxYawSpeed( void )
@@ -150,7 +161,7 @@ bool CNPC_Roach::ShouldEat( void )
 //=========================================================
 // MonsterThink, overridden for roaches.
 //=========================================================
-void CNPC_Roach :: NPCThink( void  )
+void CNPC_Roach::NPCThink( void  )
 {
 	if ( FNullEnt( UTIL_FindClientInPVS( edict() ) ) )
 		SetNextThink( gpGlobals->curtime + random->RandomFloat( 1.0f , 1.5f ) );
@@ -256,7 +267,7 @@ void CNPC_Roach :: NPCThink( void  )
 	}
 }
 
-void CNPC_Roach :: PickNewDest ( int iCondition )
+void CNPC_Roach::PickNewDest ( int iCondition )
 {
 	Vector	vecNewDir;
 	Vector	vecDest;
@@ -366,21 +377,24 @@ void CNPC_Roach::Move ( float flInterval )
 	// local move to waypoint.
 	flWaypointDist = ( GetNavigator()->GetGoalPos() - GetAbsOrigin() ).Length2D();
 	
-	float idealYaw;
-	idealYaw = UTIL_VecToYaw( GetNavigator()->GetGoalPos() );
-	GetMotor()->SetIdealYaw( idealYaw );
+	GetMotor()->SetIdealYawToTargetAndUpdate( GetNavigator()->GetGoalPos() );
+
+	float speed = 150 * flInterval;
+
+	Vector vToTarget = GetNavigator()->GetGoalPos() - GetAbsOrigin();
+	vToTarget.NormalizeInPlace();
+	Vector vMovePos = vToTarget * speed;
 
 	if ( random->RandomInt( 0,7 ) == 1 )
 	{
-		// randomly check for blocked path.(more random load balancing)
-		if ( !WalkMove( GetNavigator()->GetGoalPos() - GetAbsOrigin(), MASK_NPCSOLID ) )
-		{
-			// stuck, so just pick a new spot to run off to
-			PickNewDest( m_iMode );
-		}
+		// randomly change direction
+		PickNewDest( m_iMode );
 	}
 	
-	WalkMove( (GetNavigator()->GetGoalPos() - GetAbsOrigin()) * flInterval, MASK_NPCSOLID );
+	if( !WalkMove( vMovePos, MASK_NPCSOLID ) )
+	{
+		PickNewDest( m_iMode );
+	}
 
 	// if the waypoint is closer than step size, then stop after next step (ok for roach to overshoot)
 	if ( flWaypointDist <= m_flGroundSpeed * flInterval )
@@ -437,9 +451,13 @@ void CNPC_Roach::Event_Killed( const CTakeDamageInfo &info )
 	
 	//random sound
 	if ( random->RandomInt( 0,4 ) == 1 )
+	{
 		EmitSound( filter, entindex(), "Roach.Die" );
+	}
 	else
+	{
 		EmitSound( filter, entindex(), "Roach.Smash" );
+	}
 	
 	CSoundEnt::InsertSound ( SOUND_WORLD, GetAbsOrigin(), 128, 1 );
 
