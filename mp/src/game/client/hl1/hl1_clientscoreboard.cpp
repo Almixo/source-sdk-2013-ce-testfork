@@ -33,7 +33,6 @@ enum EScoreboardSections
 	SCORESECTION_COMBINE = 1,
 	SCORESECTION_REBELS = 2,
 	SCORESECTION_FREEFORALL = 3,
-	SCORESECTION_SPECTATOR = 4
 };
 
 const int NumSegments = 7;
@@ -135,53 +134,54 @@ void CHL1MPClientScoreBoardDialog::InitScoreboardSections()
 //-----------------------------------------------------------------------------
 void CHL1MPClientScoreBoardDialog::UpdateTeamInfo()
 {
-	if (g_PR == NULL)
+if ( g_PR == NULL )
 		return;
 
 	int iNumPlayersInGame = 0;
 
-	for (int j = 1; j <= gpGlobals->maxClients; j++)
-	{
-		if (g_PR->IsConnected(j))
+	for ( int j = 1; j <= gpGlobals->maxClients; j++ )
+	{	
+		if ( g_PR->IsConnected( j ) )
 		{
 			iNumPlayersInGame++;
-		}
+		}	
 	}
 
 	// update the team sections in the scoreboard
-	for (int i = TEAM_SPECTATOR; i < TEAM_MAXCOUNT; i++)
+	for ( int i = TEAM_SPECTATOR; i < TEAM_MAXCOUNT; i++ )
 	{
 		wchar_t *teamName = NULL;
 		int sectionID = 0;
 		C_Team *team = GetGlobalTeam(i);
 
-		if (team)
+		if ( team )
 		{
-			sectionID = GetSectionFromTeamNumber(i);
-
+			sectionID = GetSectionFromTeamNumber( i );
+	
 			// update team name
 			wchar_t name[64];
 			wchar_t string1[1024];
 			wchar_t wNumPlayers[6];
 
-			if (HL1MPRules()->IsTeamplay() == false)
+			if ( !HL1MPRules() || HL1MPRules()->IsTeamplay() == false )
 			{
-				_snwprintf(wNumPlayers, ARRAYSIZE(wNumPlayers), L"%i", iNumPlayersInGame);
-#ifdef WIN32
-				_snwprintf(name, ARRAYSIZE(name), L"%s", g_pVGuiLocalize->Find("#ScoreBoard_Deathmatch"));
-#else
-				_snwprintf(name, ARRAYSIZE(name), L"%S", g_pVGuiLocalize->Find("#ScoreBoard_Deathmatch"));
-#endif
+				_snwprintf( wNumPlayers, ARRAYSIZE(wNumPlayers), L"%i", iNumPlayersInGame );
 
+#ifdef WIN32
+				_snwprintf( name, ARRAYSIZE(name), L"%s", g_pVGuiLocalize->Find("#ScoreBoard_Deathmatch") );
+#else
+				_snwprintf( name, ARRAYSIZE(name), L"%S", g_pVGuiLocalize->Find("#ScoreBoard_Deathmatch") );
+#endif
+				
 				teamName = name;
 
-				if (iNumPlayersInGame == 1)
+				if ( iNumPlayersInGame == 1)
 				{
-					g_pVGuiLocalize->ConstructString(string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Player"), 2, teamName, wNumPlayers);
+					g_pVGuiLocalize->ConstructString( string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Player"), 2, teamName, wNumPlayers );
 				}
 				else
 				{
-					g_pVGuiLocalize->ConstructString(string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Players"), 2, teamName, wNumPlayers);
+					g_pVGuiLocalize->ConstructString( string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Players"), 2, teamName, wNumPlayers );
 				}
 			}
 			else
@@ -196,19 +196,16 @@ void CHL1MPClientScoreBoardDialog::UpdateTeamInfo()
 
 				if (team->Get_Number_Players() == 1)
 				{
-					g_pVGuiLocalize->ConstructString(string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Player"), 2, teamName, wNumPlayers);
+					g_pVGuiLocalize->ConstructString( string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Player"), 2, teamName, wNumPlayers );
 				}
 				else
 				{
-					g_pVGuiLocalize->ConstructString(string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Players"), 2, teamName, wNumPlayers);
+					g_pVGuiLocalize->ConstructString( string1, sizeof(string1), g_pVGuiLocalize->Find("#ScoreBoard_Players"), 2, teamName, wNumPlayers );
 				}
-
-				//Print us existing team names
-				DevWarning("Getting team name from scoreboard, %ls.\n", teamName);
 
 				// update stats
 				wchar_t val[6];
-				V_snwprintf(val, ARRAYSIZE(val), L"%d", team->Get_Score());
+				V_swprintf_safe(val, L"%d", team->Get_Score());
 				m_pPlayerList->ModifyColumn(sectionID, "frags", val);
 				if (team->Get_Ping() < 1)
 				{
@@ -216,7 +213,7 @@ void CHL1MPClientScoreBoardDialog::UpdateTeamInfo()
 				}
 				else
 				{
-					V_snwprintf(val, ARRAYSIZE(val), L"%d", team->Get_Ping());
+					V_swprintf_safe(val, L"%d", team->Get_Ping());
 					m_pPlayerList->ModifyColumn(sectionID, "ping", val);
 				}
 
@@ -283,18 +280,15 @@ void CHL1MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
 
 int CHL1MPClientScoreBoardDialog::GetSectionFromTeamNumber(int teamNumber)
 {
-	switch (teamNumber)
+	if (!HL1MPRules() || !HL1MPRules()->IsTeamplay())
 	{
-		case 2:
-			return SCORESECTION_COMBINE;
-		case 3:
-			return SCORESECTION_REBELS;
-		case TEAM_SPECTATOR:
-			return SCORESECTION_SPECTATOR;
-		default:
-			return SCORESECTION_FREEFORALL;
+		return teamNumber + 1;
 	}
-	return SCORESECTION_FREEFORALL;
+
+	if (teamNumber >= 2)
+		return teamNumber - 1;
+
+	return g_Teams.Count();
 }
 
 //-----------------------------------------------------------------------------
@@ -303,15 +297,15 @@ int CHL1MPClientScoreBoardDialog::GetSectionFromTeamNumber(int teamNumber)
 bool CHL1MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues *kv)
 {
 	kv->SetInt("playerIndex", playerIndex);
-	kv->SetInt("team", g_PR->GetTeam(playerIndex));
-	kv->SetString("name", g_PR->GetPlayerName(playerIndex));
-	kv->SetInt("deaths", g_PR->GetDeaths(playerIndex));
-	kv->SetInt("frags", g_PR->GetPlayerScore(playerIndex));
+	kv->SetInt("team", g_PR->GetTeam( playerIndex ) );
+	kv->SetString("name", g_PR->GetPlayerName(playerIndex) );
+	kv->SetInt("deaths", g_PR->GetDeaths( playerIndex ));
+	kv->SetInt("frags", g_PR->GetPlayerScore( playerIndex ));
 	kv->SetString("class", "");
-
-	if (g_PR->GetPing(playerIndex) < 1)
+	
+	if (g_PR->GetPing( playerIndex ) < 1)
 	{
-		if (g_PR->IsFakePlayer(playerIndex))
+		if ( g_PR->IsFakePlayer( playerIndex ) )
 		{
 			kv->SetString("ping", "BOT");
 		}
@@ -322,9 +316,9 @@ bool CHL1MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues
 	}
 	else
 	{
-		kv->SetInt("ping", g_PR->GetPing(playerIndex));
+		kv->SetInt("ping", g_PR->GetPing( playerIndex ));
 	}
-
+	
 	return true;
 }
 
@@ -386,46 +380,46 @@ void CHL1MPClientScoreBoardDialog::UpdatePlayerInfo()
 
 	CBasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 
-	if (!pPlayer || !g_PR)
+	if ( !pPlayer || !g_PR )
 		return;
 
 	// walk all the players and make sure they're in the scoreboard
-	for (i = 1; i <= gpGlobals->maxClients; i++)
+	for ( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		bool shouldShow = g_PR->IsConnected(i);
-		if (shouldShow)
+		bool shouldShow = g_PR->IsConnected( i );
+		if ( shouldShow )
 		{
 			// add the player to the list
 			KeyValues *playerData = new KeyValues("data");
-			GetPlayerScoreInfo(i, playerData);
-			int itemID = FindItemIDForPlayerIndex(i);
-			int sectionID = GetSectionFromTeamNumber(g_PR->GetTeam(i));
-
+			GetPlayerScoreInfo( i, playerData );
+			int itemID = FindItemIDForPlayerIndex( i );
+  			int sectionID = GetSectionFromTeamNumber( g_PR->GetTeam( i ) );
+						
 			if (itemID == -1)
 			{
 				// add a new row
-				itemID = m_pPlayerList->AddItem(sectionID, playerData);
+				itemID = m_pPlayerList->AddItem( sectionID, playerData );
 			}
 			else
 			{
 				// modify the current row
-				m_pPlayerList->ModifyItem(itemID, sectionID, playerData);
+				m_pPlayerList->ModifyItem( itemID, sectionID, playerData );
 			}
 
-			if (i == pPlayer->entindex())
+			if ( i == pPlayer->entindex() )
 			{
 				selectedRow = itemID;	// this is the local player, hilight this row
 			}
 
 			// set the row color based on the players team
-			m_pPlayerList->SetItemFgColor(itemID, g_PR->GetTeamColor(g_PR->GetTeam(i)));
+			m_pPlayerList->SetItemFgColor( itemID, g_PR->GetTeamColor( g_PR->GetTeam( i ) ) );
 
 			playerData->deleteThis();
 		}
 		else
 		{
 			// remove the player
-			int itemID = FindItemIDForPlayerIndex(i);
+			int itemID = FindItemIDForPlayerIndex( i );
 			if (itemID != -1)
 			{
 				m_pPlayerList->RemoveItem(itemID);
@@ -433,10 +427,10 @@ void CHL1MPClientScoreBoardDialog::UpdatePlayerInfo()
 		}
 	}
 
-	if (selectedRow != -1)
+	if ( selectedRow != -1 )
 	{
 		m_pPlayerList->SetSelectedItem(selectedRow);
 	}
 
-
+	
 }

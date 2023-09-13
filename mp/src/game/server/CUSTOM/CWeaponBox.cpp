@@ -13,6 +13,7 @@ BEGIN_DATADESC(CWpnBox)
 	DEFINE_UTLVECTOR(pKVAmmo, FIELD_EMBEDDED),
 END_DATADESC();
 
+
 CWpnBox::CWpnBox()
 {
 }
@@ -53,7 +54,7 @@ bool CWpnBox::KeyValue(const char *szKeyName, const char *szKeyValue)
 
 		return true;
 	}
-	if (!strnicmp(szKeyName, "weapon_", 7) || !strnicmp(szKeyName, "ammo_", 6))
+	if (!Q_strnicmp(szKeyName, "weapon_", 7) || !Q_strnicmp(szKeyName, "ammo_", 6))
 	{
 		base temp;
 		temp.szName = (char *)szKeyName;
@@ -124,7 +125,7 @@ void CWpnBox::GiveWeapon(CBasePlayer *pPlayer)
 void CWpnBox::GiveAmmo(CBasePlayer *pPlayer)
 {
 	for (int i = 0; i < pAmmo.Count(); i++)
-		for (int a = 0; a < pAmmo[i].count; a++)
+		/*for (int a = 0; a < pAmmo[i].count; a++)*/
 			pPlayer->GiveAmmo(pAmmo[i].count, pAmmo[i].szName, true);
 
 	bGiveAmmo = false;

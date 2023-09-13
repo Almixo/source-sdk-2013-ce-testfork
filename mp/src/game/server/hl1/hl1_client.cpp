@@ -17,11 +17,13 @@
 #include "hl1_player.h"
 #include "hl1mp_player.h"
 #include "hl1_gamerules.h"
+#include "hl1mp_gamerules.h"
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
 #include "EntityList.h"
 #include "physics.h"
 #include "game.h"
+#include "team.h"
 #include "player_resource.h"
 #include "engine/IEngineSound.h"
 
@@ -31,6 +33,23 @@ void Host_Say( edict_t *pEdict, bool teamonly );
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
+
+
+void FinishClientPutInServer( CBasePlayer *pPlayer )
+{
+	// When the player first joins the server, they
+	/*pPlayer->m_takedamage = DAMAGE_NO;
+	pPlayer->pl.deadflag = true;
+	pPlayer->m_lifeState = LIFE_DEAD;
+	pPlayer->AddEffects( EF_NODRAW );
+	pPlayer->SetThink( NULL );*/
+
+	pPlayer->InitialSpawn();
+	pPlayer->Spawn();
+
+	HL1MPRules()->SetPlayerTeam( pPlayer );
+}
+
 
 /*
 ===========
@@ -59,9 +78,15 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 
 	pPlayer->InitialSpawn();
 
-	if ( !bLoadGame )
+	if ( g_pGameRules->IsMultiplayer() )
 	{
 		pPlayer->Spawn();
+		FinishClientPutInServer( pPlayer );
+	}
+	else
+	{
+		if ( !bLoadGame )
+			pPlayer->Spawn();
 	}
 }
 
@@ -78,7 +103,7 @@ const char *GetGameDescription()
 	if ( g_pGameRules ) // this function may be called before the world has spawned, and the game rules initialized
 		return g_pGameRules->GetGameDescription();
 	else
-		return "Half-Life 1";
+		return "Custom Fork by Almix, 2023";
 }
 
 //-----------------------------------------------------------------------------
@@ -115,7 +140,7 @@ void ClientGamePrecache( void )
 		CBaseEntity::PrecacheModel("models/player/mp/robo/robo.mdl");
 		CBaseEntity::PrecacheModel("models/player/mp/scientist/scientist.mdl");
 		CBaseEntity::PrecacheModel("models/player/mp/zombie/zombie.mdl");
-		CBaseEntity::PrecacheModel("models/player.mdl" );
+		CBaseEntity::PrecacheModel("models/player.mdl" ); // why is this here?
 	}
 	else
 	{
@@ -171,12 +196,12 @@ void InstallGameRules()
 	engine->ServerCommand( "exec game.cfg\n" );
 	engine->ServerExecute();
 
-	if (gpGlobals->deathmatch == false && gpGlobals->teamplay == false)
+	if ( gpGlobals->deathmatch || gpGlobals->teamplay )
+	{
+		CreateGameRulesObject("CHL1MPRules");
+	}
+	else
 	{
 		CreateGameRulesObject("CHalfLife1");
-		return;
 	}
-
-	CreateGameRulesObject("CHL1MPRules");
-	return;
 }

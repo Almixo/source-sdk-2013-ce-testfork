@@ -29,7 +29,6 @@ public:
 	~CHL1MP_Player( void );
 
 	void Spawn( void );
-	void Precache( void );
 	void PostThink( void );
 	void Event_Killed( const CTakeDamageInfo &info );
 	void DetonateSatchelCharges( void );

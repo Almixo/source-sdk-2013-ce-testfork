@@ -16,7 +16,6 @@ $Configuration
 	{
 		$AdditionalIncludeDirectories	"$BASE;..\shared\hl1,..\shared\custom,..\shared\hl2,.\hl1,.\custom,.\hl2"
 		$PreprocessorDefinitions		"$BASE;HL1_DLL;SDK2013CE;CUSTOM_DLL"
-		$PreprocessorDefinitions		"$BASE;HL1_DLL;SDK2013CE;CUSTOM_DLL"
 	}
 }
 
