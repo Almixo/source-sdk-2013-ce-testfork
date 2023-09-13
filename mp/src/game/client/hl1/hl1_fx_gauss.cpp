@@ -64,7 +64,6 @@ void HL1GaussBeam( const CEffectData &data )
 	bool	fIsPrimaryFire	= data.m_fFlags;
 	float	flStartWidth;
 	float	flEndWidth;
-	float	flAlpha			= fIsPrimaryFire ? 128 : min( 255, data.m_nColor );
 	color32	beamColor;
 
 	if ( fIsPrimaryFire )	// primary attack
@@ -73,9 +72,9 @@ void HL1GaussBeam( const CEffectData &data )
 		flEndWidth		= 1.0;
 
 		beamColor.r		= 255;
-		beamColor.g		= 128;
+		beamColor.g		= 255;
 		beamColor.b		= 0;
-		beamColor.a		= flAlpha;
+		beamColor.a		= 255;
 	}
 	else					// secondary
 	{
@@ -85,7 +84,7 @@ void HL1GaussBeam( const CEffectData &data )
 		beamColor.r		= 255;
 		beamColor.g		= 255;
 		beamColor.b		= 255;
-		beamColor.a		= flAlpha;
+		beamColor.a		= 255;
 	}
 
 	beams->CreateBeamEntPoint(
@@ -122,7 +121,6 @@ void HL1GaussBeamReflect( const CEffectData &data )
 	bool	fIsPrimaryFire	= data.m_fFlags;
 	float	flStartWidth;
 	float	flEndWidth;
-	float	flAlpha			= fIsPrimaryFire ? 128 : min( 255, data.m_nColor );
 	color32	beamColor;
 
 	if ( fIsPrimaryFire )	// primary attack
@@ -131,9 +129,9 @@ void HL1GaussBeamReflect( const CEffectData &data )
 		flEndWidth		= 1.0;
 
 		beamColor.r		= 255;
-		beamColor.g		= 128;
+		beamColor.g		= 255;
 		beamColor.b		= 0;
-		beamColor.a		= flAlpha;
+		beamColor.a		= 255;
 	}
 	else					// secondary
 	{
@@ -143,7 +141,7 @@ void HL1GaussBeamReflect( const CEffectData &data )
 		beamColor.r		= 255;
 		beamColor.g		= 255;
 		beamColor.b		= 255;
-		beamColor.a		= flAlpha;
+		beamColor.a		= 255;
 	}
 
 	beams->CreateBeamPoints(
