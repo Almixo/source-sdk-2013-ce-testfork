@@ -25,6 +25,7 @@ public:
 
 public:
 	void Spawn( void );
+	bool Deploy( void );
 
 public:
 // Server Only Methods

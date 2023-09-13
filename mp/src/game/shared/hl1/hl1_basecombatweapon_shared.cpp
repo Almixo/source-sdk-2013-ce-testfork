@@ -6,7 +6,6 @@
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
-
 #include "hl1_player_shared.h"
 
 LINK_ENTITY_TO_CLASS( basehl1combatweapon, CBaseHL1CombatWeapon );
@@ -88,6 +87,24 @@ void CBaseHL1CombatWeapon::Spawn( void )
 	// Use more efficient bbox culling on the client. Otherwise, it'll setup bones for most
 	// characters even when they're not in the frustum.
 	AddEffects( EF_BONEMERGE_FASTCULL );
+}
+
+bool CBaseHL1CombatWeapon::Deploy( void )
+{
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( !pPlayer )
+		return false;
+
+	bool bResult = DefaultDeploy( (char *)GetViewModel(), (char *)GetWorldModel(), GetDrawActivity(), (char *)GetAnimPrefix() );
+
+	if ( bResult )
+	{
+		m_flTimeWeaponIdle = gpGlobals->curtime + 1.0;
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
+		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
+	}
+
+	return bResult;
 }
 
 #if defined( CLIENT_DLL )

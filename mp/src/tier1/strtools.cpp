@@ -1413,8 +1413,6 @@ int _V_UCS2ToUnicode( const ucs2 *pUCS2, wchar_t *pUnicode, int cubDestSizeInByt
 	char *pOut = (char *)pUnicode;
 #ifdef SDK2013CE
 	if ( conv_t != (iconv_t)-1 )
-#elif __GNUC__
-	if ( conv_t != (iconv_t)-1 )
 #else
 	if ( conv_t > 0 )
 #endif
@@ -1458,8 +1456,6 @@ int _V_UnicodeToUCS2( const wchar_t *pUnicode, int cubSrcInBytes, char *pUCS2, i
 	char *pIn = (char*)pUnicode;
 	char *pOut = pUCS2;
 #ifdef SDK2013CE
-	if ( conv_t != (iconv_t)-1 )
-#elif __GNUC__
 	if ( conv_t != (iconv_t)-1 )
 #else
 	if ( conv_t > 0 )
@@ -1513,8 +1509,6 @@ int _V_UCS2ToUTF8( const ucs2 *pUCS2, char *pUTF8, int cubDestSizeInBytes )
 	char *pOut = (char *)pUTF8;
 #ifdef SDK2013CE
 	if ( conv_t != (iconv_t)-1 )
-#elif __GNUC__
-	if ( conv_t != (iconv_t)-1 )
 #else
 	if ( conv_t > 0 )
 #endif
@@ -1563,8 +1557,6 @@ int _V_UTF8ToUCS2( const char *pUTF8, int cubSrcInBytes, ucs2 *pUCS2, int cubDes
 	char *pIn = (char *)pUTF8;
 	char *pOut = (char *)pUCS2;
 #ifdef SDK2013CE
-	if ( conv_t != (iconv_t)-1 )
-#elif __GNUC__
 	if ( conv_t != (iconv_t)-1 )
 #else
 	if ( conv_t > 0 )

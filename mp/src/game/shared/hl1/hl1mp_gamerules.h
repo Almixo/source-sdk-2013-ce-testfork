@@ -49,6 +49,8 @@ public:
 #else
 	virtual void Think ( void );
 
+	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget );
+
 	virtual void GoToIntermission( void );
 
 	virtual void InitDefaultAIRelationships( void );

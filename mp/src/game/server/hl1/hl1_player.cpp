@@ -559,8 +559,6 @@ void CHL1_Player::Spawn(void)
 	StopPullingObject();
 
 	m_Local.m_iHideHUD = 0;
-	
-	engine->ClientCommand( edict(), "unbind tab" );
 }
 
 //-----------------------------------------------------------------------------
