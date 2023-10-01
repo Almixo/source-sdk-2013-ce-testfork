@@ -89,6 +89,19 @@ void CBaseHL1CombatWeapon::Spawn( void )
 	AddEffects( EF_BONEMERGE_FASTCULL );
 }
 
+const char *CBaseHL1CombatWeapon::GetPModel(void) const
+{
+	if ( !GetWpnData().szPModel )
+	{
+		Warning("Missing P_ model!!!\n");
+		return GetWorldModel();
+	}
+	else
+	{
+		return GetWpnData().szPModel;
+	}
+}
+
 bool CBaseHL1CombatWeapon::Deploy( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -102,9 +115,18 @@ bool CBaseHL1CombatWeapon::Deploy( void )
 		m_flTimeWeaponIdle = gpGlobals->curtime + 1.0;
 		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
 		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
+
+		m_iWorldModelIndex = modelinfo->GetModelIndex( GetPModel() );
 	}
 
 	return bResult;
+}
+
+bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
+{
+	m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
+
+	return BaseClass::Holster(pSwitchingTo);
 }
 
 #if defined( CLIENT_DLL )

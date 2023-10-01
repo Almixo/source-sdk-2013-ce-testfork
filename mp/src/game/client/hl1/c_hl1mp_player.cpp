@@ -73,7 +73,7 @@ END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_HL1MP_Player )
 	DEFINE_PRED_FIELD( m_flCycle, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
-	DEFINE_PRED_FIELD( m_nSequence, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
+	DEFINE_PRED_FIELD( m_nSequence, FIELD_INTEGER, FTYPEDESC_OVERRIDE | FTYPEDESC_PRIVATE | FTYPEDESC_NOERRORCHECK ),
 END_PREDICTION_DATA()
 
 /////////////////////////////////////////////////////////////////////
@@ -514,15 +514,4 @@ bool C_HL1MP_Player::ShouldDraw( void )
 		return false;
 
 	return BaseClass::ShouldDraw();
-}
-
-bool C_HL1MP_Player::ShouldPredict( void )
-{
-	//// Do this before calling into baseclass so prediction data block gets allocated
-	//if ( IsLocalPlayer() )
-	//	return false;
-
-	//return true;
-
-	return true; //PREDICT EVERYTHING MUHAHAHA
 }
