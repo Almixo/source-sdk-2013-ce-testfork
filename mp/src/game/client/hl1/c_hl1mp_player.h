@@ -31,7 +31,6 @@ public:
 
 	void DoAnimationEvent( PlayerAnimEvent_t event, int nData = 0 );
 
-	virtual bool ShouldPredict( void );
 	virtual void CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov );
 	IRagdoll* GetRepresentativeRagdoll() const;
 

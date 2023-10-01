@@ -19,18 +19,21 @@
 class CBaseHL1CombatWeapon : public CBaseCombatWeapon
 {
 	DECLARE_CLASS( CBaseHL1CombatWeapon, CBaseCombatWeapon );
-public:
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
-
 public:
+
 	void Spawn( void );
 	bool Deploy( void );
+	const char *GetPModel( void ) const;
 
-public:
+	bool Holster(CBaseCombatWeapon *pSwitchingTo = NULL);
+
 // Server Only Methods
 #if !defined( CLIENT_DLL )
 	virtual void Precache();
+
+	//int GetPModelIndex( void );
 
 	void FallInit( void );						// prepare to fall to the ground
 	void FallThink( void );						// make the weapon fall to the ground after spawning

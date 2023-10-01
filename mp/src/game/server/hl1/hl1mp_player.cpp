@@ -11,14 +11,6 @@
 #include "team.h"
 #include "ammodef.h"
 
-enum
-{
-	TEAM_1 = 2,
-	TEAM_2,
-};
-
-extern ConVar cl_print_model( "cl_print_model", "0", FCVAR_USERINFO | FCVAR_ARCHIVE, "Print current model in deathmatch. Kinda wasteful." );
-
 // -------------------------------------------------------------------------------- //
 // Player animation event. Sent to the client when a player fires, jumps, reloads, etc..
 // -------------------------------------------------------------------------------- //
@@ -36,12 +28,10 @@ public:
 	CNetworkVar( int, m_nData );
 };
 
-#define THROWGRENADE_COUNTER_BITS 3
-
 IMPLEMENT_SERVERCLASS_ST_NOBASE( CTEPlayerAnimEvent, DT_TEPlayerAnimEvent )
-SendPropEHandle( SENDINFO( m_hPlayer ) ),
-SendPropInt( SENDINFO( m_iEvent ), Q_log2( PLAYERANIMEVENT_COUNT ) + 1, SPROP_UNSIGNED ),
-SendPropInt( SENDINFO( m_nData ), 32 )
+	SendPropEHandle( SENDINFO( m_hPlayer ) ),
+	SendPropInt( SENDINFO( m_iEvent ), Q_log2( PLAYERANIMEVENT_COUNT ) + 1, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO( m_nData ), 32 )
 END_SEND_TABLE()
 
 static CTEPlayerAnimEvent g_TEPlayerAnimEvent( "PlayerAnimEvent" );
@@ -49,6 +39,9 @@ static CTEPlayerAnimEvent g_TEPlayerAnimEvent( "PlayerAnimEvent" );
 void TE_PlayerAnimEvent( CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nData )
 {
 	CPVSFilter filter( (const Vector&)pPlayer->EyePosition() );
+
+	//Tony; pull the player who is doing it out of the recipientlist, this is predicted!!
+	/*filter.RemoveRecipient( pPlayer );*/
 
 	g_TEPlayerAnimEvent.m_hPlayer = pPlayer;
 	g_TEPlayerAnimEvent.m_iEvent = event;
@@ -73,27 +66,27 @@ BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MP_PLAYER_EXCLUSIVE )
 	// send a hi-res origin to the local player for use in prediction
 	SendPropVector( SENDINFO( m_vecOrigin ), -1, SPROP_NOSCALE | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
 	SendPropFloat( SENDINFO_VECTORELEM( m_angEyeAngles, 0 ), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
-	END_SEND_TABLE()
+END_SEND_TABLE()
 
-	BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MP_PLAYER_NONEXCLUSIVE )
+BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MP_PLAYER_NONEXCLUSIVE )
 		// send a lo-res origin to other players
 	SendPropVector( SENDINFO( m_vecOrigin ), -1, SPROP_COORD_MP_LOWPRECISION | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
 	SendPropFloat( SENDINFO_VECTORELEM( m_angEyeAngles, 0 ), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
 	SendPropAngle( SENDINFO_VECTORELEM( m_angEyeAngles, 1 ), 10, SPROP_CHANGES_OFTEN ),
-	END_SEND_TABLE()
+END_SEND_TABLE()
 
-	IMPLEMENT_SERVERCLASS_ST( CHL1MP_Player, DT_HL1MP_PLAYER )
+IMPLEMENT_SERVERCLASS_ST( CHL1MP_Player, DT_HL1MP_PLAYER )
 	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
-	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),
+	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),	
 	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
 	SendPropExclude( "DT_BaseAnimating", "m_nNewSequenceParity" ),
 	SendPropExclude( "DT_BaseAnimating", "m_nResetEventsParity" ),
 	SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
 	SendPropExclude( "DT_BaseAnimatingOverlay", "overlay_vars" ),
 	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
-
+	
 	// playeranimstate and clientside animation takes care of these on the client
-	SendPropExclude( "DT_ServerAnimationData", "m_flCycle" ),
+	SendPropExclude( "DT_ServerAnimationData", "m_flCycle" ),	
 	SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
 
 	// Data that only gets sent to the local player.
@@ -104,10 +97,10 @@ BEGIN_SEND_TABLE_NOBASE( CHL1MP_Player, DT_HL1MP_PLAYER_EXCLUSIVE )
 	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
 	SendPropInt( SENDINFO( m_iSpawnInterpCounter ), 4 ),
 	SendPropInt( SENDINFO( m_iRealSequence ), 9 ),
-	END_SEND_TABLE()
+END_SEND_TABLE()
 
-	// -------------------------------------------------------------------------------- //
-	void cc_CreatePredictionError_f()
+// -------------------------------------------------------------------------------- //
+void cc_CreatePredictionError_f()
 {
 	CBaseEntity *pEnt = CBaseEntity::Instance( 1 );
 	pEnt->SetAbsOrigin( pEnt->GetAbsOrigin() + Vector( 63, 0, 0 ) );
@@ -128,7 +121,7 @@ void cc_GetTeams_f()
 	for ( int i = 0; i < MAX_TEAMS; i++ )
 	{
 		CTeam *pTeam = GetGlobalTeam( i );
-		if ( !pTeam )
+		if ( !pTeam || pTeam->TeamID()[0] == '\0' )
 			continue;
 
 		Warning( "Team: %s | %d\n", pTeam->TeamID(), i);
@@ -140,12 +133,19 @@ ConCommand cc_GetTeams( "get_teams", cc_GetTeams_f, "Get global teams" );
 extern int gEvilImpulse101;
 static const char *s_szModelPath = "models/player/mp/";
 
+//void CHL1MP_Player::SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs, int pvssize )
+//{
+//	BaseClass::SetupVisibility( pViewEntity, pvs, pvssize );
+//
+//	int area = pViewEntity ? pViewEntity->NetworkProp()->AreaNum() : NetworkProp()->AreaNum();
+//	PointCameraSetupVisibility( this, area, pvs, pvssize );
+//}
+
 CHL1MP_Player::CHL1MP_Player()
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this );
 
 	UseClientSideAnimation();
-	SetPredictionEligible( true );
 
 	m_angEyeAngles.Init();
 
@@ -293,7 +293,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 	CBaseCombatWeapon *pWeapon[MAX_WEAPONS];
 	Q_memset( pWeapon, 0, sizeof pWeapon );
 
-	int iAmmoIndex[ MAX_AMMO_TYPES + 1 ];
+	int iAmmoIndex[MAX_AMMO_TYPES];
 	Q_memset( iAmmoIndex, -1, sizeof iAmmoIndex );
 
 	switch ( iWeaponRules )
@@ -338,7 +338,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 		{
 			if ( GetActiveWeapon() != NULL )
 			{
-				int ammotype1 = GetActiveWeapon()->GetSecondaryAmmoType();
+				int ammotype1 = GetActiveWeapon()->GetPrimaryAmmoType();
 				int ammotype2 = GetActiveWeapon()->GetSecondaryAmmoType();
 
 				if ( ammotype1 >= 0 )
@@ -386,8 +386,8 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 		Weapon_Detach( pWeapon[i] );
 	}
 
-	Msg( "Give guns %d.\n", iWeaponRules );
-	Msg( "Give ammo %d.\n", iAmmoRules );
+	DevMsg( "Give guns %d.\n", iWeaponRules );
+	DevMsg( "Give ammo %d.\n", iAmmoRules );
 	
 	RemoveAllItems( true );
 }
@@ -430,6 +430,10 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	{
 		idealActivity = ACT_HOP;
 	}
+	/*else if ( playerAnim == PLAYER_RELOAD )
+	{
+		idealActivity = ACT_GESTURE_RELOAD;
+	}*/
 	else if ( playerAnim == PLAYER_SUPERJUMP )
 	{
 		idealActivity = ACT_LEAP;
@@ -504,14 +508,29 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		}
 
 		// Tracker 24588:  In single player when firing own weapon this causes eye and punchangle to jitter
-		if ( !SequenceLoops() )
+		/*if ( !SequenceLoops() )
 		{
 			IncrementInterpolationFrame();
-		}
+		}*/
 
 		SetActivity( idealActivity );
 		ResetSequence( animDesired );
 	}
+	/*else if ( idealActivity == ACT_GESTURE_RELOAD )
+	{
+		Q_strncpy( szAnim, "reload_", sizeof( szAnim ) );
+		Q_strncat( szAnim, m_szAnimExtension, sizeof( szAnim ), COPY_ALL_CHARACTERS );
+
+		animDesired = LookupSequence( szAnim );
+		if ( animDesired == -1 )
+			animDesired = 0;
+
+		if ( GetSequence() != animDesired || !SequenceLoops() )
+			SetCycle( 0 );
+
+		SetActivity( idealActivity );
+		ResetSequence( animDesired );
+	}*/
 	else if ( idealActivity == ACT_IDLE )
 	{
 		if ( GetFlags() & FL_DUCKING )
@@ -540,11 +559,6 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			SetActivity( ACT_RUN );
 		}
 
-	}
-	else if ( idealActivity == ACT_GESTURE_RELOAD )
-	{
-		RestartGesture( Weapon_TranslateActivity( idealActivity ) );
-		return;
 	}
 	else
 	{
@@ -575,6 +589,8 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	// Reset to first frame of desired animation
 	ResetSequence( animDesired );
 	SetCycle( 0 );
+
+	DevMsg("Playing sequence %s\n", GetSequenceName(animDesired));
 }
 
 static ConVar sv_debugweaponpickup( "sv_debugweaponpickup", "0", FCVAR_CHEAT, "Prints descriptive reasons as to why pickup did not work." );
@@ -681,17 +697,6 @@ void CHL1MP_Player::SetPlayerModel( void )
 	}
 
 	SetModel( szModelName );
-
-	if ( cl_print_model.GetBool( ) )
-	{
-		char szCurrMDL[ 16 ];
-		V_FileBase( modelinfo->GetModelName( GetModel( ) ), szCurrMDL, 16 );
-
-		char szPrtMDL[ 48 ];
-		V_snprintf( szPrtMDL, 48, "* Your model is '%s'.", szCurrMDL );
-
-		ClientPrint( this, HUD_PRINTTALK, szPrtMDL );
-	}
 
 	m_flNextModelChangeTime = gpGlobals->curtime + 5;
 }

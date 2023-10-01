@@ -35,6 +35,8 @@ public:
 	void PackDeadPlayerItems( );
 	void FireBullets( const FireBulletsInfo_t &info );
 	void GiveDefaultItems( );
+
+	/*void SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs, int pvssize );*/
 	
 	void CreateRagdollEntity( void );
 	void UpdateOnRemove( void );

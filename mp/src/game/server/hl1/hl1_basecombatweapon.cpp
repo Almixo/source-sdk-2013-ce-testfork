@@ -14,6 +14,7 @@ void CBaseHL1CombatWeapon::Precache()
 {
 	BaseClass::Precache();
 
+	PrecacheModel( GetPModel() );
 	PrecacheScriptSound( "BaseCombatWeapon.WeaponDrop" );
 }
 
