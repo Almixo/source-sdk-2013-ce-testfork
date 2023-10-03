@@ -24,10 +24,10 @@ class CBaseHL1CombatWeapon : public CBaseCombatWeapon
 public:
 
 	void Spawn( void );
-	bool Deploy( void );
+	void Equip( CBaseCombatCharacter *pOwner );
+	void Drop( const Vector &vecVelocity );
+	bool Holster( CBaseCombatWeapon *pSwitchingTo = nullptr, bool noHolsterAnim = true );
 	const char *GetPModel( void ) const;
-
-	bool Holster(CBaseCombatWeapon *pSwitchingTo = NULL);
 
 // Server Only Methods
 #if !defined( CLIENT_DLL )

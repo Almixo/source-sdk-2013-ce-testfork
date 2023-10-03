@@ -11,7 +11,7 @@
 #endif
 
 #ifdef CLIENT_DLL
-	#include "hl1\hl1_c_player.h"
+	#include "hl1_c_player.h"
 #else
 	#include "hl1_player.h"
 #endif

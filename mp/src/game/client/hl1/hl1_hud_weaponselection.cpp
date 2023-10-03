@@ -338,7 +338,7 @@ void CHudWeaponSelection::ApplySchemeSettings(vgui::IScheme *pScheme)
 	SetBounds(0, y, screenWide, screenTall - y);
 
 	m_clrReddish	= pScheme->GetColor( "Reddish", Color( 255, 16, 16, 255 ) );
-	m_clrGreenish	= pScheme->GetColor( "Greenish", Color( 255, 16, 16, 255 ) );
+	m_clrGreenish	= pScheme->GetColor( "Greenish", Color( 0, 160, 0, 255 ) /*Color( 255, 16, 16, 255 )*/ );
 }
 
 //-----------------------------------------------------------------------------

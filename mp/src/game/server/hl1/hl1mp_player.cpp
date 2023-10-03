@@ -394,7 +394,6 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 {
-	//    BaseClass::SetAnimation( playerAnim );
 	if ( playerAnim == PLAYER_ATTACK1 )
 	{
 		DoAnimationEvent( PLAYERANIMEVENT_FIRE_GUN );
@@ -430,10 +429,6 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	{
 		idealActivity = ACT_HOP;
 	}
-	/*else if ( playerAnim == PLAYER_RELOAD )
-	{
-		idealActivity = ACT_GESTURE_RELOAD;
-	}*/
 	else if ( playerAnim == PLAYER_SUPERJUMP )
 	{
 		idealActivity = ACT_LEAP;

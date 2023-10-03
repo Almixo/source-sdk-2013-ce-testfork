@@ -87,46 +87,42 @@ void CBaseHL1CombatWeapon::Spawn( void )
 	// Use more efficient bbox culling on the client. Otherwise, it'll setup bones for most
 	// characters even when they're not in the frustum.
 	AddEffects( EF_BONEMERGE_FASTCULL );
+	AddEffects( EF_NOSHADOW );
 }
 
 const char *CBaseHL1CombatWeapon::GetPModel(void) const
 {
-	if ( !GetWpnData().szPModel )
+	/*if ( !GetWpnData().szPModel )
 	{
 		Warning("Missing P_ model!!!\n");
 		return GetWorldModel();
 	}
 	else
-	{
+	{*/
 		return GetWpnData().szPModel;
-	}
+	/*}*/
 }
 
-bool CBaseHL1CombatWeapon::Deploy( void )
+void CBaseHL1CombatWeapon::Equip( CBaseCombatCharacter *pOwner )
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-		return false;
+	BaseClass::Equip( pOwner );
 
-	bool bResult = DefaultDeploy( (char *)GetViewModel(), (char *)GetWorldModel(), GetDrawActivity(), (char *)GetAnimPrefix() );
-
-	if ( bResult )
-	{
-		m_flTimeWeaponIdle = gpGlobals->curtime + 1.0;
-		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
-		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
-
-		m_iWorldModelIndex = modelinfo->GetModelIndex( GetPModel() );
-	}
-
-	return bResult;
+	m_iWorldModelIndex = modelinfo->GetModelIndex( GetPModel() );
 }
 
-bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
+void CBaseHL1CombatWeapon::Drop( const Vector &vecVelocity )
 {
 	m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
+	BaseClass::Drop( vecVelocity );
+}
 
-	return BaseClass::Holster(pSwitchingTo);
+bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo, bool noHolsterAnim )
+{
+	bool bCanHolster = BaseClass::Holster( pSwitchingTo );
+	if ( bCanHolster && noHolsterAnim )
+		SetWeaponVisible( false );
+
+	return bCanHolster;
 }
 
 #if defined( CLIENT_DLL )

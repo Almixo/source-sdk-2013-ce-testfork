@@ -34,9 +34,9 @@
 
 
 #define SATCHEL_VIEW_MODEL			"models/v_satchel.mdl"
-#define SATCHEL_WORLD_MODEL			"models/w_satchel.mdl"
+#define SATCHEL_WORLD_MODEL			"models/p_satchel.mdl"
 #define SATCHELRADIO_VIEW_MODEL		"models/v_satchel_radio.mdl"
-#define SATCHELRADIO_WORLD_MODEL	"models/w_satchel.mdl"	// this needs fixing if we do multiplayer
+#define SATCHELRADIO_WORLD_MODEL	"models/p_satchel_radio.mdl"	// fixed!
 
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponSatchel, DT_WeaponSatchel );
 

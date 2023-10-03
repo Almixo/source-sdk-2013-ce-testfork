@@ -8,9 +8,10 @@
 #include "cbase.h"
 #include "tier0/vprof.h"
 
-#ifdef CLIENT_DLL
 #include "hl1_player_shared.h"
-#include ".\hl1\c_hl1mp_player.h"
+
+#ifdef CLIENT_DLL
+#include "c_hl1mp_player.h"
 //#define CRecipientFilter C_RecipientFilter
 #else
 #include "hl1mp_player.h"
