@@ -338,13 +338,8 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 		{
 			if ( GetActiveWeapon() != NULL )
 			{
-				int ammotype1 = GetActiveWeapon()->GetPrimaryAmmoType();
-				int ammotype2 = GetActiveWeapon()->GetSecondaryAmmoType();
-
-				if ( ammotype1 >= 0 )
-					iAmmoIndex[0] = ammotype1;
-				if ( ammotype2 >= 0 )
-					iAmmoIndex[1] = ammotype2;
+				iAmmoIndex[0] = GetActiveWeapon()->GetPrimaryAmmoType();
+				iAmmoIndex[1] = GetActiveWeapon()->GetSecondaryAmmoType();
 			}
 		}
 		break;
@@ -373,8 +368,11 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 	}
 	else
 	{
-		pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetActiveWeapon()->Clip1()) );
-		pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetActiveWeapon()->Clip2()) );
+		if ( iAmmoIndex[0] >= 0 )
+			pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetActiveWeapon()->Clip1()) );
+		
+		if ( iAmmoIndex[1] >= 0 )
+			pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetActiveWeapon()->Clip2()) );
 	}
 
 	for ( int i = 0; i < ARRAYSIZE( pWeapon ); i++ )
