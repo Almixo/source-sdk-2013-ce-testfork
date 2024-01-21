@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Projectile shot from the MP5 
 //
@@ -17,7 +17,7 @@
 #include "engine/IEngineSound.h"
 #include "ai_senses.h"
 #include "hl1_npc_snark.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 
 ConVar sk_snark_health		( "sk_snark_health",				"0" );

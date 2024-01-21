@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -7,19 +7,21 @@
 //=============================================================================//
 #include	"cbase.h"
 #include	"beam_shared.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Senses.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"ai_senses.h"
 #include	"hl1_npc_hgrunt.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"engine/IEngineSound.h"
@@ -27,7 +29,7 @@
 #include	"basecombatweapon.h"
 #include	"hl1_basegrenade.h"
 #include	"soundenvelope.h"
-#include	"hl1_cbasehelicopter.h"
+#include	"hl1_CBaseHelicopter.h"
 #include	"IEffects.h"
 #include	"smoke_trail.h"
 
@@ -81,7 +83,7 @@ public:
 	void DyingThink( void );
 	void CommandUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );	
 */
-	void TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 
 	float m_startTime;
 
@@ -245,7 +247,7 @@ void CNPC_Osprey::Precache( void )
 	BaseClass::Precache();
 }
 
-void CNPC_Osprey::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_Osprey::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	float flDamage = info.GetDamage();
 
@@ -666,7 +668,7 @@ BEGIN_DATADESC( CBaseHelicopter )
 	DEFINE_FIELD( m_vecTarget,			FIELD_VECTOR ),
 	DEFINE_FIELD( m_vecTargetPosition,	FIELD_POSITION_VECTOR ),
 
-	DEFINE_FIELD( m_angleVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_angleVelocity, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flNextCrashExplosion, FIELD_TIME ),
 
 	DEFINE_FIELD( m_flMaxSpeed,		FIELD_FLOAT ),
@@ -1282,7 +1284,7 @@ void CBaseHelicopter::CrashTouch( CBaseEntity *pOther )
 			pos.x += random->RandomFloat( -150, 150 );
 			pos.y += random->RandomFloat( -150, 150 );
 			pos.z += random->RandomFloat( -150, -50 );
-			te->Explosion( filter, min( 0.99, i * 0.2 ),	&pos, g_sModelIndexFireball,	10, 15, TE_EXPLFLAG_NONE, 100, 0 );
+			te->Explosion( filter, MIN( 0.99, i * 0.2 ),	&pos, g_sModelIndexFireball,	10, 15, TE_EXPLFLAG_NONE, 100, 0 );
 		}
 
 		UTIL_Remove( this );
@@ -1355,7 +1357,7 @@ void CBaseHelicopter::DrawDebugGeometryOverlays(void)
 // Input  :
 // Output : 
 //-----------------------------------------------------------------------------
-void CBaseHelicopter::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CBaseHelicopter::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo dmgInfo = info;
 

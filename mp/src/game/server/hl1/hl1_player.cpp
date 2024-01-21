@@ -733,7 +733,6 @@ void CHL1_Player::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "ammo_rpgclip" );
 		GiveNamedItem( "weapon_satchel" );
 		GiveNamedItem( "weapon_snark" );
-		GiveNamedItem( "weapon_hornetgun" );
 
 		gEvilImpulse101 = false;
 		break;

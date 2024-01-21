@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Cute hound like Alien.
 //
@@ -7,14 +7,14 @@
 
 #include "cbase.h"
 #include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Hint.h"
-#include "AI_Navigator.h"
-#include "AI_Senses.h"
-#include "NPCEvent.h"
+#include "ai_default.h"
+#include "ai_schedule.h"
+#include "ai_hull.h"
+#include "ai_route.h"
+#include "ai_hint.h"
+#include "ai_navigator.h"
+#include "ai_senses.h"
+#include "npcevent.h"
 #include "animation.h"
 #include "hl1_npc_bullsquid.h"
 #include "gib.h"
@@ -464,7 +464,7 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 
 		case BSQUID_AE_HOP:
 		{
-			float flGravity = sv_gravity.GetFloat();
+			float flGravity = GetCurrentGravity();
 
 			// throw the squid up into the air on this frame.
 			if ( GetFlags() & FL_ONGROUND )

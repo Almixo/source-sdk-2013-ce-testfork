@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Implements the headcrab, a tiny, jumpy alien parasite.
 //
@@ -7,12 +7,12 @@
 
 #include "cbase.h"
 #include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Motor.h"
-#include "NPCEvent.h"
+#include "ai_default.h"
+#include "ai_schedule.h"
+#include "ai_hull.h"
+#include "ai_route.h"
+#include "ai_motor.h"
+#include "npcevent.h"
 #include "hl1_npc_headcrab.h"
 #include "gib.h"
 //#include "AI_Interactions.h"
@@ -20,7 +20,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "movevars_shared.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 extern void ClearMultiDamage(void);
 extern void ApplyMultiDamage( void );
@@ -87,7 +87,7 @@ void CNPC_Headcrab::Spawn( void )
 	SetMoveType( MOVETYPE_STEP );
 	SetViewOffset( Vector(6, 0, 11) );		// Position of the eyes relative to NPC's origin.
 
-	m_bloodColor		= BLOOD_COLOR_YELLOW;
+	m_bloodColor		= BLOOD_COLOR_GREEN;
 	m_flFieldOfView		= 0.5;
 	m_NPCState			= NPC_STATE_NONE;
 	m_nGibCount			= HEADCRAB_ALL_GIB_COUNT;
@@ -111,12 +111,54 @@ void CNPC_Headcrab::Precache( void )
 
 	PrecacheScriptSound( "Headcrab.Bite" );
 	PrecacheScriptSound( "Headcrab.Attack" );
-	PrecacheScriptSound("Headcrab.Pain");
-	PrecacheScriptSound("Headcrab.Die");
+	PrecacheScriptSound( "Headcrab.Idle" );
+	PrecacheScriptSound( "Headcrab.Die" );
+	PrecacheScriptSound( "Headcrab.Alert" );
+	PrecacheScriptSound( "Headcrab.Pain" );
 
 	BaseClass::Precache();
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CNPC_Headcrab::IdleSound()
+{
+	HeadCrabSound( "Headcrab.Idle" );
+}
+
+
+void CNPC_Headcrab::AlertSound()
+{
+	HeadCrabSound(  "Headcrab.Alert" );
+}
+
+
+void CNPC_Headcrab::PainSound( const CTakeDamageInfo &info )
+{
+	HeadCrabSound( "Headcrab.Pain" );
+}
+
+
+void CNPC_Headcrab::DeathSound( const CTakeDamageInfo &info )
+{
+	HeadCrabSound( "Headcrab.Die" );
+}
+
+void CNPC_Headcrab::HeadCrabSound( const char *pchSound )
+{
+	CPASAttenuationFilter filter( this, ATTN_IDLE );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( pchSound, params, NULL ) )
+	{
+		EmitSound_t ep( params );
+
+		ep.m_flVolume = GetSoundVolume();
+		ep.m_nPitch = GetVoicePitch();
+
+		EmitSound( filter, entindex(), ep );
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -179,7 +221,7 @@ int CNPC_Headcrab::SelectSchedule( void )
 		{
 			if (HasCondition( COND_LIGHT_DAMAGE ) || HasCondition( COND_HEAVY_DAMAGE ))
 			{
-				if ( fabs( GetMotor()->DeltaIdealYaw() ) < ( 1.0 - m_flFieldOfView) * 60 ) // roughly in the correct direction
+				if ( GetMotor()->DeltaIdealYaw() < ( 1.0 - m_flFieldOfView) * 60 ) // roughly in the correct direction //removed fabs( getmotor... )
 				{
 					return SCHED_TAKE_COVER_FROM_ORIGIN;
 				}
@@ -426,36 +468,7 @@ void CNPC_Headcrab::LeapTouch( CBaseEntity *pOther )
 //-----------------------------------------------------------------------------
 void CNPC_Headcrab::BiteSound( void )
 {
-	CPASAttenuationFilter filter( this, ATTN_IDLE );
-
-	CSoundParameters params;
-	if ( GetParametersForSound( "Headcrab.Bite", params, NULL ) )
-	{
-		EmitSound_t ep( params );
-
-		ep.m_flVolume = GetSoundVolume();
-		ep.m_nPitch = GetVoicePitch();
-
-		EmitSound( filter, entindex(), ep );
-	}
-}
-
-//=========================================================
-// DeathSound
-//=========================================================
-void CNPC_Headcrab::DeathSound(const CTakeDamageInfo &info)
-{
-	CPASAttenuationFilter filter(this);
-	EmitSound(filter, entindex(), "Headcrab.Die");
-}
-
-//=========================================================
-// DeathSound
-//=========================================================
-void CNPC_Headcrab::PainSound(const CTakeDamageInfo &info)
-{
-	CPASAttenuationFilter filter(this);
-	EmitSound(filter, entindex(), "Headcrab.Pain");
+	HeadCrabSound( "Headcrab.Bite" );
 }
 
 //-----------------------------------------------------------------------------
@@ -493,7 +506,7 @@ void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 			{
 				Vector vecEnemyEyePos = pEnemy->EyePosition();
 
-				float gravity = sv_gravity.GetFloat();
+				float gravity = GetCurrentGravity();
 				if ( gravity <= 1 )
 				{
 					gravity = 1;
@@ -565,7 +578,7 @@ void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 
 void CNPC_Headcrab::AttackSound( void )
 {
-	EmitSound( "Headcrab.Attack" );
+	HeadCrabSound( "Headcrab.Attack" );
 }
 
 

@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -31,13 +31,13 @@ public:
 	int		GetSoundInterests ( void );
 	Class_T  Classify ( void );
 	void	AlertSound( void );
-	void    SetMaxYawSpeed ( void );
+	void    SetYawSpeed ( void );
 
 	bool    CheckRangeAttack1 ( float flDot, float flDist );
 	void    BarneyFirePistol ( void );
 	
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	void	TraceAttack(const CTakeDamageInfo& info, const Vector& vecDir, trace_t* ptr, CDmgAccumulator *pAccumulator);
+	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	void	Event_Killed( const CTakeDamageInfo &info );
 
 	void    PainSound( const CTakeDamageInfo &info );
@@ -49,15 +49,9 @@ public:
 
 	void	DeclineFollowing( void );
 
-	bool	CanBecomeRagdoll( void );
-	bool	ShouldGib( const CTakeDamageInfo &info );
-
 	int		RangeAttack1Conditions( float flDot, float flDist );
 
-	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
-	void	SUB_LVFadeOut( void  );
-
-	NPC_STATE CNPC_Barney::SelectIdealState ( void );
+	NPC_STATE SelectIdealState ( void );
 
 	bool	m_fGunDrawn;
 	float	m_flPainTime;

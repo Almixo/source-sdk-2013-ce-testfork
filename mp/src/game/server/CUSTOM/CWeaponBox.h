@@ -1,50 +1,74 @@
-#ifndef CWEAPONBOX
-#define CWEAPONBOX
-
 #include "cbase.h"
 #include "hl1_items.h"
 #include "ammodef.h"
-#include "saverestore_utlvector.h"
 
 #define WEAPONBOX_MODEL "models/w_weaponbox.mdl"
+#define MAX_ENTS 32
 
-class base
+class base_t
 {
-public:
 	DECLARE_SIMPLE_DATADESC();
-	char *szName;
+
+public:
+	base_t()
+	{
+		memset( szName, 0, sizeof szName );
+		count = 0;
+	}
+	base_t( const char *name, int cnt )
+	{
+		memcpy( szName, name, sizeof szName );
+		szName[63] = '\0';
+		count = cnt;
+	}
+
+	const char *GetStr() { return szName; }
+	int GetVal() { return count; }
+
+	void SetStr( const char *str ) { strcpy( szName, str ); }
+	void SetVal( int val ) { count = val; }
+
+	bool StrEmpty() { return this->szName[0] == '\0'; }
+private:
+	char szName[64];
 	int count;
 };
 
+
 class CWpnBox : public CHL1Item
 {
+	DECLARE_CLASS( CWpnBox, CHL1Item );
 	DECLARE_DATADESC();
-	DECLARE_CLASS(CWpnBox, CHL1Item);
 public:
 	CWpnBox();
-	~CWpnBox();
 
-	void Spawn(void);
-	void Precache(void);
-	bool KeyValue(const char *szKeyName, const char *szValue);
-	void Touch(CBaseEntity *pOther);
+	void Spawn();
+	void Precache();
 
-	void AddWeapon(CBaseCombatWeapon *pWpn, int pos);
-	void AddAmmo(const char *szName, int count);
+	bool KeyValue( const char *szKeyName, const char *szKeyValue );
 
-	void GiveWeapon(CBasePlayer *pPlayer);
-	void GiveAmmo(CBasePlayer *pPlayer);
+	void BoxTouch( CBaseEntity *pOther );
 
-	//key value port
-	void GiveKVEntity(CBasePlayer *pPlayer);
-	void GiveKVAmmo(CBasePlayer *pPlayer); //TODO: use GiveAmmo() instead
+	// Add-s
+	void AddWeapon( CBaseCombatWeapon *pWeapon );
+	void AddAmmo( base_t base );
+	void AddKVAmmo( base_t base, int index );
+	void AddKVEnt( base_t base );
+
+	//Give-s
+	void GiveWeapon();
+	void GiveAmmo();
+	void GiveKVEnt();
+
 private:
-	bool bGiveAmmo = false, bGiveWeapon = false, bGiveKVAmmo = false, bGiveKVEntity = false;
-
 	CBaseCombatWeapon *pWeapon[MAX_WEAPONS];
-	CUtlVector<base>pAmmo;
+	
+	base_t pAmmo[MAX_AMMO_TYPES];	
+	base_t pKVEnt[MAX_ENTS];
 
-	CUtlVector<base>pKVEntity;
-	CUtlVector<base>pKVAmmo;
+	int iWeaponIndex;
+	int iAmmoIndex;
+	int iKVEntIndex;
+
+	CBasePlayer *pPlayer;
 };
-#endif // !CWEAPONBOX

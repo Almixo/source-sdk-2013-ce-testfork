@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Cute hound like Alien.
 //
@@ -7,15 +7,15 @@
 
 #include "cbase.h"
 #include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Navigator.h"
-#include "AI_Route.h"
-#include "AI_Squad.h"
-#include "AI_SquadSlot.h"
-#include "AI_Hint.h"
-#include "NPCEvent.h"
+#include "ai_default.h"
+#include "ai_schedule.h"
+#include "ai_hull.h"
+#include "ai_navigator.h"
+#include "ai_route.h"
+#include "ai_squad.h"
+#include "ai_squadslot.h"
+#include "ai_hint.h"
+#include "npcevent.h"
 #include "animation.h"
 #include "hl1_npc_houndeye.h"
 #include "gib.h"
@@ -28,7 +28,6 @@
 // houndeye does 20 points of damage spread over a sphere 384 units in diameter, and each additional 
 // squad member increases the BASE damage by 110%, per the spec.
 #define HOUNDEYE_MAX_SQUAD_SIZE			4
-#define	HOUNDEYE_MAX_ATTACK_RADIUS		384
 #define	HOUNDEYE_SQUAD_BONUS			(float)1.1
 
 #define HOUNDEYE_EYE_FRAMES 4 // how many different switchable maps for the eye
@@ -40,6 +39,7 @@
 ConVar sk_houndeye_health ( "sk_houndeye_health", "20" );
 ConVar sk_houndeye_dmg_blast ( "sk_houndeye_dmg_blast", "15" );
 
+static int s_iSquadIndex = 0;
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -318,7 +318,7 @@ void CNPC_Houndeye::HandleAnimEvent( animevent_t *pEvent )
 
 		case HOUND_AE_HOPBACK:
 			{
-				float flGravity = sv_gravity.GetFloat();
+				float flGravity = GetCurrentGravity();
 				Vector v_forward;
 				GetVectors( &v_forward, NULL, NULL );
 
@@ -507,8 +507,13 @@ Vector CNPC_Houndeye::WriteBeamColor ( void )
 	{
 		switch ( m_pSquad->NumMembers() )
 		{
+		case 1:
+			// solo houndeye - weakest beam
+			bRed	= 188;
+			bGreen	= 220;
+			bBlue	= 255;
+			break;
 		case 2:
-			// no case for 0 or 1, cause those are impossible for monsters in Squads.
 			bRed	= 101;
 			bGreen	= 133;
 			bBlue	= 221;
@@ -550,7 +555,7 @@ bool CNPC_Houndeye::ShouldGoToIdleState( void )
 		AISquadIter_t iter;
 		for (CAI_BaseNPC *pMember = m_pSquad->GetFirstMember( &iter ); pMember; pMember = m_pSquad->GetNextMember( &iter ) )
 		{
-			if ( pMember != this && pMember->GetHintNode()->HintType() != NO_NODE )
+			if ( pMember != this && pMember->GetHintNode() && pMember->GetHintNode()->HintType() != NO_NODE )
 				 return true;
 		}
 
@@ -917,12 +922,9 @@ int CNPC_Houndeye::SelectSchedule( void )
 
 			if ( HasCondition( COND_CAN_RANGE_ATTACK1 ) )
 			{
-				if ( OccupyStrategySlot ( SQUAD_SLOTS_HOUND_ATTACK ) )
-				{
-					return SCHED_RANGE_ATTACK1;
-				}
-
-				return SCHED_HOUND_AGITATED;
+			// don't constraint attacks based on squad slots, just let em all go for it
+//				if ( OccupyStrategySlot ( SQUAD_SLOTS_HOUND_ATTACK ) )
+				return SCHED_RANGE_ATTACK1;
 			}
 			break;
 		}
@@ -944,6 +946,131 @@ float CNPC_Houndeye::FLSoundVolume( CSound *pSound )
 }
 
 
+//=========================================================
+//
+// SquadRecruit(), get some monsters of my classification and
+// link them as a group.  returns the group size
+//
+//=========================================================
+int CNPC_Houndeye::SquadRecruit( int searchRadius, int maxMembers )
+{
+	int squadCount;
+	int iMyClass = Classify();// cache this monster's class
+
+	if ( maxMembers < 2 )
+		return 0;
+
+	// I am my own leader
+	squadCount = 1;
+
+	CBaseEntity *pEntity = NULL;
+
+	if ( m_SquadName != NULL_STRING )
+	{
+		// I have a netname, so unconditionally recruit everyone else with that name.
+		pEntity = gEntList.FindEntityByClassname( pEntity, "monster_houndeye" );
+
+		while ( pEntity && squadCount < maxMembers )
+		{
+			CNPC_Houndeye *pRecruit = (CNPC_Houndeye*)pEntity->MyNPCPointer();
+
+			if ( pRecruit )
+			{
+				if ( !pRecruit->m_pSquad && pRecruit->Classify() == iMyClass && pRecruit != this )
+				{
+					// minimum protection here against user error.in worldcraft. 
+					if ( pRecruit->m_SquadName != NULL_STRING && FStrEq( STRING( m_SquadName ), STRING( pRecruit->m_SquadName ) ) )
+					{
+						pRecruit->InitSquad();
+						squadCount++;
+					}
+				}
+			}
+
+			pEntity = gEntList.FindEntityByClassname( pEntity, "monster_houndeye" );
+		}
+
+		return squadCount;
+	}
+	else
+	{
+		char szSquadName[64];
+		Q_snprintf( szSquadName, sizeof( szSquadName ), "squad%d\n", s_iSquadIndex );
+
+		m_SquadName = MAKE_STRING( szSquadName );
+
+		while ( ( pEntity = gEntList.FindEntityInSphere( pEntity, GetAbsOrigin(), searchRadius ) ) != NULL && squadCount < maxMembers )
+		{
+			if ( !FClassnameIs ( pEntity, "monster_houndeye" ) )
+				continue;
+
+			CNPC_Houndeye *pRecruit = (CNPC_Houndeye*)pEntity->MyNPCPointer();
+
+			if ( pRecruit && pRecruit != this && pRecruit->IsAlive() && !pRecruit->m_hCine )
+			{
+				// Can we recruit this guy?
+				if ( !pRecruit->m_pSquad && pRecruit->Classify() == iMyClass &&
+					( (iMyClass != CLASS_ALIEN_MONSTER) || FClassnameIs( this, pRecruit->GetClassname() ) ) &&
+					!pRecruit->m_SquadName )
+				{
+					trace_t tr;
+					UTIL_TraceLine( GetAbsOrigin() + GetViewOffset(), pRecruit->GetAbsOrigin() + GetViewOffset(), MASK_NPCSOLID_BRUSHONLY, pRecruit, COLLISION_GROUP_NONE, &tr );// try to hit recruit with a traceline.
+
+					if ( tr.fraction == 1.0 )
+					{
+						//We're ready to recruit people, so start a squad if I don't have one.
+						if ( !m_pSquad )
+						{
+							InitSquad();
+						}
+
+						pRecruit->m_SquadName = m_SquadName;
+
+						pRecruit->CapabilitiesAdd ( bits_CAP_SQUAD );
+						pRecruit->InitSquad();
+
+						squadCount++;
+					}
+				}
+			}
+		}
+
+		if ( squadCount > 1 )
+		{
+			s_iSquadIndex++;
+		}
+	}
+
+	return squadCount;
+}
+
+
+
+void CNPC_Houndeye::StartNPC ( void )
+{
+	if ( !m_pSquad )
+	{
+		if ( m_SquadName != NULL_STRING )
+		{
+			BaseClass::StartNPC();
+			return;
+		}
+		else
+		{
+			int iSquadSize = SquadRecruit( 1024, 4 );
+
+			if ( iSquadSize )
+			{
+				Msg ( "Squad of %d %s formed\n", iSquadSize, GetClassname() );
+			}
+		}
+	}
+
+	BaseClass::StartNPC();
+}
+
+
+
 //------------------------------------------------------------------------------
 //
 // Schedules
@@ -958,6 +1085,21 @@ AI_BEGIN_CUSTOM_NPC( monster_houndeye, CNPC_Houndeye )
 	DECLARE_TASK ( TASK_HOUND_FALL_ASLEEP )
 	DECLARE_TASK ( TASK_HOUND_WAKE_UP )
 	DECLARE_TASK ( TASK_HOUND_HOP_BACK )
+
+	//=========================================================
+	// > SCHED_HOUND_RANGEATTACK
+	//=========================================================
+	DEFINE_SCHEDULE
+		(
+		SCHED_HOUND_RANGEATTACK,
+
+		"	Tasks"
+		"		TASK_SET_SCHEDULE			SCHEDULE:SCHED_HOUND_YELL1"
+		"	"
+		"	Interrupts"
+		"		COND_LIGHT_DAMAGE"
+		"		COND_HEAVY_DAMAGE"
+		)
 
 	//=========================================================
 	// > SCHED_HOUND_AGITATED
@@ -1021,20 +1163,6 @@ AI_BEGIN_CUSTOM_NPC( monster_houndeye, CNPC_Houndeye )
 		"	Interrupts"
 	)
 
-	//=========================================================
-	// > SCHED_HOUND_RANGEATTACK
-	//=========================================================
-	DEFINE_SCHEDULE
-	(
-		SCHED_HOUND_RANGEATTACK,
-
-		"	Tasks"
-		"		TASK_SET_SCHEDULE			SCHEDULE:SCHED_HOUND_YELL1"
-		"	"
-		"	Interrupts"
-		"		COND_LIGHT_DAMAGE"
-		"		COND_HEAVY_DAMAGE"
-	)
 
 	//=========================================================
 	// > SCHED_HOUND_SLEEP

@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,17 +6,19 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -234,7 +236,7 @@ int CNPC_HAssassin::MeleeAttack1Conditions ( float flDot, float flDist )
 			return COND_TOO_CLOSE_TO_ATTACK;
 		}
 
-		float flGravity = sv_gravity.GetFloat();
+		float flGravity = GetCurrentGravity();
 
 		float time = sqrt( 160 / (0.5 * flGravity));
 		float speed = flGravity * time / 160;
@@ -689,12 +691,12 @@ void CNPC_HAssassin::RunAI( void )
 			EmitSound( filter, entindex(), "HAssassin.Beamsound" );
 		}
 
-		SetRenderColorA( max( GetRenderColor().a - 50, m_iTargetRanderamt ) );
+		SetRenderColorA( MAX( GetRenderColor().a - 50, m_iTargetRanderamt ) );
 		m_nRenderMode = kRenderTransTexture;
 	}
 	else if ( GetRenderColor().a < m_iTargetRanderamt)
 	{
-		SetRenderColorA ( min( GetRenderColor().a + 50, m_iTargetRanderamt ) );
+		SetRenderColorA ( MIN( GetRenderColor().a + 50, m_iTargetRanderamt ) );
 		if (GetRenderColor().a == 255)
 			m_nRenderMode = kRenderNormal;
 	}

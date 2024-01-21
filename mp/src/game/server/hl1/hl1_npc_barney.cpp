@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,30 +13,7 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Memory.h"
-#include	"AI_Route.h"
-#include	"AI_Motor.h"
 #include	"hl1_npc_barney.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include	"AI_Behavior_Follow.h"
-#include	"AI_Criteria.h"
-#include	"soundemittersystem/isoundemittersystembase.h"
 
 #define BA_ATTACK	"BA_ATTACK"
 #define BA_MAD		"BA_MAD"
@@ -77,7 +54,7 @@ END_DATADESC()
 LINK_ENTITY_TO_CLASS( monster_barney, CNPC_Barney );
 
 
-static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
+static bool IsFacing( CBaseEntity *pevTest, const Vector &reference )
 {
 	Vector vecDir = (reference - pevTest->GetAbsOrigin());
 	vecDir.z = 0;
@@ -90,9 +67,9 @@ static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
 	// He's facing me, he meant it
 	if ( DotProduct( forward, vecDir ) > 0.96 )	// +/- 15 degrees or so
 	{
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 //=========================================================
@@ -102,7 +79,7 @@ void CNPC_Barney::Spawn()
 {
 	Precache( );
 
-	SetModel( "models/barney.mdl");
+	SetModel( "models/barney.mdl" );
 
 	SetRenderColor( 255, 255, 255, 255 );
 	
@@ -211,7 +188,7 @@ void CNPC_Barney::AlertSound( void )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-void CNPC_Barney::SetMaxYawSpeed ( void )
+void CNPC_Barney::SetYawSpeed ( void )
 {
 	int ys = 0;
 
@@ -239,7 +216,7 @@ void CNPC_Barney::SetMaxYawSpeed ( void )
 //=========================================================
 bool CNPC_Barney::CheckRangeAttack1 ( float flDot, float flDist )
 {
-	if ( gpGlobals->curtime > m_flCheckAttackTime )
+	/*if ( gpGlobals->curtime > m_flCheckAttackTime )
 	{
 		trace_t tr;
 		
@@ -257,7 +234,28 @@ bool CNPC_Barney::CheckRangeAttack1 ( float flDot, float flDist )
 		m_flCheckAttackTime = gpGlobals->curtime + 1.5;
 	}
 	
-	return m_fLastAttackCheck;
+	return m_fLastAttackCheck;*/
+
+	if ( flDist <= 1024 && flDot >= 0.5 )
+	{
+		if ( gpGlobals->curtime > m_flCheckAttackTime )
+		{
+			trace_t tr;
+			
+			Vector shootOrigin = GetAbsOrigin() + Vector(0, 0, 55);
+			CBaseEntity *pEnemy = GetEnemy();
+			Vector shootTarget = ( (pEnemy->BodyTarget( shootOrigin ) - pEnemy->GetAbsOrigin()) + GetEnemyLKP() );
+			UTIL_TraceLine( shootOrigin, shootTarget, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
+			m_flCheckAttackTime = gpGlobals->curtime + 1;
+			if ( tr.fraction == 1.0 || (tr.m_pEnt != NULL && tr.m_pEnt == pEnemy) )
+				m_fLastAttackCheck = true;
+			else
+				m_fLastAttackCheck = false;
+			m_flCheckAttackTime = gpGlobals->curtime + 1.5;
+		}
+		return m_fLastAttackCheck;
+	}
+	return false;
 }
 
 //------------------------------------------------------------------------------
@@ -307,7 +305,7 @@ void CNPC_Barney::BarneyFirePistol ( void )
 
 	FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, m_iAmmoType );
 	
-	int pitchShift = random->RandomInt( 0, 20 );
+	int pitchShift = RandomInt( 0, 20 );
 	
 	// Only shift about half the time
 	if ( pitchShift > 10 )
@@ -373,55 +371,76 @@ int CNPC_Barney::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 //=========================================================
 // PainSound
 //=========================================================
-void CNPC_Barney::PainSound(const CTakeDamageInfo& info)
+void CNPC_Barney::PainSound( const CTakeDamageInfo &info )
 {
+	if (gpGlobals->curtime < m_flPainTime)
+		return;
+	
+	m_flPainTime = gpGlobals->curtime + RandomFloat( 0.5, 0.75 );
 
-	if (m_flPainTime < gpGlobals->curtime)
-	{	
-		CPASAttenuationFilter filter(this);
-		EmitSound(filter, entindex(), "Barney.Pain");
-		m_flPainTime = gpGlobals->curtime + RandomFloat(0.5f, 0.75f);
+	CPASAttenuationFilter filter( this );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( "Barney.Pain", params, NULL ) )
+	{
+		params.pitch = GetExpresser()->GetVoicePitch();
+
+		EmitSound_t ep( params );
+
+		EmitSound( filter, entindex(), ep );
 	}
 }
+
 //=========================================================
 // DeathSound 
 //=========================================================
-void CNPC_Barney::DeathSound(const CTakeDamageInfo& info)
+void CNPC_Barney::DeathSound( const CTakeDamageInfo &info )
 {
-	//PainSound( info );
-	SentenceStop();
-	CPASAttenuationFilter filter(this);
-	EmitSound(filter, entindex(), "Barney.Die");
+	CPASAttenuationFilter filter( this );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( "Barney.Die", params, NULL ) )
+	{
+		params.pitch = GetExpresser()->GetVoicePitch();
+
+		EmitSound_t ep( params );
+
+		EmitSound( filter, entindex(), ep );
+	}
 }
 
-void CNPC_Barney::TraceAttack(const CTakeDamageInfo& inputInfo, const Vector& vecDir, trace_t* ptr, CDmgAccumulator* pAccumulator)
+void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 
-	if (ptr->hitgroup == HITGROUP_CHEST || ptr->hitgroup == HITGROUP_STOMACH)
+	switch( ptr->hitgroup )
 	{
-		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST))
+	case HITGROUP_CHEST:
+	case HITGROUP_STOMACH:
+		if ( info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST) )
 		{
-			info.ScaleDamage(0.5f);
+			info.ScaleDamage( 0.5f );
 		}
-	}
-	else if (ptr->hitgroup == HITGROUP_GEAR)
-	{
+		break;
+	case 10:
 		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
 		{
-			info.SetDamage(info.GetDamage() - 20);
-	
+			info.SetDamage( info.GetDamage() - 20 );
 			if ( info.GetDamage() <= 0 )
-				info.SetDamage( 0.01f );
-
-			g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
+			{
+				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
+				info.SetDamage(0.01);
+			}
+			else
+			{
+				// always a head shot
+				ptr->hitgroup = HITGROUP_HEAD;
+			}
 		}
+		break;
 	}
-	else if (ptr->hitgroup == HITGROUP_HEAD)
-	{
-		info.SetDamageBonus(1000.0f);
-	}
-	BaseClass::TraceAttack(info, vecDir, ptr, pAccumulator);
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 void CNPC_Barney::Event_Killed( const CTakeDamageInfo &info )
@@ -441,60 +460,7 @@ void CNPC_Barney::Event_Killed( const CTakeDamageInfo &info )
 		pGun = DropItem( "weapon_glock", vecGunPos, angGunAngles );
 	}
 
-	SetUse( NULL );	
-	BaseClass::Event_Killed( info  );
-
-	if ( UTIL_IsLowViolence() )
-	{
-		SUB_StartLVFadeOut( 0.0f );
-	}
-}
-
-void CNPC_Barney::SUB_StartLVFadeOut( float delay, bool notSolid )
-{
-	SetThink( &CNPC_Barney::SUB_LVFadeOut );
-	SetNextThink( gpGlobals->curtime + delay );
-	SetRenderColorA( 255 );
-	m_nRenderMode = kRenderNormal;
-
-	if ( notSolid )
-	{
-		AddSolidFlags( FSOLID_NOT_SOLID );
-		SetLocalAngularVelocity( vec3_angle );
-	}
-}
-
-void CNPC_Barney::SUB_LVFadeOut( void  )
-{
-	if( VPhysicsGetObject() )
-	{
-		if( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
-		{
-			// Try again in a few seconds.
-			SetNextThink( gpGlobals->curtime + 5 );
-			SetRenderColorA( 255 );
-			return;
-		}
-	}
-
-	float dt = gpGlobals->frametime;
-	if ( dt > 0.1f )
-	{
-		dt = 0.1f;
-	}
-	m_nRenderMode = kRenderTransTexture;
-	int speed = max(3,256*dt); // fade out over 3 seconds
-	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
-	NetworkStateChanged();
-
-	if ( m_clrRender->a == 0 )
-	{
-		UTIL_Remove(this);
-	}
-	else
-	{
-		SetNextThink( gpGlobals->curtime );
-	}
+	BaseClass::Event_Killed( info );
 }
 
 void CNPC_Barney::StartTask( const Task_t *pTask )
@@ -647,7 +613,8 @@ int CNPC_Barney::SelectSchedule( void )
 
 	if ( HasCondition( COND_HEAR_DANGER ) )
 	{
-		CSound *pSound = GetBestSound();
+		CSound *pSound;
+		pSound = GetBestSound();
 
 		ASSERT( pSound != NULL );
 
@@ -733,26 +700,6 @@ void CNPC_Barney::DeclineFollowing( void )
 	{
 		Speak( BA_POK );
 	}
-}
-
-bool CNPC_Barney::CanBecomeRagdoll( void )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::CanBecomeRagdoll();
-}
-
-bool CNPC_Barney::ShouldGib( const CTakeDamageInfo &info )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::ShouldGib( info );
 }
 
 //------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,17 +13,17 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_route.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -204,9 +204,9 @@ void CNPC_FlockingFlyerFlock::SpawnFlock( void )
 			pLeader->m_pSquadNext = NULL;
 		}
 
-		vecSpot.x = random->RandomFloat( -R, R );
-		vecSpot.y = random->RandomFloat( -R, R );
-		vecSpot.z = random->RandomFloat( 0, 16 );
+		vecSpot.x = RandomFloat( -R, R );
+		vecSpot.y = RandomFloat( -R, R );
+		vecSpot.z = RandomFloat( 0, 16 );
 		vecSpot = GetAbsOrigin() + vecSpot;
 
 		UTIL_SetOrigin( pBoid, vecSpot);
@@ -510,7 +510,7 @@ void CNPC_FlockingFlyer::FlockLeaderThink( void )
 	}
 	
 	// IF we get this far in the function, the leader's path is blocked!
-	m_fPathBlocked = TRUE;
+	m_fPathBlocked = true;
 
 	if ( !m_fTurning)// something in the way and boid is not already turning to avoid
 	{
@@ -530,7 +530,7 @@ void CNPC_FlockingFlyer::FlockLeaderThink( void )
 			angVel.y = -AFLOCK_TURN_RATE;
 			SetLocalAngularVelocity( angVel );
 
-			m_fTurning = TRUE;
+			m_fTurning = true;
 		}
 		// default to left turn :)
 		else if ( flLeftSide > flRightSide )
@@ -539,16 +539,16 @@ void CNPC_FlockingFlyer::FlockLeaderThink( void )
 			angVel.y = AFLOCK_TURN_RATE;
 			SetLocalAngularVelocity( angVel );
 
-			m_fTurning = TRUE;
+			m_fTurning = true;
 		}
 		else
 		{
 			// equidistant. Pick randomly between left and right.
-			m_fTurning = TRUE;
+			m_fTurning = true;
 
 			QAngle angVel = GetLocalAngularVelocity();
 
-			if ( random->RandomInt( 0, 1 ) == 0 )
+			if ( RandomInt( 0, 1 ) == 0 )
 			{
 				angVel.y = AFLOCK_TURN_RATE;
 			}
@@ -586,7 +586,7 @@ void CNPC_FlockingFlyer::FlockLeaderThink( void )
 	if ( m_flFlockNextSoundTime < gpGlobals->curtime )
 	{
 //		MakeSound();
-		m_flFlockNextSoundTime = gpGlobals->curtime + random->RandomFloat( 1, 3 );
+		m_flFlockNextSoundTime = gpGlobals->curtime + RandomFloat( 1, 3 );
 	}
 
 	BoidAdvanceFrame( );
@@ -608,14 +608,14 @@ bool CNPC_FlockingFlyer::FPathBlocked( void )
 	if ( m_flFakeBlockedTime > gpGlobals->curtime )
 	{
 		m_flLastBlockedTime = gpGlobals->curtime;
-		return TRUE;
+		return true;
 	}
 
 	// use VELOCITY, not angles, not all boids point the direction they are flying
 	//vecDir = UTIL_VecToAngles( pevBoid->velocity );
 	AngleVectors ( GetAbsAngles(), &vForward, &vRight, &vUp );
 
-	fBlocked = FALSE;// assume the way ahead is clear
+	fBlocked = false;// assume the way ahead is clear
 
 	// check for obstacle ahead
 	UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * AFLOCK_CHECK_DIST, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr);
@@ -623,7 +623,7 @@ bool CNPC_FlockingFlyer::FPathBlocked( void )
 	if (tr.fraction != 1.0)
 	{
 		m_flLastBlockedTime = gpGlobals->curtime;
-		fBlocked = TRUE;
+		fBlocked = true;
 	}
 
 	// extra wide checks
@@ -632,7 +632,7 @@ bool CNPC_FlockingFlyer::FPathBlocked( void )
 	if (tr.fraction != 1.0)
 	{
 		m_flLastBlockedTime = gpGlobals->curtime;
-		fBlocked = TRUE;
+		fBlocked = true;
 	}
 
 	UTIL_TraceLine(GetAbsOrigin() - vRight * 12, GetAbsOrigin() - vRight * 12 + vForward * AFLOCK_CHECK_DIST, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr);
@@ -640,13 +640,13 @@ bool CNPC_FlockingFlyer::FPathBlocked( void )
 	if (tr.fraction != 1.0)
 	{
 		m_flLastBlockedTime = gpGlobals->curtime;
-		fBlocked = TRUE;
+		fBlocked = true;
 	}
 
 	if ( !fBlocked && gpGlobals->curtime - m_flLastBlockedTime > 6 )
 	{
 		// not blocked, and it's been a few seconds since we've actually been blocked.
-		m_flFakeBlockedTime = gpGlobals->curtime + random->RandomInt(1, 3); 
+		m_flFakeBlockedTime = gpGlobals->curtime + RandomInt(1, 3); 
 	}
 
 	return	fBlocked;
@@ -829,7 +829,7 @@ void CNPC_FlockingFlyer::Event_Killed( const CTakeDamageInfo &info )
 	m_lifeState = LIFE_DEAD;
 
 	m_flPlaybackRate = 0;
-	AddEffects( EF_NOINTERP );
+	IncrementInterpolationFrame();
 
 	UTIL_SetSize( this, Vector(0,0,0), Vector(0,0,0) );
 	SetMoveType( MOVETYPE_FLYGRAVITY );

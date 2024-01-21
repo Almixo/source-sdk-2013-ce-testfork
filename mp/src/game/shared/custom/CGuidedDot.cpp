@@ -25,7 +25,6 @@ CGuidedDot *GetGuidedDotList()
 LINK_ENTITY_TO_CLASS(guided_dot, CGuidedDot);
 
 BEGIN_DATADESC(CGuidedDot)
-	DEFINE_FIELD(m_vecSurfaceNormal, FIELD_VECTOR),
 	DEFINE_FIELD(m_bIsOn, FIELD_BOOLEAN),
 END_DATADESC()
 
@@ -80,7 +79,7 @@ CGuidedDot *CGuidedDot::Create(const Vector &origin, CBaseEntity *pOwner, bool b
 	if (pLaserDot == NULL)
 		return NULL;
 
-	pLaserDot->m_bIsOn = bVisibleDot;
+	/*pLaserDot->m_bIsOn = bVisibleDot;
 	pLaserDot->SetMoveType(MOVETYPE_NONE);
 	pLaserDot->AddSolidFlags(FSOLID_NOT_SOLID);
 	pLaserDot->AddEffects(EF_NOSHADOW);
@@ -89,6 +88,12 @@ CGuidedDot *CGuidedDot::Create(const Vector &origin, CBaseEntity *pOwner, bool b
 
 	pLaserDot->SetOwnerEntity(pOwner);
 
+	pLaserDot->AddEFlags(EFL_FORCE_CHECK_TRANSMIT);*/
+
+	pLaserDot->m_bIsOn = bVisibleDot;
+	pLaserDot->SetMoveType(MOVETYPE_NONE);
+	pLaserDot->AddEffects(EF_NOSHADOW);
+	pLaserDot->SetOwnerEntity(pOwner);
 	pLaserDot->AddEFlags(EFL_FORCE_CHECK_TRANSMIT);
 
 	return pLaserDot;
@@ -100,12 +105,6 @@ CGuidedDot *CGuidedDot::Create(const Vector &origin, CBaseEntity *pOwner, bool b
 void CGuidedDot::SetDotPosition(const Vector &origin, const Vector &normal)
 {
 	SetAbsOrigin(origin);
-	m_vecSurfaceNormal = normal;
-}
-
-Vector CGuidedDot::GetChasePosition()
-{
-	return GetAbsOrigin() - m_vecSurfaceNormal * 10;
 }
 
 //-----------------------------------------------------------------------------
@@ -135,70 +134,58 @@ void CGuidedDot::TurnOff(void)
 //-----------------------------------------------------------------------------
 int CGuidedDot::DrawModel(int flags)
 {
-	// Get the owning player.
-	C_BasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
 	if (!pPlayer)
 		return -1;
 
-	// Get the sprite rendering position.
-	Vector vecEndPos;
-	float fSize = 0;
+	Vector vecPos, vecEnd;
+	float flsize = 0.0f;
 	color32 color = { 255, 255, 255, 255 };
 
 	if (!pPlayer->IsDormant())
 	{
-		Vector vecSrc, vecDir, vecLength;
-		float fLength = 1;
+		Vector vecSrc, vecDir, vecLen;
+		float fLen = 0.0f;
 
-		// Always draw the dot in front of our faces when in first-person.
 		if (pPlayer->IsLocalPlayer())
 		{
-			// Take our view position and orientation
 			vecSrc = CurrentViewOrigin();
 			vecDir = CurrentViewForward();
 		}
 		else
 		{
-			// Take the owning player eye position and direction.
 			vecSrc = pPlayer->EyePosition();
-			QAngle angles = pPlayer->EyeAngles();
-			AngleVectors(angles, &vecDir);
+			AngleVectors(pPlayer->EyeAngles(), &vecDir);
 		}
 
-		trace_t	trace;
-		UTIL_TraceLine(vecSrc, vecSrc + (vecDir * 8192), MASK_SHOT /*MASK_SOLID*/, pPlayer, COLLISION_GROUP_NONE, &trace);
+		trace_t tr;
+		UTIL_TraceLine(vecSrc, vecSrc + (vecDir * MAX_TRACE_LENGTH), MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr);
 
-		// Backup off the hit plane, towards the source
-		vecEndPos = trace.endpos + vecDir * -4;
+		vecEnd = tr.endpos + vecDir.Normalized() * -4;
 
 		if (pPlayer->IsLocalPlayer())
 		{
-			vecLength = vecSrc - vecEndPos;
-			fLength = (vecLength.Length() / 2) * 0.05f;
+			vecLen = vecSrc - vecEnd;
+			fLen = vecLen.Length() * 0.025f;
 
-			fSize = (fLength + (RandomFloat(-0.5f, 0.5f) * fLength));
-			fSize = Clamp(fSize, 0.1f, 32.0f);
+			flsize = fLen + RandomFloat(-.5f, .5f) * fLen;
+
+			flsize < 0.1f ? 0.1f : flsize; //0.1 at minimum
 		}
 		else
-			fSize = 8.0f + RandomFloat(-4.0f, 4.0f); //12.0f before
+			flsize = 8.0f + RandomFloat(-2.0f, 2.0f);
 	}
 	else
 	{
-		// Just use our position if we can't predict it otherwise.
-		vecEndPos = GetAbsOrigin();
-
-		fSize = 8.0f + RandomFloat(-4.0f, 4.0f); //12.0f before
+		vecEnd = GetAbsOrigin();
+		flsize = 8.0f + RandomFloat(-2.0f, 2.0f);
 	}
 
-	// Draw our laser dot in space.
 	CMatRenderContextPtr pRenderContext(materials);
 	pRenderContext->Bind(m_hSpriteMaterial, this);
 
-	DrawSprite(vecEndPos, fSize, fSize, color);
+	DrawSprite(vecEnd, flsize, flsize, color);
 
-	DevWarning("Dot's scale is -->%g\n", fSize);
-
-	// Successful.
 	return 1;
 }
 //-----------------------------------------------------------------------------

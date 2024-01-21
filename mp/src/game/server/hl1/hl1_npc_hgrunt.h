@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -8,8 +8,27 @@
 #ifndef NPC_HGRUNT_H
 #define NPC_HGRUNT_H
 
-#include "ai_squad.h"
-#include "hl1_ai_basenpc.h"
+#include	"ai_squad.h"
+#include	"hl1_ai_basenpc.h"
+#include	"beam_shared.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
+#include	"activitylist.h"
+#include	"engine/IEngineSound.h"
+#include	"ammodef.h"
+#include	"basecombatweapon.h"
+#include	"ai_interactions.h"
+#include	"scripted.h"
+#include	"hl1_grenade_mp5.h"
 
 class CNPC_HGrunt : public CHL1BaseNPC
 {
@@ -42,10 +61,10 @@ public:
 
 	int     GetSoundInterests ( void );
 
-	void    TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	void    TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 
-	float	SetMaxYawSpeed( void );
+	float	MaxYawSpeed( void );
 
 	void    IdleSound( void );
 

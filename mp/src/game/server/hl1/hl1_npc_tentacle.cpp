@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,19 +13,20 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Senses.h"
-#include	"AI_Motor.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"ai_senses.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -933,15 +934,18 @@ void CNPC_Tentacle::HitTouch( CBaseEntity *pOther )
 	//Right now the BoneFollower will always be hit in box 0, and 
 	//will pass that to us. Make *any* touch by the physics objects a kill
 	//as the ragdoll only covers the top portion of the tentacle.
-	CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
+	if ( pOther->m_takedamage )
+	{
+		CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
 
-	Vector vDamageForce = pOther->GetAbsOrigin() - GetAbsOrigin();
-	VectorNormalize( vDamageForce );
+		Vector vDamageForce = pOther->GetAbsOrigin() - GetAbsOrigin();
+		VectorNormalize( vDamageForce );
 
-	CalculateMeleeDamageForce( &info, vDamageForce, pOther->GetAbsOrigin() );
-	pOther->TakeDamage( info );
+		CalculateMeleeDamageForce( &info, vDamageForce, pOther->GetAbsOrigin() );
+		pOther->TakeDamage( info );
 
-	m_flHitTime = gpGlobals->curtime + 0.5;
+		m_flHitTime = gpGlobals->curtime + 0.5;
+	}
 }
 
 int CNPC_Tentacle::OnTakeDamage( const CTakeDamageInfo &info )

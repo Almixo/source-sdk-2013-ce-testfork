@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Ichthyosaur - buh bum...  buh bum...
 //
@@ -6,17 +6,20 @@
 //=============================================================================//
 #include "cbase.h"
 #include "beam_shared.h"
-#include "AI_Task.h"
-#include "AI_Default.h"
-#include "AI_Navigator.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include "activitylist.h"
 #include "game.h"
-#include "NPCEvent.h"
-#include "Player.h"
-#include "EntityList.h"
+#include "npcevent.h"
+#include "player.h"
+#include "entitylist.h"
 #include "soundenvelope.h"
 #include "shake.h"
 #include "ndebugoverlay.h"
@@ -350,7 +353,7 @@ void CNPC_Ichthyosaur::MoveExecute_Alive(float flInterval)
 	// If we're attacking, accelerate to max speed
 	if (m_bOnAttack && m_flFlyingSpeed < m_flMaxSpeed)
 	{
-		m_flFlyingSpeed = min( m_flMaxSpeed, m_flFlyingSpeed+40 );
+		m_flFlyingSpeed = MIN( m_flMaxSpeed, m_flFlyingSpeed+40 );
 	}
 
 	if (m_flFlyingSpeed < 180)

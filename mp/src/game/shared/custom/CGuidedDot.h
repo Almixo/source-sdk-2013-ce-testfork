@@ -39,8 +39,7 @@ public:
 
 	static CGuidedDot *Create( const Vector &origin, CBaseEntity *pOwner = NULL, bool bVisibleDot = true );
 
-	void	SetDotPosition( const Vector &origin, const Vector &normal );
-	Vector	GetChasePosition();
+	void	SetDotPosition( const Vector &origin, const Vector &normal = vec3_origin );
 	void	TurnOn( void );
 	void	TurnOff( void );
 	bool	IsOn() const { return m_bIsOn; }
@@ -59,7 +58,6 @@ public:
 #endif
 
 protected:
-	Vector				m_vecSurfaceNormal;
 	CNetworkVar( bool, m_bIsOn );
 
 public:

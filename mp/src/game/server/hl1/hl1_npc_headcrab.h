@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -30,11 +30,8 @@ public:
 	Class_T Classify( void );
 
 	void LeapTouch ( CBaseEntity *pOther );
-	void PainSound(const CTakeDamageInfo &info);
-	void DeathSound(const CTakeDamageInfo &info);
 	void BiteSound( void );
 	void AttackSound( void );
-
 	void TouchDamage( CBaseEntity *pOther );
 	void HandleAnimEvent( animevent_t *pEvent );
 	int	 SelectSchedule( void );
@@ -44,6 +41,10 @@ public:
 	void PrescheduleThink( void );
 	int RangeAttack1Conditions ( float flDot, float flDist );
 	float GetDamageAmount( void );
+	virtual void PainSound( const CTakeDamageInfo &info );
+	virtual void DeathSound( const CTakeDamageInfo &info );
+	virtual void IdleSound();
+	virtual void AlertSound();
 
 	virtual int		GetVoicePitch( void ) { return 100; }
 	virtual float	GetSoundVolume( void ) { return 1.0; }
@@ -54,6 +55,8 @@ public:
 	DECLARE_DATADESC();
 
 protected:
+	void HeadCrabSound( const char *pchSound );
+
 	Vector	m_vecJumpVel;
 };
 
