@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,17 +6,19 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -30,7 +32,7 @@
 #include	"Sprite.h"
 #include	"beam_shared.h"
 #include	"logicrelay.h"
-#include	"AI_Navigator.h"
+#include	"ai_navigator.h"
 
 
 #define N_SCALE		15
@@ -60,7 +62,7 @@ public:
 	*/
 
 	int	OnTakeDamage_Alive( const CTakeDamageInfo &info );
-	void TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	bool ShouldGib( const CTakeDamageInfo &info ) { return false; }
 
 	void PainSound( const CTakeDamageInfo &info );
@@ -405,12 +407,12 @@ int	CNPC_Nihilanth::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	return 0;
 }
 
-void CNPC_Nihilanth::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_Nihilanth::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	if (m_irritation == 3)
 		m_irritation = 2;
 
-	if (m_irritation == 2 && ptr->hitbox == 3 && info.GetDamage() > 2)
+	if (m_irritation == 2 && ptr->hitgroup == 0 && info.GetDamage() > 2)
 		m_irritation = 3;
 
 	if (m_irritation != 3)
@@ -590,7 +592,7 @@ void CNPC_Nihilanth::HuntThink( void )
 		}
 		else
 		{
-			m_flAdj = min( m_flAdj + 10, 1000 );
+			m_flAdj = MIN( m_flAdj + 10, 1000 );
 		}
 	}
 
@@ -1043,7 +1045,7 @@ void CNPC_Nihilanth::DyingThink( void )
 	{
 		if (m_pBall->GetBrightness() > 0)
 		{
-			m_pBall->SetBrightness( max( 0, m_pBall->GetBrightness() - 7 ), 0 );
+			m_pBall->SetBrightness( MAX( 0, m_pBall->GetBrightness() - 7 ), 0 );
 		}
 		else
 		{

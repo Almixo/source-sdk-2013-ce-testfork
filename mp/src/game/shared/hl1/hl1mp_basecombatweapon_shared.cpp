@@ -34,9 +34,13 @@ CBaseHL1MPCombatWeapon::CBaseHL1MPCombatWeapon()
 	AddSolidFlags( FSOLID_TRIGGER ); // Nothing collides with these but it gets touches.
 }
 
+static ConVar cl_enable_hl1_bullet_eject("cl_enable_hl1_bullet_eject", 0, FCVAR_USERINFO | FCVAR_ARCHIVE);
 
 void CBaseHL1MPCombatWeapon::EjectShell( CBaseEntity *pPlayer, int iType )
 {
+	if ( cl_enable_hl1_bullet_eject.GetBool() == false )
+		return;
+
 	QAngle angShellAngles = pPlayer->GetAbsAngles();
 
 	Vector vecForward, vecRight, vecUp;

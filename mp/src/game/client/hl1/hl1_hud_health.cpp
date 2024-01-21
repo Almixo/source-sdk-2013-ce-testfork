@@ -56,7 +56,7 @@ private:
 	void	ApplySchemeSettings(vgui::IScheme *pScheme);
 
 private:
-	CHudTexture		*icon_cross;
+	/*CHudTexture		*icon_cross;*/
 	int				m_iHealth;
 	float			m_flFade;
 	int				m_bitsDamage;
@@ -133,7 +133,7 @@ void CHudHealth::Paint()
 
 	BaseClass::Paint();
 
-	if ( !icon_cross )
+	/*if ( !icon_cross )
 	{
 		icon_cross = gHUD.GetIcon( "cross" );
 	}
@@ -141,7 +141,7 @@ void CHudHealth::Paint()
 	if ( !icon_cross )
 	{
 		return;
-	}
+	}*/
 
 	// Has health changed? Flash the health #
 	if ( m_flFade )
@@ -181,25 +181,11 @@ void CHudHealth::Paint()
 
 	int nFontWidth	= GetNumberFontWidth();
 	int nFontHeight	= GetNumberFontHeight();
-	int nCrossWidth	= icon_cross->Width();
 
-	x = nCrossWidth / 2;
+	x =  nFontWidth / 2;
 	y = GetTall() - ( nFontHeight * 1.5 );
 
-	icon_cross->DrawSelf( x, y, clrHealth );
-
-	x = nCrossWidth + ( nFontWidth / 2 );
-
 	x = DrawHudNumber( x, y, m_iHealth, clrHealth );
-
-	x += nFontWidth / 2;
-
-	int iHeight	= nFontHeight;
-	int iWidth	= nFontWidth / 10;
-
-	clrHealth.SetColor( 255, 160, 0, a  );
-	vgui::surface()->DrawSetColor( clrHealth );
-	vgui::surface()->DrawFilledRect( x, y, x + iWidth, y + iHeight );
 }
 
 //-----------------------------------------------------------------------------

@@ -344,7 +344,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 				if ( ammotype1 >= 0 )
 					iAmmoIndex[0] = ammotype1;
 				if ( ammotype2 >= 0 )
-					iAmmoIndex[0] = ammotype2;
+					iAmmoIndex[1] = ammotype2;
 			}
 		}
 		break;
@@ -368,13 +368,13 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 			if ( iAmmoIndex[i] == -1 )
 				continue;
 
-			pBox->AddAmmo( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[i] )->pName, GetAmmoCount( iAmmoIndex[i] ) );
+			pBox->AddAmmo( base_t( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[i] )->pName, GetAmmoCount( iAmmoIndex[i] ) ) );
 		}
 	}
 	else
 	{
-		pBox->AddAmmo( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetActiveWeapon()->Clip1() );
-		pBox->AddAmmo( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetActiveWeapon()->Clip2() );
+		pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetActiveWeapon()->Clip1()) );
+		pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetActiveWeapon()->Clip2()) );
 	}
 
 	for ( int i = 0; i < ARRAYSIZE( pWeapon ); i++ )
@@ -382,7 +382,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 		if ( !pWeapon[i] )
 			continue;
 
-		pBox->AddWeapon( pWeapon[i], i );
+		pBox->AddWeapon( pWeapon[i] );
 		Weapon_Detach( pWeapon[i] );
 	}
 
@@ -477,10 +477,6 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			idealActivity = ACT_IDLE;
 		}
 	}
-	else if ( playerAnim == PLAYER_RELOAD )
-	{
-		idealActivity = ACT_GESTURE_RELOAD;
-	}
 
 	if ( idealActivity == ACT_RANGE_ATTACK1 )
 	{
@@ -511,21 +507,6 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		SetActivity( idealActivity );
 		ResetSequence( animDesired );
 	}
-	/*else if ( idealActivity == ACT_GESTURE_RELOAD )
-	{
-		Q_strncpy( szAnim, "reload_", sizeof( szAnim ) );
-		Q_strncat( szAnim, m_szAnimExtension, sizeof( szAnim ), COPY_ALL_CHARACTERS );
-
-		animDesired = LookupSequence( szAnim );
-		if ( animDesired == -1 )
-			animDesired = 0;
-
-		if ( GetSequence() != animDesired || !SequenceLoops() )
-			SetCycle( 0 );
-
-		SetActivity( idealActivity );
-		ResetSequence( animDesired );
-	}*/
 	else if ( idealActivity == ACT_IDLE )
 	{
 		if ( GetFlags() & FL_DUCKING )
@@ -634,7 +615,7 @@ bool CHL1MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 		return false;
 	}
 
-	bool bOwnsWeaponAlready = !!Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType() );
+	bool bOwnsWeaponAlready = Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType() ) != NULL;
 
 	if ( bOwnsWeaponAlready == true )
 	{

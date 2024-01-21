@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,20 +10,20 @@
 #include "scripted.h"
 #include "soundent.h"
 #include "animation.h"
-#include "EntityList.h"
-#include "AI_Navigator.h"
-#include "AI_Motor.h"
+#include "entitylist.h"
+#include "ai_navigator.h"
+#include "ai_motor.h"
 #include "player.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
-#include "NPCevent.h"
+#include "npcevent.h"
 #include "ai_interactions.h"
 #include "doors.h"
 
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 #include "hl1_ai_basenpc.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 ConVar hl1_debug_sentence_volume( "hl1_debug_sentence_volume", "0" );
 ConVar hl1_fixup_sentence_sndlevel( "hl1_fixup_sentence_sndlevel", "1" );
@@ -34,6 +34,7 @@ BEGIN_DATADESC( CHL1NPCTalker )
 
 	DEFINE_ENTITYFUNC( Touch ),
 	DEFINE_FIELD( m_bInBarnacleMouth,	FIELD_BOOLEAN ),
+	DEFINE_USEFUNC( FollowerUse ),
 
 END_DATADESC()
 
@@ -182,8 +183,32 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 	}
 }
 
+void CHL1NPCTalker::Event_Killed( const CTakeDamageInfo &info )
+{
+	SetUse( NULL );	
+	BaseClass::Event_Killed( info );
+
+	if ( UTIL_IsLowViolence() )
+	{
+		SUB_StartLVFadeOut( 0.0f );
+	}
+}
+
+bool CHL1NPCTalker::CanBecomeRagdoll( void )
+{
+	if ( UTIL_IsLowViolence() )
+	{
+		return false;
+	}
+
+	return BaseClass::CanBecomeRagdoll();
+}
+
 bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 {
+	if ( UTIL_IsLowViolence() )
+		return false;
+
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
@@ -191,7 +216,53 @@ bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 		 return true;
 	
 	return false;
-	
+}
+
+void CHL1NPCTalker::SUB_StartLVFadeOut( float delay, bool bNotSolid )
+{
+	SetThink( &CHL1NPCTalker::SUB_LVFadeOut );
+	SetNextThink( gpGlobals->curtime + delay );
+	SetRenderColorA( 255 );
+	m_nRenderMode = kRenderNormal;
+
+	if ( bNotSolid )
+	{
+		AddSolidFlags( FSOLID_NOT_SOLID );
+		SetLocalAngularVelocity( vec3_angle );
+	}
+}
+
+void CHL1NPCTalker::SUB_LVFadeOut( void )
+{
+	if( VPhysicsGetObject() )
+	{
+		if( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
+		{
+			// Try again in a few seconds.
+			SetNextThink( gpGlobals->curtime + 5 );
+			SetRenderColorA( 255 );
+			return;
+		}
+	}
+
+	float dt = gpGlobals->frametime;
+	if ( dt > 0.1f )
+	{
+		dt = 0.1f;
+	}
+	m_nRenderMode = kRenderTransTexture;
+	int speed = Max( 3.0f, 256*dt ); // fade out over 3 seconds
+	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
+	NetworkStateChanged();
+
+	if ( m_clrRender->a == 0 )
+	{
+		UTIL_Remove( this );
+	}
+	else
+	{
+		SetNextThink( gpGlobals->curtime );
+	}
 }
 
 void CHL1NPCTalker::StartTask( const Task_t *pTask )
@@ -203,11 +274,122 @@ void CHL1NPCTalker::StartTask( const Task_t *pTask )
 			GetNavigator()->SetMovementActivity( ACT_WALK );
 			break;
 		}
+		case TASK_TALKER_SPEAK:
+			// ask question or make statement
+			FIdleSpeak();
+			TaskComplete();
+			break;
 		default:
 			BaseClass::StartTask( pTask );
 			break;
 	}
 }
+
+//=========================================================
+// FIdleSpeak
+// ask question of nearby friend, or make statement
+//=========================================================
+int CHL1NPCTalker::FIdleSpeak ( void )
+{ 
+	if (!IsOkToSpeak())
+		return FALSE;
+
+	// if there is a friend nearby to speak to, play sentence, set friend's response time, return
+	// try to talk to any standing or sitting scientists nearby
+	CBaseEntity *pentFriend = FindNearestFriend( false );
+	CHL1NPCTalker *pentTalker = dynamic_cast<CHL1NPCTalker *>( pentFriend );
+	if (pentTalker && random->RandomInt(0,1) )
+	{
+		Speak( TLK_QUESTION );
+		SetSpeechTarget( pentFriend );
+
+		pentTalker->SetSpeechTarget( this );
+		pentTalker->SetCondition( COND_TALKER_RESPOND_TO_QUESTION );
+		pentTalker->SetSchedule( SCHED_TALKER_IDLE_RESPONSE );
+		pentTalker->GetExpresser()->BlockSpeechUntil( GetExpresser()->GetTimeSpeechComplete() );
+
+		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
+
+		//DevMsg( "Asking some question!\n" );
+		return TRUE;
+	}
+	else if ( random->RandomInt(0,1)) 	// otherwise, play an idle statement
+	{
+		//DevMsg( "Making idle statement!\n" );
+
+		Speak( TLK_IDLE );
+		// set global min delay for next conversation
+		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
+		return TRUE;
+	}
+
+	// never spoke
+	GetExpresser()->BlockSpeechUntil( 0 );
+	m_flNextIdleSpeechTime = gpGlobals->curtime + 3;
+	return FALSE;
+}
+
+
+
+bool CHL1NPCTalker::IsValidSpeechTarget( int flags, CBaseEntity *pEntity )
+{
+	if ( pEntity == this )
+		return false;
+
+	CHL1NPCTalker *pentTarget = dynamic_cast<CHL1NPCTalker *>( pEntity );
+	if ( pentTarget )
+	{
+		if ( !(flags & AIST_IGNORE_RELATIONSHIP) )
+		{
+			if ( pEntity->IsPlayer() )
+			{
+				if ( !IsPlayerAlly( (CBasePlayer *)pEntity ) )
+					return false;
+			}
+			else
+			{
+				if ( IRelationType( pEntity ) != D_LI )
+					return false;
+			}
+		}		
+
+		if ( !pEntity->IsAlive() )
+			// don't dead people
+			return false;
+
+		// Ignore no-target entities
+		if ( pEntity->GetFlags() & FL_NOTARGET )
+			return false;
+
+		CAI_BaseNPC *pNPC = pEntity->MyNPCPointer();
+		if ( pNPC )
+		{
+			// If not a NPC for some reason, or in a script.
+			//if ( (pNPC->m_NPCState == NPC_STATE_SCRIPT || pNPC->m_NPCState == NPC_STATE_PRONE))
+			//	return false;
+
+			if ( pNPC->IsInAScript() )
+				return false;
+
+			// Don't bother people who don't want to be bothered
+			if ( !pNPC->CanBeUsedAsAFriend() )
+				return false;
+		}
+
+		if ( flags & AIST_FACING_TARGET )
+		{
+			if ( pEntity->IsPlayer() )
+				return HasCondition( COND_SEE_PLAYER );
+			else if ( !FInViewCone( pEntity ) )
+				return false;
+		}
+
+		return FVisible( pEntity );
+	}
+	else
+		return BaseClass::IsValidSpeechTarget( flags, pEntity );
+}
+
 
 int CHL1NPCTalker::SelectSchedule ( void )
 {
@@ -371,14 +553,36 @@ void CHL1NPCTalker::StopFollowing( void )
 	BaseClass::StopFollowing();
 }
 
-void CHL1NPCTalker::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CHL1NPCTalker::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
-	if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
+	/*if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
 	{
 		UTIL_BloodImpact( ptr->endpos, vecDir, BloodColor(), 4 );
+		UTIL_BloodStream( ptr->endpos, vecDir, BloodColor(), 4 );
+	}*/
+
+	//if (info.GetDamage() > 0)
+	//{
+	//	Vector vecOrigin = ptr->endpos - vecDir * 4;
+	//	Vector vecBloodOffset = vecDir * 8.0 + ptr->endpos;
+
+	//	if (GetHealth() <= info.GetDamage()) {
+	//		UTIL_BloodStream(vecBloodOffset, UTIL_RandomBloodVector(), BLOOD_COLOR_RED, RandomInt(80, 150));
+	//	}
+	//	else {
+	//		SpawnBlood(vecOrigin, vecDir, BloodColor(), info.GetDamage());// a little surface blood.
+	//		UTIL_BloodDrips(vecOrigin, Vector(0, 0, 1), BloodColor(), 2);
+	//	}
+	//}
+
+	if ( info.GetDamage() >= 1.0 && !(info.GetDamageType() & DMG_SHOCK ) )
+	{
+		Vector vecOrigin = ptr->endpos - vecDir * 4;
+		Vector vecBloodOffset = vecDir * 8.0 + ptr->endpos;
+		UTIL_BloodStream(ptr->endpos, UTIL_RandomBloodVector(), BloodColor(), info.GetDamage() + 2000);
 	}
 
-	BaseClass::TraceAttack(info, vecDir, ptr, pAccumulator);
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 void CHL1NPCTalker::FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -436,7 +640,7 @@ void CHL1NPCTalker::IdleHeadTurn( CBaseEntity *pTarget, float flDuration, float 
 
 void CHL1NPCTalker::SetHeadDirection( const Vector &vTargetPos, float flInterval)
 {
-#ifndef TALKER_LOOK
+#ifdef TALKER_LOOK
 	// Draw line in body, head, and eye directions
 	Vector vEyePos = EyePosition();
 	Vector vHeadDir = HeadDirection3D();

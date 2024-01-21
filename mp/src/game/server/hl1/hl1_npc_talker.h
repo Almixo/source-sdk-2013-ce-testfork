@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Base combat character with no AI
 //
@@ -10,24 +10,34 @@
 #ifndef HL1TALKNPC_H
 #define HL1TALKNPC_H
 
-#pragma warning(push)
-#include <set>
-#pragma warning(pop)
-
 #ifdef _WIN32
 #pragma once
 #endif
 
 #include "soundflags.h"
 
-#include "AI_Task.h"
-#include "AI_Schedule.h"
-#include "AI_Default.h"
-#include "AI_Speech.h"
-#include "AI_BaseNPC.h"
-#include "AI_Behavior.h"
-#include "AI_Behavior_Follow.h"
 #include "npc_talker.h"
+#include "ai_task.h"
+#include "ai_schedule.h"
+#include "ai_default.h"
+#include "ai_speech.h"
+#include "ai_basenpc.h"
+#include "ai_behavior.h"
+#include "ai_behavior_follow.h"
+#include "ai_node.h"
+#include "ai_hull.h"
+#include "ai_hint.h"
+#include "ai_memory.h"
+#include "ai_route.h"
+#include "ai_motor.h"
+#include "npcevent.h"
+#include "entitylist.h"
+#include "activitylist.h"
+#include "IEffects.h"
+#include "ammodef.h"
+#include "ai_behavior_follow.h"
+#include "AI_Criteria.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 
 #define SF_NPC_PREDISASTER			( 1 << 16 )	// This is a predisaster scientist or barney. Influences how they speak.
@@ -46,7 +56,6 @@
 class CHL1NPCTalker : public CNPCSimpleTalker
 {
 	DECLARE_CLASS( CHL1NPCTalker, CNPCSimpleTalker );
-	//const char* m_szGrp[TLK_CGROUPS];
 	
 public:
 	CHL1NPCTalker( void )
@@ -54,6 +63,7 @@ public:
 	}
 
 	virtual void Precache();
+
 	void	StartTask( const Task_t *pTask );
 	void	RunTask( const Task_t *pTask );
 	int		SelectSchedule ( void );
@@ -85,8 +95,18 @@ public:
 	// Essentially does the opposite of what it says
 	virtual bool ShouldPlayerAvoid( void ) { return false; }
 
+	bool IsValidSpeechTarget( int flags, CBaseEntity *pEntity );
+
+	// MOVED FROM INHERITED CLASSES!!!
+	void Event_Killed( const CTakeDamageInfo &info );
+	bool CanBecomeRagdoll( void );
+	void SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
+	void SUB_LVFadeOut( void );
+
+
 protected:
 	virtual void 	FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int FIdleSpeak ( void );
 
 private:
 	virtual void	DeclineFollowing( void ) {}
@@ -96,6 +116,7 @@ private:
 public:
 
 	bool	m_bInBarnacleMouth;
+
 
 	enum
 	{
@@ -114,11 +135,6 @@ public:
 		TASK_HL1TALKER_FOLLOW_WALK_PATH_FOR_UNITS = BaseClass::NEXT_TASK,
 
 		NEXT_TASK,
-	};
-	enum
-	{
-		TLK_UNUSE,
-		TLK_CGROUPS,					// MUST be last entry
 	};
 
 	DECLARE_DATADESC();

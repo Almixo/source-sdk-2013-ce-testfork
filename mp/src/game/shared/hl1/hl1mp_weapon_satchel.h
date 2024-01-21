@@ -47,8 +47,8 @@ public:
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 
 	void		ItemPostFrame( void );
+
 	const char	*GetViewModel( int viewmodelindex = 0 ) const;
-	const char	*GetWorldModel( void ) const;
 
 	bool	HasChargeDeployed() { return ( m_iChargeReady != 0 ); }
 
@@ -67,6 +67,7 @@ private:
 	CNetworkVar( int, m_iRadioWorldIndex );
 	CNetworkVar( int, m_iSatchelViewIndex );
 	CNetworkVar( int, m_iSatchelWorldIndex );
+
 	CNetworkVar( int, m_iChargeReady );
 };
 

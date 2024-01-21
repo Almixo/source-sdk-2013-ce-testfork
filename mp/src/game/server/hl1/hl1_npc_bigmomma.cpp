@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,17 +6,19 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -25,7 +27,7 @@
 #include	"engine/IEngineSound.h"
 #include	"ammodef.h"
 #include	"hl1_ai_basenpc.h"
-#include	"AI_Navigator.h"
+#include	"ai_navigator.h"
 #include	"decals.h"
 #include	"effect_dispatch_data.h"
 #include	"te_effect_dispatch.h"
@@ -36,7 +38,7 @@ ConVar sk_bigmomma_dmg_slash( "sk_bigmomma_dmg_slash", "50" );
 ConVar sk_bigmomma_dmg_blast( "sk_bigmomma_dmg_blast", "100" );
 ConVar sk_bigmomma_radius_blast( "sk_bigmomma_radius_blast", "250" );
 
-extern ConVar sv_gravity;
+float GetCurrentGravity( void );
 
 
 //=========================================================
@@ -221,7 +223,7 @@ public:
 	void Precache( void );
 
 	Class_T	Classify( void ) { return CLASS_ALIEN_MONSTER; };
-	void TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int	OnTakeDamage( const CTakeDamageInfo &info );
 	void HandleAnimEvent( animevent_t *pEvent );
 	void LayHeadcrab( void );
@@ -542,7 +544,7 @@ void CNPC_BigMomma::NodeReach( void )
 }
 
 
-void CNPC_BigMomma::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_BigMomma::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo dmgInfo = info;
 
@@ -569,7 +571,7 @@ void CNPC_BigMomma::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDi
 		}
 	}
 
-	BaseClass::TraceAttack(dmgInfo, vecDir, ptr, pAccumulator);
+	BaseClass::TraceAttack( dmgInfo, vecDir, ptr, pAccumulator );
 }
 
 
@@ -1056,7 +1058,7 @@ Vector VecCheckSplatToss( CBaseEntity *pEnt, const Vector &vecSpot1, Vector vecS
 	Vector			vecScale;
 	Vector			vecGrenadeVel;
 	Vector			vecTemp;
-	float			flGravity = sv_gravity.GetFloat();
+	float			flGravity = GetCurrentGravity();
 
 	// calculate the midpoint and apex of the 'triangle'
 	vecMidPoint = vecSpot1 + (vecSpot2 - vecSpot1) * 0.5;

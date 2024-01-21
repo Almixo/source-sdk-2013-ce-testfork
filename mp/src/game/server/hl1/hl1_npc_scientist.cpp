@@ -1,4 +1,4 @@
-﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,25 +13,27 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"hl1_npc_scientist.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"engine/IEngineSound.h"
 #include	"ai_navigator.h"
-#include	"AI_Behavior_Follow.h"
+#include	"ai_behavior_follow.h"
 #include	"AI_Criteria.h"
-#include	"soundemittersystem/isoundemittersystembase.h"
+#include	"SoundEmitterSystem/isoundemittersystembase.h"
 
 #define SC_PLFEAR	"SC_PLFEAR"
 #define SC_FEAR		"SC_FEAR"
@@ -202,7 +204,7 @@ Class_T	CNPC_Scientist::Classify( void )
 
 int CNPC_Scientist::GetSoundInterests ( void )
 {
-	return	SOUND_WORLD		|
+	return	SOUND_WORLD	|
 			SOUND_COMBAT	|
 			SOUND_DANGER	|
 			SOUND_PLAYER;
@@ -243,73 +245,6 @@ void CNPC_Scientist::DeclineFollowing( void )
 	if ( CanSpeakAfterMyself() )
 	{
 		Speak( SC_POK );
-	}
-}
-
-bool CNPC_Scientist::CanBecomeRagdoll( void )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::CanBecomeRagdoll();
-}
-
-bool CNPC_Scientist::ShouldGib( const CTakeDamageInfo &info )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::ShouldGib( info );
-}
-
-void CNPC_Scientist::SUB_StartLVFadeOut( float delay, bool notSolid )
-{
-	SetThink( &CNPC_Scientist::SUB_LVFadeOut );
-	SetNextThink( gpGlobals->curtime + delay );
-	SetRenderColorA( 255 );
-	m_nRenderMode = kRenderNormal;
-
-	if ( notSolid )
-	{
-		AddSolidFlags( FSOLID_NOT_SOLID );
-		SetLocalAngularVelocity( vec3_angle );
-	}
-}
-
-void CNPC_Scientist::SUB_LVFadeOut( void  )
-{
-	if( VPhysicsGetObject() )
-	{
-		if( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
-		{
-			// Try again in a few seconds.
-			SetNextThink( gpGlobals->curtime + 5 );
-			SetRenderColorA( 255 );
-			return;
-		}
-	}
-
-	float dt = gpGlobals->frametime;
-	if ( dt > 0.1f )
-	{
-		dt = 0.1f;
-	}
-	m_nRenderMode = kRenderTransTexture;
-	int speed = max(3,256*dt); // fade out over 3 seconds
-	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
-	NetworkStateChanged();
-
-	if ( m_clrRender->a == 0 )
-	{
-		UTIL_Remove(this);
-	}
-	else
-	{
-		SetNextThink( gpGlobals->curtime );
 	}
 }
 
@@ -497,17 +432,6 @@ int CNPC_Scientist::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	return BaseClass::OnTakeDamage_Alive( inputInfo );
 }
 
-void CNPC_Scientist::Event_Killed( const CTakeDamageInfo &info )
-{
-	SetUse( NULL );	
-	BaseClass::Event_Killed( info );
-
-	if ( UTIL_IsLowViolence() )
-	{
-		SUB_StartLVFadeOut( 0.0f );
-	}
-}
-
 bool CNPC_Scientist::CanHeal( void )
 { 
 	CBaseEntity *pTarget = GetFollowTarget();
@@ -527,23 +451,31 @@ bool CNPC_Scientist::CanHeal( void )
 //=========================================================
 // PainSound
 //=========================================================
-void CNPC_Scientist::PainSound(const CTakeDamageInfo& info)
+void CNPC_Scientist::PainSound ( const CTakeDamageInfo &info )
 {
+	if (gpGlobals->curtime < m_flPainTime )
+		return;
+	
+	m_flPainTime = gpGlobals->curtime + random->RandomFloat( 0.5, 0.75 );
 
-	if (m_flPainTime < gpGlobals->curtime)
+	CPASAttenuationFilter filter( this );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( "Scientist.Pain", params, NULL ) )
 	{
-		EmitSound("Scientist.Pain");
-		m_flPainTime = gpGlobals->curtime + RandomFloat(0.5f, 0.75f);
+		EmitSound_t ep( params );
+		params.pitch = GetExpresser()->GetVoicePitch();
+
+		EmitSound( filter, entindex(), ep );
 	}
 }
+
 //=========================================================
 // DeathSound 
 //=========================================================
 void CNPC_Scientist::DeathSound( const CTakeDamageInfo &info )
 {
-	//PainSound( info );
-	SentenceStop();
-	EmitSound("Scientist.Pain");
+	PainSound( info );
 }
 
 
@@ -1145,62 +1077,6 @@ void CNPC_SittingScientist::SetAnswerQuestion( CNPCSimpleTalker *pSpeaker )
 {
 	m_flResponseDelay = gpGlobals->curtime + random->RandomFloat(3, 4);
 	SetSpeechTarget( (CNPCSimpleTalker *)pSpeaker );
-}
-
-
-//=========================================================
-// FIdleSpeak
-// ask question of nearby friend, or make statement
-//=========================================================
-int CNPC_SittingScientist::FIdleSpeak ( void )
-{ 
-	// try to start a conversation, or make statement
-	int pitch;
-	
-	if (!IsOkToSpeak())
-		return FALSE;
-
-	// set global min delay for next conversation
-	GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
-
-	pitch = GetExpresser()->GetVoicePitch();
-		
-	// if there is a friend nearby to speak to, play sentence, set friend's response time, return
-
-	// try to talk to any standing or sitting scientists nearby
-	CBaseEntity *pentFriend = FindNamedEntity( "!nearestfriend" );
-
-	if (pentFriend && random->RandomInt(0,1))
-	{
-//		CNPCSimpleTalker *pTalkMonster = (CNPCSimpleTalker *)pentFriend;
-		//pTalkMonster->SetAnswerQuestion( this );
-
-		SetSchedule( SCHED_TALKER_IDLE_RESPONSE );
-		SetSpeechTarget( this );
-		
-		Msg( "Asking some question!\n" );
-		
-		IdleHeadTurn( pentFriend );
-		SENTENCEG_PlayRndSz( edict(), TLK_PQUESTION, 1.0, SNDLVL_TALKING, 0, pitch );
-		// set global min delay for next conversation
-		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
-		return TRUE;
-	}
-
-	// otherwise, play an idle statement
-	if ( random->RandomInt(0,1))
-	{
-		Msg( "Making idle statement!\n" );
-
-		SENTENCEG_PlayRndSz( edict(), TLK_PIDLE, 1.0, SNDLVL_TALKING, 0, pitch );
-		// set global min delay for next conversation
-		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
-		return TRUE;
-	}
-
-	// never spoke
-	GetExpresser()->BlockSpeechUntil( 0 );
-	return FALSE;
 }
 
 //------------------------------------------------------------------------------

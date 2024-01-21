@@ -23,12 +23,13 @@ public:
 	void	VidInit( void );
 
 protected:
-	int		DrawHudNumber( int x, int y, int iNumber, Color &clrDraw );
-	int		GetNumberFontHeight( void );
-	int		GetNumberFontWidth( void );
+	int		DrawHudNumber( int x, int y, int iNumber, Color &clrDraw, bool bAmmo = false );
+	int		GetNumberFontHeight( bool bAmmo = false );
+	int		GetNumberFontWidth( bool bAmmo = false );
 
 private:
 	CHudTexture *icon_digits[ 10 ];
+	CHudTexture *icon_ammo_digits[ 10 ];
 };
 
 

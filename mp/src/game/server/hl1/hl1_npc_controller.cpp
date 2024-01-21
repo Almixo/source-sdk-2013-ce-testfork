@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,20 +13,21 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Navigator.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 //#include	"hl1_npc_controller.h"
 #include	"ai_basenpc_flyer.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -35,7 +36,7 @@
 #include	"engine/IEngineSound.h"
 #include	"ammodef.h"
 #include	"Sprite.h"
-#include	"AI_MoveProbe.h"
+#include	"ai_moveprobe.h"
 
 
 //=========================================================

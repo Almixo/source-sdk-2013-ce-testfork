@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -37,13 +37,12 @@ public:
 
 
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	void	Event_Killed( const CTakeDamageInfo &info );
 
 	void	Heal( void );
 	bool	CanHeal( void );
 
 	int		TranslateSchedule( int scheduleType );
-	void	HandleAnimEvent(animevent_t* pEvent);
+	void	HandleAnimEvent( animevent_t *pEvent );
 	int		SelectSchedule( void );
 	void	StartTask( const Task_t *pTask );
 	void	RunTask( const Task_t *pTask );
@@ -58,19 +57,12 @@ public:
 	
 	void	DeclineFollowing( void );
 
-	bool	CanBecomeRagdoll( void );
-	bool	ShouldGib( const CTakeDamageInfo &info );
-	
-	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
-	void	SUB_LVFadeOut( void  );
-
 	void	Scream( void );
 	
 	Activity GetStoppedActivity( void );
 	Activity NPC_TranslateActivity( Activity newActivity );
 
-	//void PainSound( const CTakeDamageInfo &info );
-	void PainSound(const CTakeDamageInfo& info);
+	void PainSound( const CTakeDamageInfo &info );
 	void DeathSound( const CTakeDamageInfo &info );
 
 	enum
@@ -107,7 +99,7 @@ private:
 	float m_flFearTime;
 	float m_flHealTime;
 	float m_flPainTime;
-
+	//float	m_flResponseDelay;
 };
 
 //=========================================================
@@ -130,9 +122,6 @@ public:
 	void SittingThink( void );
 
 	virtual void SetAnswerQuestion( CNPCSimpleTalker *pSpeaker );
-
-	int		FIdleSpeak ( void );
-
 	int		m_baseSequence;	
 	int		m_iHeadTurn;
 	float	m_flResponseDelay;

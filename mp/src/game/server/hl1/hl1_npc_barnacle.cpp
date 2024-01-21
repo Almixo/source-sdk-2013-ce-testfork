@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		barnacle - stationary ceiling mounted 'fishing' monster	
 //
@@ -9,9 +9,9 @@
 
 #include "cbase.h"
 #include "hl1_npc_barnacle.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "gib.h"
-#include "AI_Default.h"
+#include "ai_default.h"
 #include "activitylist.h"
 #include "hl2_player.h"
 #include "vstdlib/random.h"
@@ -490,7 +490,7 @@ CBaseEntity *CNPC_Barnacle::TongueTouchEnt ( float *pflLength )
 	
 	// Take our current tongue's length or a point higher if we hit a wall 
 	// NOTENOTE: (this relieves the need to know if the tongue is currently moving)
-	mins.z -= min( m_flAltitude, length );
+	mins.z -= MIN( m_flAltitude, length );
 
 	CBaseEntity *pList[10];
 	int count = UTIL_EntitiesInBox( pList, 10, mins, maxs, (FL_CLIENT|FL_NPC) );

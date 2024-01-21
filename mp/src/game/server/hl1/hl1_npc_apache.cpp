@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,17 +6,19 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"hl1_basegrenade.h"
 #include	"animation.h"
@@ -25,7 +27,7 @@
 #include	"engine/IEngineSound.h"
 #include	"ammodef.h"
 #include	"soundenvelope.h"
-#include	"hl1_cbasehelicopter.h"
+#include	"hl1_CBaseHelicopter.h"
 #include	"ndebugoverlay.h"
 #include	"smoke_trail.h"
 #include	"beam_shared.h"
@@ -62,6 +64,24 @@ public:
 
 	int  ObjectCaps( void );
 	
+	void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
+/*	bool OnInternalDrawModel( ClientModelRenderInfo_t *pInfo )
+	{
+		BaseClass::OnInteralDrawModel( pInfo );
+		Vector origin = GetAbsOrigin();
+		origin.z += 32;
+		SetAbsOrigin( origin );
+	}*/
+
+/*(	void SetAbsOrigin( const Vector& absOrigin )
+	{
+		((Vector&)absOrigin).z += 32;
+		BaseClass::SetAbsOrigin( absOrigin );
+	}*/
+
+	
+
    /* int		Save( CSave &save );
 	int		Restore( CRestore &restore );
 	static	TYPEDESCRIPTION m_SaveData[];
@@ -102,7 +122,7 @@ public:
 
 	Vector m_vecGoal;
 
-	Vector m_angGun;
+	QAngle m_angGun;
 	
 	int m_iSoundState; // don't save this
 
@@ -112,7 +132,7 @@ public:
 
 	float m_flGoalSpeed;
 
-	int m_iDoSmokePuff;
+	CHandle<SmokeTrail>	m_hSmoke;
 	CBeam *m_pBeam;
 };
 
@@ -134,22 +154,29 @@ BEGIN_DATADESC( CNPC_Apache )
 //	DEFINE_FIELD( m_iBodyGibs, FIELD_INTEGER ),
 	DEFINE_FIELD( m_pBeam, FIELD_CLASSPTR ),
 	DEFINE_FIELD( m_flGoalSpeed, FIELD_FLOAT ),
-	DEFINE_FIELD( m_iDoSmokePuff, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hSmoke, FIELD_EHANDLE ),
 END_DATADESC()
+
+ConVar	sk_apache_health( "sk_apache_health","100");
+
+static Vector s_vecSurroundingMins( -300, -300, -172);
+static Vector s_vecSurroundingMaxs(300, 300, 8);
+
 
 void CNPC_Apache::Spawn( void )
 {
 	Precache( );
 	SetModel( "models/apache.mdl" );
 
-	UTIL_SetSize( this, Vector( -32, -32, -32 ), Vector( 32, 32, 32 ) );
-
-	Vector vecSurroundingMins( -300, -300, -172);
-	Vector vecSurroundingMaxs(300, 300, 8);
-	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
-
 	BaseClass::Spawn();
-	m_iHealth			= 100;
+
+	AddFlag( FL_NPC );
+	SetSolid( SOLID_BBOX );
+	SetMoveType( MOVETYPE_STEP );
+	AddFlag( FL_FLY );
+
+
+	m_iHealth			=  sk_apache_health.GetFloat();
 
 	m_flFieldOfView = -0.707; // 270 degrees
 
@@ -160,6 +187,13 @@ void CNPC_Apache::Spawn( void )
 	SetRenderColor( 255, 255, 255, 255 );
 
 	m_iRockets = 10;
+
+	UTIL_SetSize( this, Vector( -32, -32, -32 ), Vector( 32, 32, 32 ) );
+
+	//CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &s_vecSurroundingMins, &s_vecSurroundingMaxs );
+	//AddSolidFlags( FSOLID_CUSTOMRAYTEST | FSOLID_CUSTOMBOXTEST );
+
+	m_hSmoke = NULL;
 }
 
 LINK_ENTITY_TO_CLASS ( monster_apache, CNPC_Apache );
@@ -416,6 +450,9 @@ void CNPC_Apache::Flight( void )
 
 bool CNPC_Apache::FireGun( )
 {
+	if ( !GetEnemy() )
+		return false;
+
 	Vector vForward, vRight, vUp;
 
 	AngleVectors( GetAbsAngles(), &vForward, &vUp, &vRight );
@@ -442,13 +479,13 @@ bool CNPC_Apache::FireGun( )
 	angles.x = AngleNormalize(angles.x);	
 
 	if (angles.x > m_angGun.x)
-		m_angGun.x = min( angles.x, m_angGun.x + 12 );
+		m_angGun.x = MIN( angles.x, m_angGun.x + 12 );
 	if (angles.x < m_angGun.x)
-		m_angGun.x = max( angles.x, m_angGun.x - 12 );
+		m_angGun.x = MAX( angles.x, m_angGun.x - 12 );
 	if (angles.y > m_angGun.y)
-		m_angGun.y = min( angles.y, m_angGun.y + 12 );
+		m_angGun.y = MIN( angles.y, m_angGun.y + 12 );
 	if (angles.y < m_angGun.y)
-		m_angGun.y = max( angles.y, m_angGun.y - 12 );
+		m_angGun.y = MAX( angles.y, m_angGun.y - 12 );
 
 	// hacks - shouldn't be hardcoded, oh well.
 	// limit it so it doesn't pop if you try to set it to the max value
@@ -460,19 +497,30 @@ bool CNPC_Apache::FireGun( )
 
 	Vector posBarrel;
 	QAngle angBarrel;
-	GetAttachment( 2, posBarrel, angBarrel );
-	Vector vecGun = (posGun - posBarrel);
-	
-	VectorNormalize( vecGun );
+	GetAttachment( 0, posBarrel, angBarrel );
 
-	if ( DotProduct( vecGun, vecTarget ) > 0.98 )
+	Vector forward;
+	AngleVectors( angBarrel + m_angGun, &forward );
+
+	Vector2D vec2LOS = ( GetEnemy()->GetAbsOrigin() - GetAbsOrigin() ).AsVector2D();
+	vec2LOS.NormalizeInPlace();
+
+	float flDot = vec2LOS.Dot( forward.AsVector2D() );
+
+	//forward
+//	NDebugOverlay::Line(  GetAbsOrigin(), GetAbsOrigin() + ( forward * 200 ), 255,0,0, false, 0.1);
+	//LOS
+//	NDebugOverlay::Line( posGun, m_vecTargetPosition , 0,0,255, false, 0.1);
+//	NDebugOverlay::Box( GetAbsOrigin(), s_vecSurroundingMins, s_vecSurroundingMaxs, 0, 255,0, false, 0.1);
+
+	if ( flDot > 0.98 )
 	{
 		CPASAttenuationFilter filter( this, 0.2f );
 
 		EmitSound( filter, entindex(), "Apache.FireGun" );//<<TEMP>>temp sound
 
 		// gun is a bit dodgy, just fire at the target if we are close
-		FireBullets( 1, posBarrel, vecTarget, VECTOR_CONE_4DEGREES, 8192, m_iAmmoType, 2 );
+		FireBullets( 1, posGun, vecTarget, VECTOR_CONE_4DEGREES, 8192, m_iAmmoType, 2 );
 
 		return true;
 	}
@@ -639,5 +687,80 @@ void CNPC_Apache::DyingThink( void )
 
 	Vector vecImpulse( 0, 0, -38.4 );	// gravity - 32ft/sec
 	ApplyAbsVelocityImpulse( vecImpulse );
+
+	if( m_hSmoke )
+	{
+		m_hSmoke->SetLifetime(0.1f);
+		m_hSmoke = NULL;
+	}
+
 }
 
+
+
+void CNPC_Apache::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+
+	CTakeDamageInfo dmgInfo = info;
+
+	// HITGROUPS don't work currently.
+	// ignore blades
+	//if (ptr->hitgroup == 6 && (info.GetDamageType() & (DMG_ENERGYBEAM|DMG_BULLET|DMG_CLUB)))
+	//		return;
+
+	// hit hard, hits cockpit
+	if (info.GetDamage() > 50 || ptr->hitgroup == 1 || ptr->hitgroup == 2 || ptr->hitgroup == 3 )
+	{
+		// ALERT( at_console, "%map .0f\n", flDamage );
+		AddMultiDamage( dmgInfo, this );
+
+		if ( info.GetDamage() > 50 )
+		{
+			if ( m_hSmoke == NULL && (m_hSmoke = SmokeTrail::CreateSmokeTrail()) != NULL )
+			{
+				m_hSmoke->m_Opacity = 1.0f;
+				m_hSmoke->m_SpawnRate = 60;
+				m_hSmoke->m_ParticleLifetime = 1.3f;
+				m_hSmoke->m_StartColor.Init( 0.65f, 0.65f , 0.65f );
+				m_hSmoke->m_EndColor.Init( 0.65f, 0.65f, 0.65f );
+				m_hSmoke->m_StartSize = 12;
+				m_hSmoke->m_EndSize = 64;
+				m_hSmoke->m_SpawnRadius = 8;
+				m_hSmoke->m_MinSpeed = 2;
+				m_hSmoke->m_MaxSpeed = 24;				
+
+				m_hSmoke->SetLifetime( 1e6 );
+				m_hSmoke->FollowEntity( this );
+
+			}
+		}
+	}
+	else
+	{
+		// do half damage in the body
+		dmgInfo.ScaleDamage(0.5);
+		AddMultiDamage( dmgInfo, this );
+		g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
+	}
+
+	if ( m_iHealth < 10 )
+	{
+		if ( m_hSmoke == NULL && (m_hSmoke = SmokeTrail::CreateSmokeTrail()) != NULL )
+		{
+			m_hSmoke->m_Opacity = 1.0f;
+			m_hSmoke->m_SpawnRate = 60;
+			m_hSmoke->m_ParticleLifetime = 1.3f;
+			m_hSmoke->m_StartColor.Init( 0.65f, 0.65f , 0.65f );
+			m_hSmoke->m_EndColor.Init( 0.65f, 0.65f, 0.65f );
+			m_hSmoke->m_StartSize = 12;
+			m_hSmoke->m_EndSize = 64;
+			m_hSmoke->m_SpawnRadius = 8;
+			m_hSmoke->m_MinSpeed = 2;
+			m_hSmoke->m_MaxSpeed = 24;				
+
+			m_hSmoke->SetLifetime( 1e6 );
+			m_hSmoke->FollowEntity( this );
+
+		}
+	}
+}

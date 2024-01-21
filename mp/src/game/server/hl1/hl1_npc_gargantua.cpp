@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -11,19 +11,20 @@
 #include	"cbase.h"
 #include	"beam_shared.h"
 #include	"Sprite.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Memory.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include	"hl1_npc_gargantua.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -1018,13 +1019,13 @@ void CNPC_Gargantua::Event_Killed( const CTakeDamageInfo &info )
 	m_takedamage = DAMAGE_NO;
 }
 
-void CNPC_Gargantua::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_Gargantua::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo subInfo = info;
 
 	if ( !IsAlive() )
 	{
-		BaseClass::TraceAttack(subInfo, vecDir, ptr, pAccumulator);
+		BaseClass::TraceAttack( subInfo, vecDir, ptr, pAccumulator );
 		return;
 	}
 
@@ -1057,7 +1058,7 @@ void CNPC_Gargantua::TraceAttack(const CTakeDamageInfo &info, const Vector &vecD
 		subInfo.SetDamage( 0 );
 	}
 
-	BaseClass::TraceAttack(subInfo, vecDir, ptr, pAccumulator);
+	BaseClass::TraceAttack( subInfo, vecDir, ptr, pAccumulator );
 }
 
 int CNPC_Gargantua::OnTakeDamage_Alive( const CTakeDamageInfo &info )

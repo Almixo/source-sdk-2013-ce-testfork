@@ -60,7 +60,7 @@ class CNPC_BaseTurret : public CAI_BaseNPC
 public:
 	void Spawn(void);
 	virtual void Precache(void);
-	void EXPORT TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	
 	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 
@@ -70,18 +70,18 @@ public:
 	Class_T Classify( void );
 
 	// Think functions
-	void EXPORT ActiveThink(void);
-	void EXPORT SearchThink(void);
-	void EXPORT AutoSearchThink(void);
-	void EXPORT TurretDeath(void);
+	void ActiveThink(void);
+	void SearchThink(void);
+	void AutoSearchThink(void);
+	void TurretDeath(void);
 
-	virtual void EXPORT SpinDownCall(void) { m_iSpin = 0; }
-	virtual void EXPORT SpinUpCall(void) { m_iSpin = 1; }
+	virtual void SpinDownCall(void) { m_iSpin = 0; }
+	virtual void SpinUpCall(void) { m_iSpin = 1; }
 
-	void EXPORT Deploy(void);
-	void EXPORT Retire(void);
+	void Deploy(void);
+	void Retire(void);
 
-	void EXPORT Initialize(void);
+	void Initialize(void);
 
 	virtual void Ping(void);
 	virtual void EyeOn(void);
@@ -254,6 +254,9 @@ void CNPC_BaseTurret::Precache()
 	PrecacheScriptSound( "Turret.Undeploy" );
 	PrecacheScriptSound( "Turret.Ping" );
 	PrecacheScriptSound( "Turret.Shoot" );
+	PrecacheScriptSound( "Turret.SpinUpCall" );
+	PrecacheScriptSound( "Turret.Spinup" );
+	PrecacheScriptSound( "Turret.SpinDownCall" );
 }
 
 Class_T CNPC_BaseTurret::Classify( void )
@@ -1218,14 +1221,6 @@ void CNPC_Turret::Precache()
 	CNPC_BaseTurret::Precache( );
 	PrecacheModel ("models/turret.mdl");	
 	PrecacheModel (TURRET_GLOW_SPRITE);
-
-	PrecacheModel( "sprites/xspark4.vmt" );
-
-	PrecacheScriptSound( "Turret.Shoot" );
-
-	PrecacheScriptSound( "Turret.SpinUpCall" );
-	PrecacheScriptSound( "Turret.Spinup" );
-	PrecacheScriptSound( "Turret.SpinDownCall" );
 	//precache sounds
 }
 
@@ -1335,8 +1330,6 @@ void CNPC_MiniTurret::Precache()
 	CNPC_BaseTurret::Precache( );
 
 	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
-
-	PrecacheScriptSound( "Turret.Shoot" );
 
 	PrecacheModel ("models/miniturret.mdl");	
 }

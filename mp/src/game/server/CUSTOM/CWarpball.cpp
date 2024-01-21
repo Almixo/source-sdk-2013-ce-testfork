@@ -1,187 +1,224 @@
 #include "cbase.h"
-#include "beam_shared.h"
+#include "EnvBeam.h"
 #include "Sprite.h"
 
-constexpr auto SF_REMOVE_ON_FIRE	= 1;
-constexpr auto SF_KILL_CENTER		= 2;
-constexpr auto MAGIC_NUMBER			= 1.0f;
-constexpr auto FRAMERATE			= 12.0f;
-constexpr auto RADIUS				= 48.0f;
-
-#define curtimer					= gpGlobals->curtime
+#define SF_REMOVE_ON_FIRE (1<<0)
+#define SF_KILL_CENTER (1<<1)
 
 class CWarpBall : public CBaseEntity
 {
 	DECLARE_CLASS(CWarpBall, CBaseEntity);
 	DECLARE_DATADESC();
-
 public:
-//	~CWarpBall();
+
+	CWarpBall();
+	~CWarpBall();
 
 	void Spawn(void);
 	void Precache(void);
 	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
 	void Think(void);
-	//legacy purpouses
 	void InputActivate(inputdata_t &inputdata);
 
-	void RunSound(void);
 	void RunBeams(void);
 	void RunSprites(void);
-	//disabled for now
-	int ObjectCaps(void) { return BaseClass::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
-
+	void RunSound(void);
 private:
-	COutputEvent FireOutput;
 
-	float fRadius		= 0;
-	float fDamageDelay	= 0;
+	COutputEvent OnActivate;
 
-	int iBeamCount		= 0;
-	int iMaxBeamCount	= 0;
+	float fRadius;
+	float fDamageDelay;
+	float fActiveTime;
+	
+	CSprite *pSprite[2];
+	CEnvBeam *pBeam;
 
-	const int r = 77, g = 210, b = 130;
-
-	Vector vOrigin;
-
-	CSprite *pSpr[2];
+	bool bActive;
 };
-
 LINK_ENTITY_TO_CLASS(env_warpball, CWarpBall);
 
 BEGIN_DATADESC(CWarpBall)
-
 	DEFINE_KEYFIELD(fRadius, FIELD_FLOAT, "radius"),
-	DEFINE_KEYFIELD(fDamageDelay, FIELD_FLOAT, "damage_delay"),
+	DEFINE_KEYFIELD(fDamageDelay, FIELD_TIME, "damage_delay"),
 
 	DEFINE_INPUTFUNC(FIELD_VOID, "Activate", InputActivate),
-	DEFINE_OUTPUT(FireOutput, "OnActivate"),
+	DEFINE_OUTPUT(OnActivate, "OnActivate"),
 
-	DEFINE_FIELD(iMaxBeamCount, FIELD_INTEGER),
-	DEFINE_FIELD(iBeamCount, FIELD_INTEGER),
+	DEFINE_ARRAY(pSprite, FIELD_CLASSPTR, 2),
+	DEFINE_FIELD(pBeam, FIELD_CLASSPTR),
 
-	DEFINE_ARRAY(pSpr, FIELD_CLASSPTR, 2),
-
+	DEFINE_FIELD(bActive, FIELD_BOOLEAN),
+	DEFINE_FIELD(fActiveTime, FIELD_TIME),
 END_DATADESC();
+
+CWarpBall::CWarpBall()
+{
+	memset(pSprite, 0, sizeof pSprite);
+	pBeam = nullptr;
+
+	fActiveTime = 0;
+	bActive = false;
+}
+CWarpBall::~CWarpBall()
+{
+	memset(pSprite, 0, sizeof pSprite);
+	pBeam = nullptr;
+
+	fActiveTime = 0;
+	bActive = false;
+}
 
 void CWarpBall::Spawn(void)
 {
 	BaseClass::Spawn();
-	
+
 	Precache();
-
-	vOrigin = GetAbsOrigin();
-
-	Msg("%s spawned at %g %g %g!\n", GetDebugName(), vOrigin.x, vOrigin.y, vOrigin.z);
-
-	SetNextThink(gpGlobals->curtime + 1.0f);
+	SetNextThink(TICK_NEVER_THINK);
 }
 
 void CWarpBall::Precache(void)
 {
 	BaseClass::Precache();
 
-	PrecacheMaterial("sprites/lgtning.vmt");
 	PrecacheMaterial("sprites/Fexplo1.vmt");
 	PrecacheMaterial("sprites/XFlare1.vmt");
 
 	PrecacheScriptSound("Debris.AlienTeleport");
+
+	UTIL_PrecacheOther("env_beam");
+	UTIL_PrecacheDecal("env_sprite");
 }
 
-void CWarpBall::InputActivate(inputdata_t& inputdata)
+void CWarpBall::InputActivate(inputdata_t &inputdata)
 {
-	Use(inputdata.pActivator, inputdata.pCaller, USE_ON, 1);
+	Use(inputdata.pActivator, inputdata.pCaller, USE_ON, 0);
 }
 
-void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)
+void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE usetype, float value)
 {
-	Msg("%s at %g %g %g recieved use signal!\n", GetDebugName(), vOrigin.x, vOrigin.y, vOrigin.z);
+	if (bActive)
+		return;
 
-	FireOutput.FireOutput(this, this);
+	bActive = true;
 
-	UTIL_ScreenShake(vOrigin, 4, 100, 2, 1000, SHAKE_START);
+	fActiveTime = gpGlobals->curtime + 2;
 
-	//do it again!
-	vOrigin = GetAbsOrigin();
-
-	RunSound();
 	RunBeams();
 	RunSprites();
+	RunSound();
 
-	SetNextThink(gpGlobals->curtime + 0.1f);
-}
-
-inline void CWarpBall::RunSound(void)
-{
-	CPASFilter filter(GetAbsOrigin());
-	EmitSound(filter, entindex(), "Debris.AlienTeleport");
+	SetNextThink(gpGlobals->curtime);
 }
 
 void CWarpBall::RunBeams(void)
 {
-	iMaxBeamCount = RandomInt(20, 40);
+	pBeam = (CEnvBeam *)CreateNoSpawn("env_beam", GetAbsOrigin(), vec3_angle, this);
+	if (!pBeam)
+		return;
 
-	for (iBeamCount = 0; iBeamCount < iMaxBeamCount; iBeamCount++)
-	{
-		trace_t tr;
+	char szName[65];
+	Q_snprintf(szName, 65, "beams_%s", GetDebugName());
 
-		Vector vDest = fRadius * (Vector(RandomFloat(-1, 1), RandomFloat(-1, 1), RandomFloat(-1, 1)).Normalized());
+	pBeam->m_boltWidth = 1.8;
+	pBeam->m_iszSpriteName = MAKE_STRING("sprites/lgtning.vmt");
+	pBeam->SetName(MAKE_STRING(szName));
+	pBeam->m_life = .5;
+	pBeam->m_restrike = -.5;
+	pBeam->m_iszStartEntity = MAKE_STRING(pBeam->GetDebugName());
+	pBeam->AddSpawnFlags(SF_BEAM_TOGGLE /*| SF_BEAM_RANDOM*/ | SF_BEAM_DECALS | SF_BEAM_SPARKEND);
+	pBeam->m_noiseAmplitude = 35;
+	pBeam->m_radius = 100;
+	pBeam->SetRenderColor(0, 255, 0);
+	pBeam->SetBrightness(150);
 
-		UTIL_TraceLine(vOrigin, vOrigin + vDest, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr);
+	DispatchSpawn(pBeam);
 
-		if (tr.DidHit())
-		{
-			CBeam *pBeam = CBeam::BeamCreate("sprites/lgtning.vmt", 1.0f);
+	inputdata_t input;
+	input.pActivator = input.pCaller = this;
 
-			pBeam->AddSpawnFlags(SF_BEAM_DECALS | SF_BEAM_SPARKEND);
-			pBeam->PointsInit(vOrigin, tr.endpos);
-			pBeam->LiveForTime(1.75f);
-			pBeam->SetColor(0, 255, 0);
-			pBeam->SetNoise(6.5f);
-			pBeam->SetBrightness(220);
-			pBeam->SetWidth(2);
-			pBeam->SetScrollRate(5);
-			pBeam->SetOwnerEntity(this);
-
-			//			---SPECIAL---
-
-			pBeam->DoSparks(vOrigin, tr.endpos);
-			pBeam->DecalTrace(&tr, "BigShot");
-
-		}
-	}
+	pBeam->InputToggle(input);
 }
 
 void CWarpBall::RunSprites(void)
 {
-	pSpr[0] = CSprite::SpriteCreate("sprites/Fexplo1.vmt", vOrigin, true);
-	pSpr[1] = CSprite::SpriteCreate("sprites/XFlare1.vmt", vOrigin, true);
+	pSprite[0] = CSprite::SpriteCreate("sprites/Fexplo1.vmt", GetAbsOrigin(), true);
+	pSprite[0]->SetScale(1.0f);
+	/*pSpr[0]->SetTransparency(kRenderGlow, 77, 210, 130, 255, kRenderFxNoDissipation);*/
 
-	pSpr[0]->SetScale(1.0f);
-	pSpr[1]->SetScale(1.2f);
+	pSprite[1] = CSprite::SpriteCreate("sprites/XFlare1.vmt", GetAbsOrigin(), true);
+	pSprite[1]->SetScale(1.2f);
+	/*pSpr[1]->SetTransparency(kRenderGlow, 184, 250, 214, 255, kRenderFxNoDissipation);*/
 
-	for (int i = 0; i < 2; i++)
+	for (auto &sprites : pSprite)
 	{
-		pSpr[i]->SetTransparency(kRenderGlow, r, g, b, 255, kRenderFxNoDissipation);
-		pSpr[i]->SetOwnerEntity(this);
-		pSpr[i]->AnimateAndDie(10);
+		sprites->SetTransparency(kRenderGlow, 77, 210, 130, 255, kRenderFxNoDissipation);
+		sprites->AddSpawnFlags(SF_SPRITE_ONCE);
+		sprites->m_flSpriteFramerate = 10.0;
+		sprites->TurnOn();
 	}
+}
+
+void CWarpBall::RunSound(void)
+{
+	CPASAttenuationFilter filter(this);
+	EmitSound(filter, entindex(), "Debris.AlienTeleport");
 }
 
 void CWarpBall::Think(void)
 {
+	if (!bActive)
+		return;
+
 	BaseClass::Think();
 
-	if ( (GetSpawnFlags() & SF_KILL_CENTER) != 0)
+	if (fActiveTime <= gpGlobals->curtime)
 	{
-		if (fDamageDelay > 0)
-		{
-			if (gpGlobals->curtime > fDamageDelay)
-				RadiusDamage(CTakeDamageInfo(this, this, 300, DMG_SHOCK), vOrigin, RADIUS, CLASS_NONE, this);
-		}
-		else
-			RadiusDamage(CTakeDamageInfo(this, this, 300, DMG_SHOCK), vOrigin, RADIUS, CLASS_NONE, this);
+		bActive = false;
+		fActiveTime = 0;
+
+		SetThink(NULL);
+		SetNextThink(TICK_NEVER_THINK);
+		return;
 	}
-	if ( (GetSpawnFlags() & SF_REMOVE_ON_FIRE) != 0)
+
+	if ((fActiveTime - 1) <= gpGlobals->curtime)
+	{
+		pBeam->m_life = 0;
+		pBeam->TurnOff();
+		pBeam->SetThink(&BaseClass::SUB_Remove);
+	}
+
+	if ((fDamageDelay <= gpGlobals->curtime) && HasSpawnFlags(SF_KILL_CENTER))
+	{
+		CBaseEntity *pEnts[64];
+		memset(pEnts, 0, sizeof pEnts);
+
+		int iEntCnt = UTIL_EntitiesInSphere(pEnts, 64, GetAbsOrigin(), 48.0f, 0);
+
+		for (int i = 0; i < iEntCnt; i++)
+		{
+			if (!pEnts[i])
+				continue;
+
+			if (pEnts[i]->IsWorld())
+				continue;
+
+			if (pEnts[i] == this)
+				continue;
+
+			if ((pEnts[i]->Classify() > CLASS_HUMAN_MILITARY) && pEnts[i]->Classify() < CLASS_PLAYER_ALLY)
+				continue;
+
+			if (pEnts[i]->Classify() == CLASS_ALIEN_BIOWEAPON)
+				continue;
+
+			pEnts[i]->TakeDamage(CTakeDamageInfo(this, this, 300, DMG_SHOCK));
+		}
+	}
+
+	if (HasSpawnFlags(SF_REMOVE_ON_FIRE))
 		UTIL_Remove(this);
+
+	SetNextThink(gpGlobals->curtime + 0.1);
 }

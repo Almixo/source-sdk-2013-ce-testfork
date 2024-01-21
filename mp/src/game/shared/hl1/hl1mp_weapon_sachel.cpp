@@ -33,10 +33,20 @@
 //-----------------------------------------------------------------------------
 
 
-#define SATCHEL_VIEW_MODEL			"models/v_satchel.mdl"
-#define SATCHEL_WORLD_MODEL			"models/p_satchel.mdl"
-#define SATCHELRADIO_VIEW_MODEL		"models/v_satchel_radio.mdl"
-#define SATCHELRADIO_WORLD_MODEL	"models/p_satchel_radio.mdl"	// fixed!
+//#define SATCHEL_VIEW_MODEL			"models/v_satchel.mdl"
+//#define SATCHEL_PLAYER_MODEL		"models/p_satchel.mdl"
+//#define SATCHEL_WORLD_MODEL			"models/w_satchel.mdl"
+//#define SATCHELRADIO_VIEW_MODEL		"models/v_satchel_radio.mdl"
+//#define SATCHELRADIO_PLAYER_MODEL	"models/p_satchel_radio.mdl"
+//#define SATCHELRADIO_WORLD_MODEL	"models/w_satchel_radio.mdl"	// fixed!
+
+#define SATCHEL_VIEW_MODEL	"models/v_satchel.mdl"
+#define SATCHEL_WORLD_MODEL "models/w_satchel.mdl"
+#define SATCHEL_PLAYER_MODEL "models/p_satchel.mdl"
+
+#define SATCHELRADIO_VIEW_MODEL	"models/v_satchel_radio.mdl"
+#define SATCHELRADIO_WORLD_MODEL "models/w_satchel_radio.mdl"
+#define SATCHELRADIO_PLAYER_MODEL "models/p_satchel_radio.mdl"
 
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponSatchel, DT_WeaponSatchel );
 
@@ -141,9 +151,9 @@ bool CWeaponSatchel::CanDeploy( void )
 void CWeaponSatchel::Precache( void )
 {
 	m_iSatchelViewIndex		= PrecacheModel( SATCHEL_VIEW_MODEL );
-	m_iSatchelWorldIndex	= PrecacheModel( SATCHEL_WORLD_MODEL );
+	m_iSatchelWorldIndex	= PrecacheModel( SATCHEL_PLAYER_MODEL );
 	m_iRadioViewIndex		= PrecacheModel( SATCHELRADIO_VIEW_MODEL );
-	m_iRadioWorldIndex		= PrecacheModel( SATCHELRADIO_WORLD_MODEL );
+	m_iRadioWorldIndex		= PrecacheModel( SATCHELRADIO_PLAYER_MODEL );
 
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "monster_satchel" );
@@ -372,14 +382,14 @@ void CWeaponSatchel::ActivateSatchelModel( void )
 {
 	m_iViewModelIndex	= m_iSatchelViewIndex;
 	m_iWorldModelIndex	= m_iSatchelWorldIndex;
-	SetModel( GetViewModel() );
+	// SetModel( GetViewModel() );
 }
 
 void CWeaponSatchel::ActivateRadioModel( void )
 {
 	m_iViewModelIndex	= m_iRadioViewIndex;
 	m_iWorldModelIndex	= m_iRadioWorldIndex;
-	SetModel( GetViewModel() );
+	// SetModel( GetViewModel() );
 }
 
 const char *CWeaponSatchel::GetViewModel( int ) const
@@ -391,21 +401,6 @@ const char *CWeaponSatchel::GetViewModel( int ) const
 	else
 	{
 		return SATCHELRADIO_VIEW_MODEL;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-const char *CWeaponSatchel::GetWorldModel( void ) const
-{
-	if ( m_iViewModelIndex == m_iSatchelViewIndex )
-	{
-		return SATCHEL_WORLD_MODEL;
-	}
-	else
-	{
-		return SATCHELRADIO_WORLD_MODEL;
 	}
 }
 

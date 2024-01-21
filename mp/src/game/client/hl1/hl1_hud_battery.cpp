@@ -141,26 +141,19 @@ void CHudBattery::Paint()
 	(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
 	clrHealth.SetColor( r, g, b, a );
 
-	int nFontHeight	= GetNumberFontHeight();
+	int nFontWidth = GetNumberFontWidth();
+	int nFontHeight = GetNumberFontHeight();
 
-	int nHudElemWidth, nHudElemHeight;
-	GetSize( nHudElemWidth, nHudElemHeight );
+	x = nFontWidth / 2;
+	y = GetTall() - ( nFontHeight * 2.3f );
 
-	int iOffset = icon_suit_empty->Height() / 6;
-
-	x = nHudElemWidth / 5;
-	y = nHudElemHeight - ( nFontHeight * 1.5 );
-
-	icon_suit_empty->DrawSelf( x, y - iOffset, clrHealth );
+	icon_suit_empty->DrawSelf( x, y, clrHealth );
 
 	if ( m_iBattery > 0 )
 	{
-		int nSuitOffset = icon_suit_full->Height() * ((float)(100-(min(100,m_iBattery))) * 0.01);	// battery can go from 0 to 100 so * 0.01 goes from 0 to 1
-		icon_suit_full->DrawSelfCropped( x, y - iOffset + nSuitOffset, 0, nSuitOffset, icon_suit_full->Width(), icon_suit_full->Height() - nSuitOffset, clrHealth );
+		int nSuitOffset = icon_suit_full->Width() * ((float)(100-(min(100,m_iBattery))) * 0.01);	// battery can go from 0 to 100 so * 0.01 goes from 0 to 1
+		icon_suit_full->DrawSelfCropped( x, y, 0, 0, icon_suit_full->Width() - nSuitOffset, icon_suit_full->Height(), clrHealth);
 	}
-
-	x += icon_suit_empty->Width();
-	DrawHudNumber( x, y, m_iBattery, clrHealth );
 }
 
 //-----------------------------------------------------------------------------

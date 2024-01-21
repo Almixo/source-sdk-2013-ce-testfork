@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Alien slave monster
 //
@@ -8,12 +8,12 @@
 #include "cbase.h"
 #include "beam_shared.h"
 #include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Squad.h"
-#include "NPCEvent.h"
+#include "ai_default.h"
+#include "ai_schedule.h"
+#include "ai_hull.h"
+#include "ai_route.h"
+#include "ai_squad.h"
+#include "npcevent.h"
 #include "gib.h"
 //#include "AI_Interactions.h"
 #include "ndebugoverlay.h"
@@ -24,7 +24,7 @@
 #include "player.h"
 #include "IEffects.h"
 #include "basecombatweapon.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -468,12 +468,12 @@ int CNPC_Vortigaunt::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 }
 
 
-void CNPC_Vortigaunt::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+void CNPC_Vortigaunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	if ( info.GetDamageType() & DMG_SHOCK )
 		 return;
 
-	BaseClass::TraceAttack(info, vecDir, ptr, pAccumulator);
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //=========================================================

@@ -65,6 +65,7 @@ else
 	CXXFLAGS = $(BASE_CFLAGS) -std=gnu++17 -fpermissive -fabi-compat-version=2 -fno-builtin $(ENV_CXXFLAGS)
         # Diagnostics coloring
 	CXXFLAGS += -fdiagnostics-color=always
+	CXXFLAGS += -flto
 endif
 DEFINES += -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE
 

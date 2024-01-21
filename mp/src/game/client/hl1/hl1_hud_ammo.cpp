@@ -33,11 +33,12 @@ public:
 
 private:
 	void	Paint( void );
-	void	ApplySchemeSettings(vgui::IScheme *pScheme);
+	void	ApplySchemeSettings( vgui::IScheme *pScheme );
 
 private:
 	CHandle<C_BaseCombatWeapon> m_hLastPickedUpWeapon;
 	float	m_flFade;
+	CHudTexture *icon_backslash;
 };
 
 DECLARE_HUDELEMENT( CHudAmmo );
@@ -45,7 +46,7 @@ DECLARE_HUDELEMENT( CHudAmmo );
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CHudAmmo::CHudAmmo( const char *pElementName ) : CHudElement( pElementName ), BaseClass(NULL, "HudAmmo")
+CHudAmmo::CHudAmmo( const char *pElementName ) : CHudElement( pElementName ), BaseClass( NULL, "HudAmmo" )
 {
 	SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT | HIDEHUD_WEAPONSELECTION );
 }
@@ -55,8 +56,8 @@ CHudAmmo::CHudAmmo( const char *pElementName ) : CHudElement( pElementName ), Ba
 //-----------------------------------------------------------------------------
 void CHudAmmo::Init( void )
 {
-	m_hLastPickedUpWeapon	= NULL;
-	m_flFade				= 0.0;
+	m_hLastPickedUpWeapon = NULL;
+	m_flFade = 0.0;
 }
 
 //-----------------------------------------------------------------------------
@@ -96,7 +97,7 @@ void CHudAmmo::Paint( void )
 	int x, y;
 	Color clrAmmo;
 
-	if (!ShouldDraw())
+	if ( !ShouldDraw() )
 		return;
 
 	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
@@ -116,67 +117,56 @@ void CHudAmmo::Paint( void )
 	if ( ( pActiveWeapon->GetPrimaryAmmoType() == -1 ) && ( pActiveWeapon->GetSecondaryAmmoType() == -1 ) )
 		return;
 
-	int nFontWidth	= GetNumberFontWidth();
-	int nFontHeight	= GetNumberFontHeight();
+	int nFontWidth = GetNumberFontWidth( true );
+	int nFontHeight = GetNumberFontHeight( true );
 
-	a = (int)max( MIN_ALPHA, m_flFade );
+	a = ( int )max( MIN_ALPHA, m_flFade );
 
 	if ( m_flFade > 0 )
 		m_flFade -= ( gpGlobals->frametime * 20 );
 
-	(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
+	( gHUD.m_clrYellowish ).GetColor( r, g, b, nUnused );
 	clrAmmo.SetColor( r, g, b, a );
 
 	int nHudElemWidth, nHudElemHeight;
 	GetSize( nHudElemWidth, nHudElemHeight );
 
 	// Does this weapon have a clip?
-	y = nHudElemHeight - ( nFontHeight * 1.5 );
+	y = nHudElemHeight - ( nFontHeight * 2.5f );
 
 	// Does weapon have any ammo at all?
 	if ( pActiveWeapon->GetPrimaryAmmoType() != -1 )
 	{
-		CHudTexture	*icon_ammo = gWR.GetAmmoIconFromWeapon( pActiveWeapon->GetPrimaryAmmoType() );
-
-		if ( !icon_ammo )
-		{
+		icon_backslash = gHUD.GetIcon( "backslash" );
+		if ( !icon_backslash )
 			return;
-		}
 
-		int nIconWidth	= icon_ammo->Width();
-		
 		if ( pActiveWeapon->UsesClipsForAmmo1() )
 		{
 			// room for the number and the '|' and the current ammo
-			
-			x = nHudElemWidth - (8 * nFontWidth) - nIconWidth;
-			x = DrawHudNumber( x, y, pActiveWeapon->Clip1(), clrAmmo );
 
-			int nBarWidth = nFontWidth / 10;
+			//x = nHudElemWidth - (8 * nFontWidth);
+			x = nHudElemWidth - ( 7.5 * nFontWidth );
+			x = DrawHudNumber( x, y, pActiveWeapon->Clip1(), clrAmmo, true );
 
-			x += nFontWidth / 2;
-
-			(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
+			( gHUD.m_clrYellowish ).GetColor( r, g, b, nUnused );
 			clrAmmo.SetColor( r, g, b, a );
 
-			// draw the | bar
-			clrAmmo.SetColor( r, g, b, a  );
-			vgui::surface()->DrawSetColor( clrAmmo );
-			vgui::surface()->DrawFilledRect( x, y, x + nBarWidth, y + nFontHeight );
+			//x += nFontWidth / 2;
 
-			x += nBarWidth + nFontWidth / 2;
+			// draw the / bar
+			icon_backslash->DrawSelf( x, y, clrAmmo );
 
-			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetPrimaryAmmoType() ), clrAmmo );		
+			x += nFontWidth;
+
+			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetPrimaryAmmoType() ), clrAmmo, true );
 		}
 		else
 		{
 			// SPR_Draw a bullets only line
-			x = nHudElemWidth - 4 * nFontWidth - nIconWidth;
-			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetPrimaryAmmoType() ), clrAmmo );
+			x = nHudElemWidth - ( 3.5 * nFontWidth );
+			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetPrimaryAmmoType() ), clrAmmo, true );
 		}
-
-		// Draw the ammo Icon
-		icon_ammo->DrawSelf( x, y, clrAmmo );
 
 		hudlcd->SetGlobalStat( "(ammo_primary)", VarArgs( "%d", pPlayer->GetAmmoCount( pActiveWeapon->GetPrimaryAmmoType() ) ) );
 	}
@@ -188,21 +178,21 @@ void CHudAmmo::Paint( void )
 	// Does weapon have seconday ammo?
 	if ( pActiveWeapon->GetSecondaryAmmoType() != -1 )
 	{
-		CHudTexture	*icon_ammo = gWR.GetAmmoIconFromWeapon( pActiveWeapon->GetSecondaryAmmoType() );
+		CHudTexture *icon_ammo = gWR.GetAmmoIconFromWeapon( pActiveWeapon->GetSecondaryAmmoType() );
 
 		if ( !icon_ammo )
 		{
 			return;
 		}
 
-		int nIconWidth	= icon_ammo->Width();
+		int nIconWidth = icon_ammo->Width();
 
 		// Do we have secondary ammo?
 		if ( pPlayer->GetAmmoCount( pActiveWeapon->GetSecondaryAmmoType() ) > 0 )
 		{
 			y -= ( nFontHeight * 1.25 );
 			x = nHudElemWidth - 4 * nFontWidth - nIconWidth;
-			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetSecondaryAmmoType() ), clrAmmo );
+			x = DrawHudNumber( x, y, pPlayer->GetAmmoCount( pActiveWeapon->GetSecondaryAmmoType() ), clrAmmo, true );
 
 			// Draw the ammo Icon
 			icon_ammo->DrawSelf( x, y, clrAmmo );
@@ -217,8 +207,8 @@ void CHudAmmo::Paint( void )
 
 }
 
-void CHudAmmo::ApplySchemeSettings(vgui::IScheme *pScheme)
+void CHudAmmo::ApplySchemeSettings( vgui::IScheme *pScheme )
 {
-	BaseClass::ApplySchemeSettings(pScheme);
-	SetPaintBackgroundEnabled(false);
+	BaseClass::ApplySchemeSettings( pScheme );
+	SetPaintBackgroundEnabled( false );
 }
