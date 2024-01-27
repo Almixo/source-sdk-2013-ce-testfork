@@ -353,13 +353,11 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 			break;
 	}
 
-	CWpnBox *pBox = (CWpnBox *)Create( "w_weaponbox", GetAbsOrigin(), vec3_angle, this );
-	
 	QAngle qAng = GetAbsAngles();
 	qAng.x = 0;
 	qAng.y = 0;
 
-	pBox->SetAbsAngles( qAng );
+	CWpnBox *pBox = (CWpnBox *)Create( "w_weaponbox", GetAbsOrigin(), qAng, this );
 
 	if ( iAmmoRules == GR_PLR_DROP_AMMO_ALL )
 	{
@@ -382,7 +380,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 		if ( !pWeapon[i] )
 			continue;
 
-		pBox->AddWeapon( pWeapon[i], i );
+		pBox->AddWeapon( pWeapon[i] );
 		Weapon_Detach( pWeapon[i] );
 	}
 

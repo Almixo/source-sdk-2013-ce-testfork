@@ -2,13 +2,9 @@
 #include "beam_shared.h"
 #include "Sprite.h"
 
-constexpr auto SF_REMOVE_ON_FIRE	= 1;
-constexpr auto SF_KILL_CENTER		= 2;
-constexpr auto MAGIC_NUMBER			= 1.0f;
-constexpr auto FRAMERATE			= 12.0f;
-constexpr auto RADIUS				= 48.0f;
-
-#define curtimer					= gpGlobals->curtime
+#define SF_REMOVE_ON_FIRE	(1 << 0)
+#define SF_KILL_CENTER		(1 << 1)
+#define RADIUS				48.0f
 
 class CWarpBall : public CBaseEntity
 {
@@ -21,7 +17,7 @@ public:
 	void Spawn(void);
 	void Precache(void);
 	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
-	void Think(void);
+	void BallThink(void);
 	//legacy purpouses
 	void InputActivate(inputdata_t &inputdata);
 
@@ -61,6 +57,7 @@ BEGIN_DATADESC(CWarpBall)
 	DEFINE_FIELD(iBeamCount, FIELD_INTEGER),
 
 	DEFINE_ARRAY(pSpr, FIELD_CLASSPTR, 2),
+	DEFINE_ENTITYFUNC(BallThink),
 
 END_DATADESC();
 
@@ -74,7 +71,8 @@ void CWarpBall::Spawn(void)
 
 	Msg("%s spawned at %g %g %g!\n", GetDebugName(), vOrigin.x, vOrigin.y, vOrigin.z);
 
-	SetNextThink(gpGlobals->curtime + 1.0f);
+	SetThink(NULL);
+	SetNextThink(TICK_NEVER_THINK);
 }
 
 void CWarpBall::Precache(void)
@@ -95,7 +93,7 @@ void CWarpBall::InputActivate(inputdata_t& inputdata)
 
 void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)
 {
-	Msg("%s at %g %g %g recieved use signal!\n", GetDebugName(), vOrigin.x, vOrigin.y, vOrigin.z);
+	DevMsg("%s at %g %g %g recieved use signal!\n", GetDebugName(), vOrigin.x, vOrigin.y, vOrigin.z);
 
 	FireOutput.FireOutput(this, this);
 
@@ -168,7 +166,7 @@ void CWarpBall::RunSprites(void)
 	}
 }
 
-void CWarpBall::Think(void)
+void CWarpBall::BallThink(void)
 {
 	BaseClass::Think();
 
