@@ -37,7 +37,6 @@ public:
 
 
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	void	Event_Killed( const CTakeDamageInfo &info );
 
 	void	Heal( void );
 	bool	CanHeal( void );
@@ -57,12 +56,6 @@ public:
 	void	TalkInit( void );
 	
 	void	DeclineFollowing( void );
-
-	bool	CanBecomeRagdoll( void );
-	bool	ShouldGib( const CTakeDamageInfo &info );
-	
-	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
-	void	SUB_LVFadeOut( void  );
 
 	void	Scream( void );
 	

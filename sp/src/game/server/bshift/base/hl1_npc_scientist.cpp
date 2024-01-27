@@ -228,73 +228,6 @@ void CNPC_Scientist::DeclineFollowing( void )
 	}
 }
 
-bool CNPC_Scientist::CanBecomeRagdoll( void )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::CanBecomeRagdoll();
-}
-
-bool CNPC_Scientist::ShouldGib( const CTakeDamageInfo &info )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::ShouldGib( info );
-}
-
-void CNPC_Scientist::SUB_StartLVFadeOut( float delay, bool notSolid )
-{
-	SetThink( &CNPC_Scientist::SUB_LVFadeOut );
-	SetNextThink( gpGlobals->curtime + delay );
-	SetRenderColorA( 255 );
-	m_nRenderMode = kRenderNormal;
-
-	if ( notSolid )
-	{
-		AddSolidFlags( FSOLID_NOT_SOLID );
-		SetLocalAngularVelocity( vec3_angle );
-	}
-}
-
-void CNPC_Scientist::SUB_LVFadeOut( void  )
-{
-	if( VPhysicsGetObject() )
-	{
-		if( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
-		{
-			// Try again in a few seconds.
-			SetNextThink( gpGlobals->curtime + 5 );
-			SetRenderColorA( 255 );
-			return;
-		}
-	}
-
-	float dt = gpGlobals->frametime;
-	if ( dt > 0.1f )
-	{
-		dt = 0.1f;
-	}
-	m_nRenderMode = kRenderTransTexture;
-	int speed = MAX(3,256*dt); // fade out over 3 seconds
-	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
-	NetworkStateChanged();
-
-	if ( m_clrRender->a == 0 )
-	{
-		UTIL_Remove(this);
-	}
-	else
-	{
-		SetNextThink( gpGlobals->curtime );
-	}
-}
-
 void CNPC_Scientist::Scream( void )
 {
 	if ( IsOkToSpeak() )
@@ -477,17 +410,6 @@ int CNPC_Scientist::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 
 	// make sure friends talk about it if player hurts scientist...
 	return BaseClass::OnTakeDamage_Alive( inputInfo );
-}
-
-void CNPC_Scientist::Event_Killed( const CTakeDamageInfo &info )
-{
-	SetUse( NULL );	
-	BaseClass::Event_Killed( info );
-
-	if ( UTIL_IsLowViolence() )
-	{
-		SUB_StartLVFadeOut( 0.0f );
-	}
 }
 
 bool CNPC_Scientist::CanHeal( void )

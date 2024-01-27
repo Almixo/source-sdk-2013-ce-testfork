@@ -27,7 +27,6 @@ public:
 	void	Spawn( void );
 	void	TalkInit( void );
 
-	void	StartTask( const Task_t *pTask );
 	void	RunTask( const Task_t *pTask );
 
 	int		GetSoundInterests ( void );
@@ -51,13 +50,7 @@ public:
 
 	void	DeclineFollowing( void );
 
-	bool	CanBecomeRagdoll( void );
-	bool	ShouldGib( const CTakeDamageInfo &info );
-
 	int		RangeAttack1Conditions( float flDot, float flDist );
-
-	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
-	void	SUB_LVFadeOut( void  );
 
 	NPC_STATE SelectIdealState ( void );
 

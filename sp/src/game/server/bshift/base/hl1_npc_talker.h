@@ -85,6 +85,13 @@ public:
 
 	bool IsValidSpeechTarget( int flags, CBaseEntity *pEntity );
 
+	// MOVED FROM INHERITED CLASSES!!!
+	void Event_Killed( const CTakeDamageInfo &info );
+	bool CanBecomeRagdoll( void );
+	void SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
+	void SUB_LVFadeOut( void );
+
+
 protected:
 	virtual void 	FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int FIdleSpeak ( void );

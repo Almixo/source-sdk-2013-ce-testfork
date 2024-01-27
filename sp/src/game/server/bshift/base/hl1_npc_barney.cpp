@@ -141,6 +141,10 @@ void CNPC_Barney::TalkInit()
 {
 	BaseClass::TalkInit();
 
+	m_szFriends[0] = "monster_scientist";
+	m_szFriends[1] = "monster_sitting_scientist";
+	m_szFriends[2] = "monster_barney";
+
 	// get voice for head - just one barney voice for now
 	GetExpresser()->SetVoicePitch( 100 );
 }
@@ -437,66 +441,6 @@ void CNPC_Barney::Event_Killed( const CTakeDamageInfo &info )
 		angGunAngles.y += 180;
 		pGun = DropItem( "weapon_glock", vecGunPos, angGunAngles );
 	}
-
-	SetUse( NULL );	
-	BaseClass::Event_Killed( info  );
-
-	if ( UTIL_IsLowViolence() )
-	{
-		SUB_StartLVFadeOut( 0.0f );
-	}
-}
-
-void CNPC_Barney::SUB_StartLVFadeOut( float delay, bool notSolid )
-{
-	SetThink( &CNPC_Barney::SUB_LVFadeOut );
-	SetNextThink( gpGlobals->curtime + delay );
-	SetRenderColorA( 255 );
-	m_nRenderMode = kRenderNormal;
-
-	if ( notSolid )
-	{
-		AddSolidFlags( FSOLID_NOT_SOLID );
-		SetLocalAngularVelocity( vec3_angle );
-	}
-}
-
-void CNPC_Barney::SUB_LVFadeOut( void  )
-{
-	if( VPhysicsGetObject() )
-	{
-		if( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
-		{
-			// Try again in a few seconds.
-			SetNextThink( gpGlobals->curtime + 5 );
-			SetRenderColorA( 255 );
-			return;
-		}
-	}
-
-	float dt = gpGlobals->frametime;
-	if ( dt > 0.1f )
-	{
-		dt = 0.1f;
-	}
-	m_nRenderMode = kRenderTransTexture;
-	int speed = MAX(3,256*dt); // fade out over 3 seconds
-	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
-	NetworkStateChanged();
-
-	if ( m_clrRender->a == 0 )
-	{
-		UTIL_Remove(this);
-	}
-	else
-	{
-		SetNextThink( gpGlobals->curtime );
-	}
-}
-
-void CNPC_Barney::StartTask( const Task_t *pTask )
-{
-	BaseClass::StartTask( pTask );	
 }
 
 void CNPC_Barney::RunTask( const Task_t *pTask )
@@ -731,26 +675,6 @@ void CNPC_Barney::DeclineFollowing( void )
 	{
 		Speak( BA_POK );
 	}
-}
-
-bool CNPC_Barney::CanBecomeRagdoll( void )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::CanBecomeRagdoll();
-}
-
-bool CNPC_Barney::ShouldGib( const CTakeDamageInfo &info )
-{
-	if ( UTIL_IsLowViolence() )
-	{
-		return false;
-	}
-
-	return BaseClass::ShouldGib( info );
 }
 
 //------------------------------------------------------------------------------

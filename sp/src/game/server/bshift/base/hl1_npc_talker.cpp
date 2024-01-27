@@ -183,16 +183,86 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 	}
 }
 
+void CHL1NPCTalker::Event_Killed( const CTakeDamageInfo &info )
+{
+	SetUse( NULL );
+	BaseClass::Event_Killed( info );
+
+	if ( UTIL_IsLowViolence() )
+	{
+		SUB_StartLVFadeOut( 0.0f );
+	}
+}
+
+bool CHL1NPCTalker::CanBecomeRagdoll( void )
+{
+	if ( UTIL_IsLowViolence() )
+	{
+		return false;
+	}
+
+	return BaseClass::CanBecomeRagdoll();
+}
+
 bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 {
+	if ( UTIL_IsLowViolence() )
+		return false;
+
 	if ( info.GetDamageType() & DMG_NEVERGIB )
-		 return false;
+		return false;
 
 	if ( ( g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
-		 return true;
-	
+		return true;
+
 	return false;
-	
+}
+
+void CHL1NPCTalker::SUB_StartLVFadeOut( float delay, bool bNotSolid )
+{
+	SetThink( &CHL1NPCTalker::SUB_LVFadeOut );
+	SetNextThink( gpGlobals->curtime + delay );
+	SetRenderColorA( 255 );
+	m_nRenderMode = kRenderNormal;
+
+	if ( bNotSolid )
+	{
+		AddSolidFlags( FSOLID_NOT_SOLID );
+		SetLocalAngularVelocity( vec3_angle );
+	}
+}
+
+void CHL1NPCTalker::SUB_LVFadeOut( void )
+{
+	if ( VPhysicsGetObject() )
+	{
+		if ( VPhysicsGetObject()->GetGameFlags() & FVPHYSICS_PLAYER_HELD || GetEFlags() & EFL_IS_BEING_LIFTED_BY_BARNACLE )
+		{
+			// Try again in a few seconds.
+			SetNextThink( gpGlobals->curtime + 5 );
+			SetRenderColorA( 255 );
+			return;
+		}
+	}
+
+	float dt = gpGlobals->frametime;
+	if ( dt > 0.1f )
+	{
+		dt = 0.1f;
+	}
+	m_nRenderMode = kRenderTransTexture;
+	int speed = Max( 3.0f, 256 * dt ); // fade out over 3 seconds
+	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
+	NetworkStateChanged();
+
+	if ( m_clrRender->a == 0 )
+	{
+		UTIL_Remove( this );
+	}
+	else
+	{
+		SetNextThink( gpGlobals->curtime );
+	}
 }
 
 void CHL1NPCTalker::StartTask( const Task_t *pTask )
