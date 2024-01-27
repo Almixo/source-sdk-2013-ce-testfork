@@ -136,7 +136,7 @@ void CHudAmmo::Paint( void )
 
 	// Does weapon have any ammo at all?
 	if ( pActiveWeapon->GetPrimaryAmmoType() != -1 )
-	{
+	 {
 		icon_backslash = gHUD.GetIcon( "backslash" );
 		if ( !icon_backslash )
 			return;
@@ -145,7 +145,6 @@ void CHudAmmo::Paint( void )
 		{
 			// room for the number and the '|' and the current ammo
 
-			//x = nHudElemWidth - (8 * nFontWidth);
 			x = nHudElemWidth - ( 7.5 * nFontWidth );
 			x = DrawHudNumber( x, y, pActiveWeapon->Clip1(), clrAmmo, true );
 

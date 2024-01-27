@@ -84,6 +84,8 @@ void CWpnBox::BoxTouch( CBaseEntity *pOther )
 	else if ( !pKVEnt[0].StrEmpty() )
 		GiveKVEnt();
 
+	Msg( "%d wpn.\n", iWeaponIndex);
+
 	CPASAttenuationFilter filter( pOther );
 	EmitSound( filter, pOther->entindex(), "Item.Pickup" );
 
@@ -103,10 +105,10 @@ void CWpnBox::AddWeapon( CBaseCombatWeapon *pWpn )
 
 void CWpnBox::AddAmmo( base_t base )
 {
-	if ( iWeaponIndex < MAX_AMMO_TYPES )
+	if ( iAmmoIndex < MAX_AMMO_TYPES )
 	{
-		pAmmo[iWeaponIndex] = base;
-		iWeaponIndex++;
+		pAmmo[iAmmoIndex] = base;
+		iAmmoIndex++;
 	}
 }
 

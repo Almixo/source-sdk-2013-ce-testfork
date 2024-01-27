@@ -304,7 +304,6 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 			break;
 
 		case GR_PLR_DROP_GUN_ALL:
-		{
 			for ( int i = 0; i < MAX_WEAPONS; i++ )
 			{
 				if ( !GetWeapon( i ) )
@@ -312,17 +311,12 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 				pWeapon[i] = GetWeapon( i );
 			}
-		}
 		break;
-
-		default:
-			break;
 	}
 	
 	switch ( iAmmoRules )
 	{
 		case GR_PLR_DROP_AMMO_ALL:
-		{
 			for ( int i = 0; i < MAX_AMMO_TYPES; i++ )
 			{
 				Ammo_t *pAmmo = GetAmmoDef()->GetAmmoOfIndex( i );
@@ -331,21 +325,22 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 				iAmmoIndex[i] = GetAmmoDef()->Index( pAmmo->pName );
 			}
-		}
 		break;
 
 		case GR_PLR_DROP_AMMO_ACTIVE:
 		{
 			if ( GetActiveWeapon() != NULL )
 			{
-				iAmmoIndex[0] = GetActiveWeapon()->GetPrimaryAmmoType();
-				iAmmoIndex[1] = GetActiveWeapon()->GetSecondaryAmmoType();
+				int index1 = GetActiveWeapon()->GetPrimaryAmmoType();
+				int index2 = GetActiveWeapon()->GetSecondaryAmmoType();
+
+				if ( index1 >= 0 )
+					iAmmoIndex[0] = index1;
+				if ( index2 >= 0 )
+					iAmmoIndex[1] = index2;
 			}
 		}
 		break;
-
-		default:
-			break;
 	}
 
 	CWpnBox *pBox = (CWpnBox *)Create( "w_weaponbox", GetAbsOrigin(), vec3_angle, this );
@@ -356,7 +351,7 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 	pBox->SetAbsAngles( qAng );
 
-	if ( iAmmoRules == GR_PLR_DROP_AMMO_ALL )
+	/*if ( iAmmoRules == GR_PLR_DROP_AMMO_ALL )
 	{
 		for ( int i = 0; i < ARRAYSIZE( iAmmoIndex ); i++ )
 		{
@@ -369,23 +364,26 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 	else
 	{
 		if ( iAmmoIndex[0] >= 0 )
-			pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetActiveWeapon()->Clip1()) );
+		{
+			pBox->AddAmmo( base_t( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[0] )->pName, GetAmmoCount( iAmmoIndex[0] ) ) );
 		
-		if ( iAmmoIndex[1] >= 0 )
-			pBox->AddAmmo( base_t(GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetActiveWeapon()->Clip2()) );
+			if ( iAmmoIndex[1] >= 0 )
+				pBox->AddAmmo( base_t( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[1] )->pName, GetAmmoCount( iAmmoIndex[2] ) ) );
+	}*/
+
+	for ( int i = 0; i < ARRAYSIZE( iAmmoIndex ) && iAmmoIndex[i] >= 0; i++ )
+	{
+		pBox->AddAmmo( base_t( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[i] )->pName, GetAmmoCount( iAmmoIndex[i] ) ) );
 	}
 
-	for ( int i = 0; i < ARRAYSIZE( pWeapon ); i++ )
+	for ( int i = 0; i < ARRAYSIZE( pWeapon ) && pWeapon[i] != nullptr; i++ )
 	{
-		if ( !pWeapon[i] )
-			continue;
-
 		pBox->AddWeapon( pWeapon[i] );
 		Weapon_Detach( pWeapon[i] );
 	}
 
-	DevMsg( "Give guns %d.\n", iWeaponRules );
-	DevMsg( "Give ammo %d.\n", iAmmoRules );
+	DevMsg( "Packed guns: %s.\n", iWeaponRules > 7 ? "active" : "all" );
+	DevMsg( "Packed ammo: %s.\n", iAmmoRules > 10 ? "active" : "all" );
 	
 	RemoveAllItems( true );
 }

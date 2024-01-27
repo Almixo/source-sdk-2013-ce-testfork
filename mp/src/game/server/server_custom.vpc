@@ -193,7 +193,7 @@ $Project "Server (CUSTOM)"
 			$File "..\shared\custom\CGuidedWeapon.h"
 			$File "..\shared\custom\CGuidedWeapon.cpp"
 			$File "custom\CWarpball.cpp"
-			$File "custom\CWarpball.h"
+//			$File "custom\CWarpball.h"
 			$File "custom\CWeaponBox.h"
 			$File "custom\CWeaponBox.cpp"
 		}

@@ -151,8 +151,10 @@ void CHudBattery::Paint()
 
 	if ( m_iBattery > 0 )
 	{
+		int iXofs = 4;	//( icon_suit_empty->Width() - icon_suit_full->Width() ) / 2;
+
 		int nSuitOffset = icon_suit_full->Width() * ((float)(100-(min(100,m_iBattery))) * 0.01);	// battery can go from 0 to 100 so * 0.01 goes from 0 to 1
-		icon_suit_full->DrawSelfCropped( x, y, 0, 0, icon_suit_full->Width() - nSuitOffset, icon_suit_full->Height(), clrHealth);
+		icon_suit_full->DrawSelfCropped( x + iXofs, y, 0, 0, icon_suit_full->Width() - nSuitOffset, icon_suit_full->Height(), clrHealth);
 	}
 }
 
