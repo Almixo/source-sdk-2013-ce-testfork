@@ -1,9 +1,4 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -15,32 +10,10 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Navigator.h"
-#include	"AI_Route.h"
-#include	"AI_Squad.h"
-#include	"AI_SquadSlot.h"
-#include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
-#include	"activitylist.h"
-#include	"animation.h"
-#include	"basecombatweapon.h"
-#include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
-#include	"ammodef.h"
-#include    "te.h"
-#include "hl1_ai_basenpc.h"
+#include	"hl1_ai_basenpc.h"
 
 ConVar sk_agrunt_health( "sk_agrunt_health", "0" );
 ConVar sk_agrunt_dmg_punch( "sk_agrunt_dmg_punch", "0" );
@@ -98,6 +71,7 @@ enum
 {
 	TASK_AGRUNT_SETUP_HIDE_ATTACK = LAST_SHARED_TASK,
 	TASK_AGRUNT_GET_PATH_TO_ENEMY_CORPSE,
+	TASK_AGRUNT_RANGE_ATTACK1_NOTURN,
 };
 
 
@@ -108,16 +82,16 @@ public:
 
 	void Spawn( void );
 	void Precache( void );
-	
+
 	float	MaxYawSpeed( void );
 	Class_T Classify ( void ){ return CLASS_ALIEN_MILITARY;	}
 	int  GetSoundInterests ( void );
 	void HandleAnimEvent( animevent_t *pEvent );
 
 	void AlertSound( void );
-	void DeathSound ( void );
-	void PainSound ( void );
-	void AttackSound ( void );
+	void DeathSound( const CTakeDamageInfo &info );
+	void PainSound( const CTakeDamageInfo &info );
+	void AttackSound( void );
 
 	bool ShouldSpeak( void );
 	void PrescheduleThink ( void );
@@ -130,10 +104,12 @@ public:
 	void StopTalking ( void );
 
 	void StartTask( const Task_t *pTask );
+	void RunTask( const Task_t *pTask );
+
 	int TranslateSchedule( int scheduleType ); //GetScheduleOfType
 	int SelectSchedule( void ); // GetSchedule
 
-	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
+	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int		IRelationPriority( CBaseEntity *pTarget );
 /*
 	int IRelationship( CBaseEntity *pTarget );
@@ -150,7 +126,6 @@ public:
 	// three hacky fields for speech stuff. These don't really need to be saved.
 	float	m_flNextSpeakTime;
 	float	m_flNextWordTime;
-	int		m_iLastWord;
 	float   m_flDamageTime;
 };
 
@@ -162,7 +137,7 @@ BEGIN_DATADESC( CNPC_AlienGrunt )
 	DEFINE_FIELD( m_flNextPainTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextSpeakTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextWordTime, FIELD_TIME ),
-	DEFINE_FIELD( m_iLastWord, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flDamageTime, FIELD_TIME ),
 END_DATADESC()
 
 int CNPC_AlienGrunt::IRelationPriority( CBaseEntity *pTarget )
@@ -188,6 +163,11 @@ void CNPC_AlienGrunt::Spawn()
 
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
+
+	Vector vecSurroundingMins( -32, -32, 0 );
+	Vector vecSurroundingMaxs( 32, 32, 85 );
+	CollisionProp()->SetSurroundingBoundsType( USE_SPECIFIED_BOUNDS, &vecSurroundingMins, &vecSurroundingMaxs );
+
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_GREEN;
 	ClearEffects();
@@ -222,7 +202,11 @@ void CNPC_AlienGrunt::Spawn()
 //=========================================================
 void CNPC_AlienGrunt::Precache()
 {
-	engine->PrecacheModel("models/agrunt.mdl");
+	PrecacheModel("models/agrunt.mdl");
+
+	iAgruntMuzzleFlash = PrecacheModel( "sprites/muz4.vmt" );
+
+	UTIL_PrecacheOther( "hornet" );
 
 	PrecacheScriptSound( "Weapon_Hornetgun.Single" );
 	PrecacheScriptSound( "AlienGrunt.LeftFoot" );
@@ -234,10 +218,6 @@ void CNPC_AlienGrunt::Precache()
 	PrecacheScriptSound( "AlienGrunt.Attack" );
 	PrecacheScriptSound( "AlienGrunt.Pain" );
 	PrecacheScriptSound( "AlienGrunt.Idle" );
-
-	iAgruntMuzzleFlash = engine->PrecacheModel( "sprites/muz4.vmt" );
-
-	UTIL_PrecacheOther( "hornet" );
 }	
 
 float CNPC_AlienGrunt::MaxYawSpeed( void )
@@ -287,7 +267,7 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 			Vector vecDirToEnemy;
 			QAngle angDir;
 
-			if (HasCondition( COND_SEE_ENEMY))
+			if (HasCondition( COND_SEE_ENEMY) && GetEnemy())
 			{
 				Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
 
@@ -445,7 +425,7 @@ void CNPC_AlienGrunt::HandleAnimEvent( animevent_t *pEvent )
 //=========================================================
 // DieSound
 //=========================================================
-void CNPC_AlienGrunt::DeathSound ( void )
+void CNPC_AlienGrunt::DeathSound( const CTakeDamageInfo &info )
 {
 	StopTalking();
 
@@ -456,7 +436,7 @@ void CNPC_AlienGrunt::DeathSound ( void )
 //=========================================================
 // AlertSound
 //=========================================================
-void CNPC_AlienGrunt::AlertSound ( void )
+void CNPC_AlienGrunt::AlertSound( void )
 {
 	StopTalking();
 
@@ -467,7 +447,7 @@ void CNPC_AlienGrunt::AlertSound ( void )
 //=========================================================
 // AttackSound
 //=========================================================
-void CNPC_AlienGrunt::AttackSound ( void )
+void CNPC_AlienGrunt::AttackSound( void )
 {
 	StopTalking();
 
@@ -478,7 +458,7 @@ void CNPC_AlienGrunt::AttackSound ( void )
 //=========================================================
 // PainSound
 //=========================================================
-void CNPC_AlienGrunt::PainSound ( void )
+void CNPC_AlienGrunt::PainSound( const CTakeDamageInfo &info )
 {
 	if ( m_flNextPainTime > gpGlobals->curtime )
 	{
@@ -653,6 +633,13 @@ void CNPC_AlienGrunt::StartTask ( const Task_t *pTask )
 {
 	switch ( pTask->iTask )
 	{
+	case TASK_AGRUNT_RANGE_ATTACK1_NOTURN:
+		{
+			SetLastAttackTime( gpGlobals->curtime );
+			ResetIdealActivity( ACT_RANGE_ATTACK1 );
+		}
+		break;
+
 	case TASK_AGRUNT_GET_PATH_TO_ENEMY_CORPSE:
 		{
 			Vector forward;
@@ -756,6 +743,30 @@ void CNPC_AlienGrunt::StartTask ( const Task_t *pTask )
 	}
 }
 
+
+void CNPC_AlienGrunt::RunTask( const Task_t *pTask )
+{
+	switch ( pTask->iTask )
+	{
+	// NOTE: This is obsolete. Don't use it for HL2 code
+	case TASK_AGRUNT_RANGE_ATTACK1_NOTURN:
+		{
+			AutoMovement( );
+
+			if ( IsActivityFinished() )
+			{
+				TaskComplete();
+			}
+			break;
+		}
+
+	default:
+		BaseClass::RunTask( pTask );
+	}
+}
+
+
+
 //=========================================================
 // GetSchedule - Decides which type of schedule best suits
 // the monster's current state and conditions. Then calls
@@ -857,7 +868,7 @@ int CNPC_AlienGrunt::TranslateSchedule( int scheduleType )
 	return BaseClass::TranslateSchedule( scheduleType );
 }
 
-void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
+void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo ainfo = info;
 	
@@ -896,7 +907,7 @@ void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &ve
 	}
 	else
 	{
-		SpawnBlood( ptr->endpos, g_vecAttackDir, BloodColor(), flDamage);// a little surface blood.
+		SpawnBlood( ptr->endpos, vecDir, BloodColor(), flDamage);// a little surface blood.
 		TraceBleed( flDamage, vecDir, ptr, ainfo.GetDamageType() );
 	}
 
@@ -913,6 +924,7 @@ AI_BEGIN_CUSTOM_NPC( monster_alien_grunt, CNPC_AlienGrunt )
 
 	DECLARE_TASK ( TASK_AGRUNT_SETUP_HIDE_ATTACK )
 	DECLARE_TASK ( TASK_AGRUNT_GET_PATH_TO_ENEMY_CORPSE )
+	DECLARE_TASK ( TASK_AGRUNT_RANGE_ATTACK1_NOTURN )
 
 	DECLARE_SQUADSLOT( AGRUNT_SQUAD_SLOT_HORNET1 )
 	DECLARE_SQUADSLOT( AGRUNT_SQUAD_SLOT_HORNET2 )
@@ -1010,7 +1022,7 @@ AI_BEGIN_CUSTOM_NPC( monster_alien_grunt, CNPC_AlienGrunt )
 			"	TASK_AGRUNT_SETUP_HIDE_ATTACK		0"
 			"	TASK_STOP_MOVING					0"
 			"	TASK_FACE_IDEAL						0"
-			"	TASK_RANGE_ATTACK1_NOTURN			0"
+			"	TASK_AGRUNT_RANGE_ATTACK1_NOTURN	0"
 			"	"
 			"	Interrupts"
 			"	COND_NEW_ENEMY"

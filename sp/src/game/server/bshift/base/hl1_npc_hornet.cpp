@@ -6,6 +6,28 @@
 //
 //=============================================================================//
 #include	"cbase.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"ai_senses.h"
+#include	"soundent.h"
+#include	"game.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
+#include	"activitylist.h"
+#include	"animation.h"
+#include	"basecombatweapon.h"
+#include	"IEffects.h"
+#include	"vstdlib/random.h"
+#include	"engine/IEngineSound.h"
+#include	"ammodef.h"
+#include    "te.h"
 #include    "hl1_npc_hornet.h"
 
 int iHornetTrail;
@@ -40,11 +62,11 @@ void CNPC_Hornet::Spawn( void )
 
 	SetMoveType( MOVETYPE_FLY );
 	SetSolid( SOLID_BBOX );
-	m_takedamage = DAMAGE_YES;
+	m_takedamage	= DAMAGE_YES;
 	AddFlag( FL_NPC );
-	m_iHealth = 1;// weak!
-	m_bloodColor = DONT_BLEED;
-
+	m_iHealth		= 1;// weak!
+	m_bloodColor	= DONT_BLEED;
+	
 	if ( g_pGameRules->IsMultiplayer() )
 	{
 		// hornets don't live as long in multiplayer
@@ -52,12 +74,12 @@ void CNPC_Hornet::Spawn( void )
 	}
 	else
 	{
-		m_flStopAttack = gpGlobals->curtime + 5.0;
+		m_flStopAttack	= gpGlobals->curtime + 5.0;
 	}
 
 	m_flFieldOfView = 0.9; // +- 25 degrees
 
-	if ( RandomInt( 1, 5 ) <= 2 )
+	if ( random->RandomInt ( 1, 5 ) <= 2 )
 	{
 		m_iHornetType = HORNET_TYPE_RED;
 		m_flFlySpeed = HORNET_RED_SPEED;
@@ -74,7 +96,7 @@ void CNPC_Hornet::Spawn( void )
 	SetTouch( &CNPC_Hornet::DieTouch );
 	SetThink( &CNPC_Hornet::StartTrack );
 
-	if ( GetOwnerEntity() && ( GetOwnerEntity()->GetFlags() & FL_CLIENT ) )
+	if ( GetOwnerEntity() && (GetOwnerEntity()->GetFlags() & FL_CLIENT) )
 	{
 		m_flDamage = sk_plr_dmg_hornet.GetFloat();
 	}
@@ -83,7 +105,7 @@ void CNPC_Hornet::Spawn( void )
 		// no real owner, or owner isn't a client. 
 		m_flDamage = sk_npc_dmg_hornet.GetFloat();
 	}
-
+	
 	SetNextThink( gpGlobals->curtime + 0.1f );
 	ResetSequenceInfo();
 
@@ -93,14 +115,14 @@ void CNPC_Hornet::Spawn( void )
 
 void CNPC_Hornet::Precache()
 {
-	PrecacheModel( "models/hornet.mdl" );
+	PrecacheModel("models/hornet.mdl");
 
 	iHornetPuff = PrecacheModel( "sprites/muz1.vmt" );
-	iHornetTrail = PrecacheModel( "sprites/laserbeam.vmt" );
+	iHornetTrail = PrecacheModel("sprites/laserbeam.vmt");
 
 	PrecacheScriptSound( "Hornet.Die" );
 	PrecacheScriptSound( "Hornet.Buzz" );
-}
+}	
 
 //=========================================================
 // hornets will never get mad at each other, no matter who the owner is.
@@ -118,9 +140,9 @@ Disposition_t CNPC_Hornet::IRelationType( CBaseEntity *pTarget )
 //=========================================================
 // ID's Hornet as their owner
 //=========================================================
-Class_T CNPC_Hornet::Classify( void )
+Class_T CNPC_Hornet::Classify ( void )
 {
-	if ( GetOwnerEntity() && ( GetOwnerEntity()->GetFlags() & FL_CLIENT ) )
+	if ( GetOwnerEntity() && (GetOwnerEntity()->GetFlags() & FL_CLIENT) )
 	{
 		return CLASS_PLAYER_BIOWEAPON;
 	}
@@ -131,7 +153,7 @@ Class_T CNPC_Hornet::Classify( void )
 //=========================================================
 // StartDart - starts a hornet out just flying straight.
 //=========================================================
-void CNPC_Hornet::StartDart( void )
+void CNPC_Hornet::StartDart ( void )
 {
 	IgniteTrail();
 
@@ -142,19 +164,21 @@ void CNPC_Hornet::StartDart( void )
 }
 
 
-void CNPC_Hornet::DieTouch( CBaseEntity *pOther )
+void CNPC_Hornet::DieTouch ( CBaseEntity *pOther )
 {
-	if ( !pOther || !pOther->IsSolid() || pOther->IsSolidFlagSet( FSOLID_VOLUME_CONTENTS ) )
+	if ( !pOther || !pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS) )
+	{
 		return;
+	}
 
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Hornet.Die" );
-
+			
 	CTakeDamageInfo info( this, GetOwnerEntity(), m_flDamage, DMG_BULLET );
-	CalculateBulletDamageForce( &info, GetAmmoDef()->Index( "Hornet" ), GetAbsVelocity(), GetAbsOrigin() );
+	CalculateBulletDamageForce( &info, GetAmmoDef()->Index("Hornet"), GetAbsVelocity(), GetAbsOrigin() );
 	pOther->TakeDamage( info );
 
-	m_takedamage = DAMAGE_NO;
+	m_takedamage	= DAMAGE_NO;
 
 	AddEffects( EF_NODRAW );
 
@@ -168,7 +192,7 @@ void CNPC_Hornet::DieTouch( CBaseEntity *pOther )
 //=========================================================
 // StartTrack - starts a hornet out tracking its target
 //=========================================================
-void CNPC_Hornet::StartTrack( void )
+void CNPC_Hornet:: StartTrack ( void )
 {
 	IgniteTrail();
 
@@ -178,18 +202,18 @@ void CNPC_Hornet::StartTrack( void )
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
-void TE_BeamFollow( IRecipientFilter &filter, float delay,
-	int iEntIndex, int modelIndex, int haloIndex, float life, float width, float endWidth,
-	float fadeLength, float r, float g, float b, float a );
+void TE_BeamFollow( IRecipientFilter& filter, float delay,
+	int iEntIndex, int modelIndex, int haloIndex, float life, float width, float endWidth, 
+	float fadeLength,float r, float g, float b, float a );
 
 void CNPC_Hornet::IgniteTrail( void )
 {
 	Vector vColor;
 
 	if ( m_iHornetType == HORNET_TYPE_RED )
-		vColor = Vector( 179, 39, 14 );
+		 vColor = Vector ( 179, 39, 14 );
 	else
-		vColor = Vector( 255, 128, 0 );
+		 vColor = Vector ( 255, 128, 0 );
 
 	CBroadcastRecipientFilter filter;
 	TE_BeamFollow( filter, 0.0,
@@ -219,10 +243,12 @@ unsigned int CNPC_Hornet::PhysicsSolidMaskForEntity( void ) const
 //=========================================================
 // Tracking Hornet hit something
 //=========================================================
-void CNPC_Hornet::TrackTouch( CBaseEntity *pOther )
+void CNPC_Hornet::TrackTouch ( CBaseEntity *pOther )
 {
-	if ( !pOther->IsSolid() || pOther->IsSolidFlagSet( FSOLID_VOLUME_CONTENTS ) )
+	if ( !pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS) )
+	{
 		return;
+	}
 
 	if ( pOther == GetOwnerEntity() || pOther->GetModelIndex() == GetModelIndex() )
 	{// bumped into the guy that shot it.
@@ -231,7 +257,7 @@ void CNPC_Hornet::TrackTouch( CBaseEntity *pOther )
 	}
 
 	int nRelationship = IRelationType( pOther );
-	if ( ( nRelationship == D_FR || nRelationship == D_NU || nRelationship == D_LI ) )
+	if ( (nRelationship == D_FR || nRelationship == D_NU || nRelationship == D_LI) )
 	{
 		// hit something we don't want to hurt, so turn around.
 		Vector vecVel = GetAbsVelocity();
@@ -258,15 +284,15 @@ void CNPC_Hornet::DartTouch( CBaseEntity *pOther )
 //=========================================================
 // Hornet is flying, gently tracking target
 //=========================================================
-void CNPC_Hornet::TrackTarget( void )
+void CNPC_Hornet::TrackTarget ( void )
 {
 	Vector	vecFlightDir;
 	Vector	vecDirToEnemy;
 	float	flDelta;
 
-	StudioFrameAdvance();
+	StudioFrameAdvance( );
 
-	if ( gpGlobals->curtime > m_flStopAttack )
+	if (gpGlobals->curtime > m_flStopAttack)
 	{
 		SetTouch( NULL );
 		SetThink( &CBaseEntity::SUB_Remove );
@@ -280,8 +306,8 @@ void CNPC_Hornet::TrackTarget( void )
 		GetSenses()->Look( 1024 );
 		SetEnemy( BestEnemy() );
 	}
-
-	if ( GetEnemy() != NULL && FVisible( GetEnemy() ) )
+	
+	if ( GetEnemy() != NULL && FVisible( GetEnemy() ))
 	{
 		m_vecEnemyLKP = GetEnemy()->BodyTarget( GetAbsOrigin() );
 	}
@@ -295,7 +321,7 @@ void CNPC_Hornet::TrackTarget( void )
 
 	if ( GetAbsVelocity().Length() < 0.1 )
 		vecFlightDir = vecDirToEnemy;
-	else
+	else 
 	{
 		vecFlightDir = GetAbsVelocity();
 		VectorNormalize( vecFlightDir );
@@ -304,8 +330,8 @@ void CNPC_Hornet::TrackTarget( void )
 	SetAbsVelocity( vecFlightDir + vecDirToEnemy );
 
 	// measure how far the turn is, the wider the turn, the slow we'll go this time.
-	flDelta = DotProduct( vecFlightDir, vecDirToEnemy );
-
+	flDelta = DotProduct ( vecFlightDir, vecDirToEnemy );
+	
 	if ( flDelta < 0.5 )
 	{// hafta turn wide again. play sound
 		CPASAttenuationFilter filter( this );
@@ -320,33 +346,33 @@ void CNPC_Hornet::TrackTarget( void )
 	Vector vecVel = vecFlightDir + vecDirToEnemy;
 	VectorNormalize( vecVel );
 
-	if ( GetOwnerEntity() && ( GetOwnerEntity()->GetFlags() & FL_NPC ) )
+	if ( GetOwnerEntity() && (GetOwnerEntity()->GetFlags() & FL_NPC) )
 	{
 		// random pattern only applies to hornets fired by monsters, not players. 
 
-		vecVel.x += RandomFloat( -0.10, 0.10 );// scramble the flight dir a bit.
-		vecVel.y += RandomFloat( -0.10, 0.10 );
-		vecVel.z += RandomFloat( -0.10, 0.10 );
+		vecVel.x += random->RandomFloat ( -0.10, 0.10 );// scramble the flight dir a bit.
+		vecVel.y += random->RandomFloat ( -0.10, 0.10 );
+		vecVel.z += random->RandomFloat ( -0.10, 0.10 );
 	}
-
+	
 	switch ( m_iHornetType )
 	{
-	case HORNET_TYPE_RED:
-		SetAbsVelocity( vecVel * ( m_flFlySpeed * flDelta ) );// scale the dir by the ( speed * width of turn )
-		SetNextThink( gpGlobals->curtime + RandomFloat( 0.1, 0.3 ) );
-		break;
-	default:
-		Assert( false );	//fall through if release
-	case HORNET_TYPE_ORANGE:
-		SetAbsVelocity( vecVel * m_flFlySpeed );// do not have to slow down to turn.
-		SetNextThink( gpGlobals->curtime + 0.1f );// fixed think time
-		break;
+		case HORNET_TYPE_RED:
+			SetAbsVelocity( vecVel * ( m_flFlySpeed * flDelta ) );// scale the dir by the ( speed * width of turn )
+			SetNextThink( gpGlobals->curtime + random->RandomFloat( 0.1, 0.3 ) );
+			break;
+		default:
+			Assert( false );	//fall through if release
+		case HORNET_TYPE_ORANGE:
+			SetAbsVelocity( vecVel * m_flFlySpeed );// do not have to slow down to turn.
+			SetNextThink( gpGlobals->curtime + 0.1f );// fixed think time
+			break;
 	}
 
 	QAngle angNewAngles;
 	VectorAngles( GetAbsVelocity(), angNewAngles );
 	SetAbsAngles( angNewAngles );
-
+	
 	SetSolid( SOLID_BBOX );
 
 	// if hornet is close to the enemy, jet in a straight line for a half second.

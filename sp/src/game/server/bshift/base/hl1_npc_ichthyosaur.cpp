@@ -1,22 +1,25 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Ichthyosaur - buh bum...  buh bum...
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 #include "cbase.h"
 #include "beam_shared.h"
-#include "AI_Task.h"
-#include "AI_Default.h"
-#include "AI_Navigator.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
 #include "activitylist.h"
 #include "game.h"
-#include "NPCEvent.h"
-#include "Player.h"
-#include "EntityList.h"
+#include "npcevent.h"
+#include "player.h"
+#include "entitylist.h"
 #include "soundenvelope.h"
 #include "shake.h"
 #include "ndebugoverlay.h"
@@ -28,15 +31,14 @@ ConVar sk_ichthyosaur_health ( "sk_ichthyosaur_health", "0" );
 ConVar sk_ichthyosaur_shake ( "sk_ichthyosaur_shake", "0" );
 
 #define	ICH_SWIM_SPEED_WALK		150
-#define	ICH_SWIM_SPEED_RUN		500
-
+#define	ICH_SWIM_SPEED_RUN		400
+#define PROBE_LENGTH			150
 
 enum IchthyosaurMoveType_t
 {
 	ICH_MOVETYPE_SEEK = 0,	// Fly through the target without stopping.
 	ICH_MOVETYPE_ARRIVE		// Slow down and stop at target.
 };
-
 
 enum
 {
@@ -57,6 +59,34 @@ enum
 	TASK_ICHTHYOSAUR_FLOAT,
 };
 
+
+LINK_ENTITY_TO_CLASS( monster_ichthyosaur, CNPC_Ichthyosaur );
+
+BEGIN_DATADESC( CNPC_Ichthyosaur )
+
+	// Function Pointers
+	DEFINE_ENTITYFUNC( BiteTouch ),
+
+	DEFINE_FIELD( m_SaveVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_idealDist, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flBlink, FIELD_TIME ),
+	DEFINE_FIELD( m_flEnemyTouched, FIELD_TIME ),
+	DEFINE_FIELD( m_bOnAttack, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flMaxSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flMinSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flMaxDist, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flNextAlert, FIELD_TIME ),
+	DEFINE_FIELD( m_flMaxSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecLastMoveTarget, FIELD_VECTOR ),
+	DEFINE_FIELD( m_bHasMoveTarget, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flFlyingSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLastAttackSound, FIELD_TIME ),
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "StartCombat", InputStartCombat ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "EndCombat", InputEndCombat ),
+
+END_DATADESC()
+
 //=========================================================
 // AI Schedules Specific to this monster
 //=========================================================
@@ -76,7 +106,7 @@ DECLARE_TASK ( TASK_ICHTHYOSAUR_FLOAT )
 		SCHED_SWIM_AROUND,
 
 		"	Tasks"
-		"		TASK_SET_ACTIVITY			ACTIVITY:ACT_WALK"
+		"		TASK_SET_ACTIVITY			ACTIVITY:ACT_GLIDE"
 		"		TASK_ICHTHYOSAUR_SWIM		0.0"
 		" "
 		"	Interrupts"
@@ -96,7 +126,7 @@ DECLARE_TASK ( TASK_ICHTHYOSAUR_FLOAT )
 
 		"	Tasks"
 		"		TASK_STOP_MOVING			0"
-		"		TASK_SET_ACTIVITY			ACTIVITY:ACT_RUN"
+		"		TASK_SET_ACTIVITY			ACTIVITY:ACT_SWIM"
 		"		TASK_WAIT					2.0"
 		" "
 	)
@@ -108,7 +138,7 @@ DECLARE_TASK ( TASK_ICHTHYOSAUR_FLOAT )
 		SCHED_CIRCLE_ENEMY,
 
 		"	Tasks"
-		"		TASK_SET_ACTIVITY					ACTIVITY:ACT_WALK"
+		"		TASK_SET_ACTIVITY					ACTIVITY:ACT_GLIDE"
 		"		TASK_ICHTHYOSAUR_CIRCLE_ENEMY		0.0"
 		" "
 		"	Interrupts"
@@ -143,18 +173,21 @@ void CNPC_Ichthyosaur::Precache()
 {
 	PrecacheModel("models/icky.mdl");
 
-	PrecacheMaterial("sprites/lgtning.vmt");
+	PrecacheModel("sprites/lgtning.vmt");
 
-	PrecacheScriptSound("Ichthyosaur.Bite");
-	PrecacheScriptSound("Ichthyosaur.Alert");
-	PrecacheScriptSound("Ichthyosaur.Pain");
-	PrecacheScriptSound("Ichthyosaur.Die");
-	PrecacheScriptSound("Ichthyosaur.Idle");
-	PrecacheScriptSound("Ichthyosaur.Attack");
+	PrecacheScriptSound( "Ichthyosaur.Bite" );
+	PrecacheScriptSound( "Ichthyosaur.Alert" );
+	PrecacheScriptSound( "Ichthyosaur.Pain" );
+	PrecacheScriptSound( "Ichthyosaur.Die" );
+	PrecacheScriptSound( "Ichthyosaur.Idle" );
+	PrecacheScriptSound( "Ichthyosaur.Attack" );
 
 	BaseClass::Precache();
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CNPC_Ichthyosaur::Spawn( void )
 {
 	Precache( );
@@ -166,40 +199,49 @@ void CNPC_Ichthyosaur::Spawn( void )
 	SetHullSizeNormal();
 	SetDefaultEyeOffset();
 
+	// Use our hitboxes to determine our render bounds
+	CollisionProp()->SetSurroundingBoundsType( USE_HITBOXES );
+
 	SetNavType( NAV_FLY );
 	m_NPCState			= NPC_STATE_NONE;
 	
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
-	SetMoveType( MOVETYPE_FLY );
-	m_bloodColor		= BLOOD_COLOR_RED;
+	SetMoveType( MOVETYPE_STEP );
+	AddFlag( FL_FLY | FL_STEPMOVEMENT );
+
+	m_flGroundSpeed			= ICH_SWIM_SPEED_RUN;
+
+	m_bloodColor		= BLOOD_COLOR_YELLOW;
 	m_iHealth			= sk_ichthyosaur_health.GetFloat();
 	m_iMaxHealth		= m_iHealth;
 	m_flFieldOfView		= -0.707;	// 270 degrees
 	
 	AddFlag( FL_SWIM );
 
-	m_flGroundSpeed		= ICHTHYOSAUR_SPEED;
+	m_flFlyingSpeed		= ICHTHYOSAUR_SPEED;
 
 	SetDistLook( 1024 );
 
 	
 	SetTouch( &CNPC_Ichthyosaur::BiteTouch );
-//	SetUse( CombatUse ); 
 
 	m_idealDist = 384;
 	m_flMinSpeed = 80;
-	m_flMaxSpeed = 500;
-	m_flMaxDist = 275;
+	m_flMaxSpeed = 400;
+	m_flMaxDist = 384;
+	m_flLastAttackSound = gpGlobals->curtime;
 
 	Vector vforward;
 	AngleVectors(GetAbsAngles(), &vforward );
 	VectorNormalize ( vforward );
-	SetAbsVelocity( m_flGroundSpeed * vforward );
+	SetAbsVelocity( m_flFlyingSpeed * vforward );
 	m_SaveVelocity = GetAbsVelocity();
 
 	CapabilitiesClear();
-	CapabilitiesAdd( bits_CAP_MOVE_FLY | bits_CAP_INNATE_MELEE_ATTACK1 );
+	CapabilitiesAdd( bits_CAP_MOVE_FLY | bits_CAP_INNATE_MELEE_ATTACK1 | bits_CAP_INNATE_RANGE_ATTACK1 );
+
+	m_bOnAttack = false;
 
 	NPCInit();
 }
@@ -209,8 +251,6 @@ void CNPC_Ichthyosaur::Spawn( void )
 //=========================================================
 int CNPC_Ichthyosaur::TranslateSchedule( int scheduleType )
 {
-#if 0
-	// ALERT( at_console, "GetScheduleOfType( %d ) %d\n", Type, m_bOnAttack );
 	switch	( scheduleType )
 	{
 	case SCHED_IDLE_WALK:
@@ -221,46 +261,276 @@ int CNPC_Ichthyosaur::TranslateSchedule( int scheduleType )
 		return SCHED_SWIM_AGITATED;
 	case SCHED_DIE:
 		return SCHED_TWITCH_DIE;
-#if 0
 	case SCHED_CHASE_ENEMY:
+		
+		if ( m_flLastAttackSound < gpGlobals->curtime )
 		{
-//		AttackSound( );
-			CPASAttenuationFilter filter( this );
-			enginesound->EmitSound( filter, entindex(), CHAN_VOICE, pAttackSounds[ RandomInt(0,ARRAYSIZE(pAttackSounds)-1)], 1.0, ATTN_NORM );
+			AttackSound();
+			m_flLastAttackSound = gpGlobals->curtime + random->RandomFloat( 2.0f, 4.0f );
 		}
-	default:
-		return SCHED_SWIM_AROUND;
-#endif
+
+		break;
 	}
-#endif
+
 	return BaseClass::TranslateSchedule( scheduleType );
 }
 
-#if 0
-int CNPC_Ichthyosaur::SelectSchedule( void ) 
+int CNPC_Ichthyosaur::SelectSchedule()
 {
-
-	int retSchedule;
-
-	if ( HasCondition( COND_SEE_ENEMY ) )
+	switch(m_NPCState)
 	{
-		Msg("Chase\n");
-		retSchedule = SCHED_CHASE_ENEMY;
+	case NPC_STATE_IDLE:
+		m_flFlyingSpeed = 80;
+		m_flMaxSpeed = 80;
+		return TranslateSchedule( SCHED_IDLE_WALK );
+
+	case NPC_STATE_ALERT:
+		m_flFlyingSpeed = 150;
+		m_flMaxSpeed = 150;
+		return TranslateSchedule( SCHED_IDLE_WALK );
+
+	case NPC_STATE_COMBAT:
+		m_flMaxSpeed = 400;
+
+		// eat them
+		if ( HasCondition( COND_CAN_MELEE_ATTACK1 ) )
+		{
+			return TranslateSchedule( SCHED_MELEE_ATTACK1 );
+		}
+
+		// chase them down and eat them
+		if ( HasCondition( COND_CAN_RANGE_ATTACK1 ) )
+		{
+			return TranslateSchedule( SCHED_CHASE_ENEMY );
+		}
+
+		if ( HasCondition( COND_HEAVY_DAMAGE ) )
+		{
+			m_bOnAttack = true;
+		}
+
+		if ( GetHealth() < GetMaxHealth() - 20 )
+		{
+			m_bOnAttack = true;
+		}
+
+		return TranslateSchedule( SCHED_STANDOFF );
+	}
+
+	return BaseClass::SelectSchedule();
+}
+
+
+bool CNPC_Ichthyosaur::OverrideMove( float flInterval )
+{
+	if ( m_lifeState == LIFE_ALIVE )
+	{
+		if ( m_NPCState != NPC_STATE_SCRIPT)
+		{
+			MoveExecute_Alive( flInterval );
+		}
+	}	
+	
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_Ichthyosaur::MoveExecute_Alive(float flInterval)
+{
+	Vector vStart = GetAbsOrigin();
+	Vector vForward, vRight, vUp;
+
+	if (GetNavigator()->IsGoalActive())
+	{
+		Vector vecDir =  ( GetNavigator()->GetPath()->CurWaypointPos() - GetAbsOrigin());	
+		VectorNormalize( vecDir );
+
+		m_SaveVelocity = vecDir * m_flFlyingSpeed;
+	}
+
+	// If we're attacking, accelerate to max speed
+	if (m_bOnAttack && m_flFlyingSpeed < m_flMaxSpeed)
+	{
+		m_flFlyingSpeed = MIN( m_flMaxSpeed, m_flFlyingSpeed+40 );
+	}
+
+	if (m_flFlyingSpeed < 180)
+	{
+		if (GetIdealActivity() == ACT_SWIM)
+			SetActivity( ACT_GLIDE );
+		if (GetIdealActivity() == ACT_GLIDE)
+			m_flPlaybackRate = m_flFlyingSpeed / 150.0;
 	}
 	else
 	{
-		Msg("Swimming\n");
-		retSchedule = SCHED_SWIM_AROUND;
-	}
-	if ( !IsAlive() )
-	{
-		Msg("Dead...\n");
-		retSchedule = SCHED_TWITCH_DIE;
+		if (GetIdealActivity() == ACT_GLIDE)
+			SetActivity( ACT_SWIM );
+		if (GetIdealActivity() == ACT_SWIM)
+			m_flPlaybackRate = m_flFlyingSpeed / 300.0;
 	}
 
-	return( retSchedule );
+	// Steering
+	QAngle angSaveAngles;
+	VectorAngles( m_SaveVelocity, angSaveAngles );
+	AngleVectors(angSaveAngles, &vForward, &vRight, &vUp);
+
+	Vector z;
+	float frac;
+
+	Vector f, u, l, r, d;
+	f = DoProbe(vStart + (PROBE_LENGTH * vForward) );
+	r = DoProbe(vStart + ((PROBE_LENGTH/3) * (vForward + vRight)) );
+	l = DoProbe(vStart + ((PROBE_LENGTH/3) * (vForward - vRight)) );	
+	u = DoProbe(vStart + ((PROBE_LENGTH/3) * (vForward + vUp)) );
+	d = DoProbe(vStart + ((PROBE_LENGTH/3) * (vForward - vUp)) );
+
+	Vector SteeringVector = f+r+l+u+d;
+	
+	if( ProbeZ( vStart + vForward*50, vUp*50, &frac ) )
+	{
+		// reflect off the water surface
+		m_SaveVelocity.z = -10;
+	}
+
+	m_SaveVelocity += SteeringVector/32;
+	VectorNormalize( m_SaveVelocity );
+
+	angSaveAngles = GetAbsAngles();
+
+	AngleVectors( angSaveAngles, &vForward, &vRight, &vUp );
+
+	float flDot = DotProduct( vForward, m_SaveVelocity );
+	if (flDot > 0.5)
+		m_SaveVelocity = m_SaveVelocity * m_flFlyingSpeed;
+	else if (flDot > 0)
+		m_SaveVelocity = m_SaveVelocity * m_flFlyingSpeed * (flDot + 0.5);
+	else
+		m_SaveVelocity = m_SaveVelocity * 80;
+
+	SetAbsVelocity( m_SaveVelocity );
+	
+	VectorAngles( m_SaveVelocity, angSaveAngles );
+	
+	//
+	// Smooth Pitch
+	//
+	if (angSaveAngles.x > 180)
+		angSaveAngles.x = angSaveAngles.x - 360;
+	
+	QAngle angAbsAngles = GetAbsAngles();
+
+	angAbsAngles.x = clamp( UTIL_Approach(angSaveAngles.x, angAbsAngles.x, 10 ), -60, 60 );
+
+	//
+	// Smooth Yaw and generate Roll
+	//
+	float turn = 360;
+
+	if (fabs(angSaveAngles.y - angAbsAngles.y) < fabs(turn))
+	{
+		turn = angSaveAngles.y - angAbsAngles.y;
+	}
+	if (fabs(angSaveAngles.y - angAbsAngles.y + 360) < fabs(turn))
+	{
+		turn = angSaveAngles.y - angAbsAngles.y + 360;
+	}
+	if (fabs(angSaveAngles.y - angAbsAngles.y - 360) < fabs(turn))
+	{
+		turn = angSaveAngles.y - angAbsAngles.y - 360;
+	}	
+
+	float speed = m_flFlyingSpeed * 0.4;
+
+	if (fabs(turn) > speed)
+	{
+		if (turn < 0.0)
+		{
+			turn = -speed;
+		}
+		else
+		{
+			turn = speed;
+		}
+	}
+	angAbsAngles.y += turn;
+	angAbsAngles.z -= turn;
+	angAbsAngles.y = fmod((angAbsAngles.y + 360.0), 360.0);
+	
+	// don't touch bone controller, makes swim animation look funky with all these hard turns.
+//	static float yaw_adj;	
+//	yaw_adj = yaw_adj * 0.8 + turn;
+//	SetBoneController( 0, -yaw_adj / 4.0 );
+
+	//
+	// Roll Smoothing
+	//
+	turn = 360;
+	float flTempRoll = angAbsAngles.z;
+
+	if (fabs(angSaveAngles.z - angAbsAngles.z) < fabs(turn))
+	{
+		turn = angSaveAngles.z - angAbsAngles.z;
+	}
+	if (fabs(angSaveAngles.z - angAbsAngles.z + 360) < fabs(turn))
+	{
+		turn = angSaveAngles.z - angAbsAngles.z + 360;
+	}
+	if (fabs(angSaveAngles.z - angAbsAngles.z - 360) < fabs(turn))
+	{
+		turn = angSaveAngles.z - angAbsAngles.z - 360;
+	}
+	speed = m_flFlyingSpeed/2 * 0.1;
+	if (fabs(turn) < speed)
+	{
+		flTempRoll += turn;
+	}
+	else
+	{
+		if (turn < 0.0)
+		{
+			flTempRoll -= speed;
+		}
+		else
+		{
+			flTempRoll += speed;
+		}
+	}
+
+	angAbsAngles.z = clamp( UTIL_Approach(flTempRoll, angAbsAngles.z, 5 ), -20, 20 );
+
+	SetAbsAngles( angAbsAngles );
+
+	//Move along the current velocity vector
+	if ( WalkMove( m_SaveVelocity * flInterval, MASK_NPCSOLID ) == false )
+	{
+		//Attempt a half-step
+		if ( WalkMove( (m_SaveVelocity*0.5f) * flInterval,  MASK_NPCSOLID) == false )
+		{
+			//Restart the velocity
+			//VectorNormalize( m_vecVelocity );
+			m_SaveVelocity *= 0.25f;
+		}
+		else
+		{
+			//Cut our velocity in half
+			m_SaveVelocity *= 0.5f;
+		}
+	}
+
+	SetAbsVelocity( m_SaveVelocity );
 }
-#endif
+
+void CNPC_Ichthyosaur::InputStartCombat( inputdata_t &input )
+{
+	m_bOnAttack = true;
+}
+
+void CNPC_Ichthyosaur::InputEndCombat( inputdata_t &input )
+{
+	m_bOnAttack = false;
+}
 
 //=========================================================
 // Start task - selects the correct activity and performs
@@ -283,7 +553,7 @@ void CNPC_Ichthyosaur::StartTask(const Task_t *pTask)
 		}
 		else
 		{
-			m_bOnAttack = TRUE;
+			m_bOnAttack = true;
 		}
 		BaseClass::StartTask(pTask);
 		break;
@@ -327,8 +597,6 @@ void CNPC_Ichthyosaur::RunTask(const Task_t *pTask )
 
 			Vector vecPos = vecFrom + vecDelta * m_idealDist + vecSwim * 32;
 
-			// ALERT( at_console, "vecPos %.0f %.0f %.0f\n", vecPos.x, vecPos.y, vecPos.z );
-
 			trace_t tr;
 		
 //			UTIL_TraceHull( vecFrom, vecPos, ignore_monsters, large_hull, m_hEnemy->edict(), &tr );
@@ -341,9 +609,7 @@ void CNPC_Ichthyosaur::RunTask(const Task_t *pTask )
 
 			Vector vecNorm = vecPos - GetAbsOrigin();
 			VectorNormalize( vecNorm );
-			m_SaveVelocity = m_SaveVelocity * 0.8 + 0.2 * vecNorm * m_flGroundSpeed;
-
-			// ALERT( at_console, "m_SaveVelocity %.2f %.2f %.2f\n", m_SaveVelocity.x, m_SaveVelocity.y, m_SaveVelocity.z );
+			m_SaveVelocity = m_SaveVelocity * 0.8 + 0.2 * vecNorm * m_flFlyingSpeed;
 
 			if (HasCondition( COND_ENEMY_FACING_ME ) && GetEnemy()->FVisible( this ))
 			{
@@ -353,17 +619,17 @@ void CNPC_Ichthyosaur::RunTask(const Task_t *pTask )
 				{
 					m_idealDist += 4;
 				}
-				if (m_flGroundSpeed > m_flMinSpeed)
+				if (m_flFlyingSpeed > m_flMinSpeed)
 				{
-					m_flGroundSpeed -= 2;
+					m_flFlyingSpeed -= 2;
 				}
-				else if (m_flGroundSpeed < m_flMinSpeed)
+				else if (m_flFlyingSpeed < m_flMinSpeed)
 				{
-					m_flGroundSpeed += 2;
+					m_flFlyingSpeed += 2;
 				}
-				if (m_flGroundSpeed < m_flMaxSpeed)
+				if (m_flMinSpeed < m_flMaxSpeed)
 				{
-					m_flGroundSpeed += 0.5;
+					m_flMinSpeed += 0.5;
 				}
 			}
 			else 
@@ -374,13 +640,11 @@ void CNPC_Ichthyosaur::RunTask(const Task_t *pTask )
 				{
 					m_idealDist -= 4;
 				}
-				if (m_flGroundSpeed < m_flMaxSpeed)
+				if (m_flFlyingSpeed < m_flMaxSpeed)
 				{
-					m_flGroundSpeed += 4;
+					m_flFlyingSpeed += 4;
 				}
 			}
-
-			// ALERT( at_console, "%.0f\n", m_idealDist );
 		}
 		else
 		{
@@ -432,16 +696,52 @@ void CNPC_Ichthyosaur::RunTask(const Task_t *pTask )
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Get our conditions for a melee attack
+// Input  : flDot - 
+//			flDist - 
+// Output : int
+//-----------------------------------------------------------------------------
+int CNPC_Ichthyosaur::MeleeAttack1Conditions( float flDot, float flDist )
+{
+	// Enemy must be submerged with us
+	if ( GetEnemy() && GetEnemy()->GetWaterLevel() != GetWaterLevel() )
+		return COND_NONE;
+
+	Vector	predictedDir	= ( (GetEnemy()->GetAbsOrigin()+(GetEnemy()->GetSmoothedVelocity())) - GetAbsOrigin() );	
+	float	flPredictedDist = VectorNormalize( predictedDir );
+	
+	Vector	vBodyDir;
+	GetVectors( &vBodyDir, NULL, NULL );
+
+	float	flPredictedDot	= DotProduct( predictedDir, vBodyDir );
+
+	if ( flPredictedDot < 0.8f )
+		return COND_NOT_FACING_ATTACK;
+
+	if ( ( flPredictedDist > ( GetAbsVelocity().Length() * 0.5f) ) && ( flDist > 128.0f ) )
+		return COND_TOO_FAR_TO_ATTACK;
+
+	return COND_CAN_MELEE_ATTACK1;
+}
 
 //=========================================================
-// CheckMeleeAttack1
+// RangeAttack1Conditions
 //=========================================================
-int CNPC_Ichthyosaur::MeleeAttack1Conditions ( float flDot, float flDist )
+int CNPC_Ichthyosaur::RangeAttack1Conditions( float flDot, float flDist )
 {
-	if ( flDot >= 0.7 && m_flEnemyTouched > gpGlobals->curtime - 0.2 )
+	CBaseEntity *pEnemy = GetEnemy();
+	
+	if( pEnemy && pEnemy->GetWaterLevel() != GetWaterLevel() )
 	{
-		return COND_CAN_MELEE_ATTACK1;
+		return COND_NONE;
 	}
+
+	if ( flDot > -0.7 && (m_bOnAttack || ( flDist <= 192 && m_idealDist <= 192)))
+	{
+		return COND_CAN_RANGE_ATTACK1;
+	}
+
 	return COND_NONE;
 }
 
@@ -450,8 +750,8 @@ void CNPC_Ichthyosaur::BiteTouch( CBaseEntity *pOther )
 	// bite if we hit who we want to eat
 	if ( pOther == GetEnemy() ) 
 	{
-		m_flEnemyTouched = gpGlobals->curtime;
-		m_bOnAttack = TRUE;
+		m_flEnemyTouched = gpGlobals->curtime + 0.2f;
+		m_bOnAttack = true;
 	}
 }
 
@@ -480,9 +780,8 @@ void CNPC_Ichthyosaur::HandleAnimEvent( animevent_t *pEvent )
 			{
 				CBaseEntity *pHurt = GetEnemy();
 
-
-//				if (m_flEnemyTouched < gpGlobals->curtime - 0.2 /*&& (hEnemy->BodyTarget( GetAbsOrigin() ) - GetAbsOrigin()).Length() > (32+16+32)*/)
-//					break;
+				if ( m_flEnemyTouched > gpGlobals->curtime && (pHurt->BodyTarget( GetAbsOrigin() ) - GetAbsOrigin()).Length() > (32+16+32) )
+					break;
 
 				Vector vecShootOrigin = Weapon_ShootPosition();
 				Vector vecShootDir = GetShootEnemyDir( vecShootOrigin );
@@ -490,24 +789,24 @@ void CNPC_Ichthyosaur::HandleAnimEvent( animevent_t *pEvent )
 				if (DotProduct( vecShootDir, vForward ) > 0.707)
 				{
 					angles = pHurt->GetAbsAngles();
-					m_bOnAttack = TRUE;
+					m_bOnAttack = true;
 					pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - vRight * 300 );
 					if (pHurt->IsPlayer())
 					{
-
 						angles.x += RandomFloat( -35, 35 );
 						angles.y += RandomFloat( -90, 90 );
 						angles.z = 0;
 						((CBasePlayer*) pHurt)->SetPunchAngle( angles );
 					}
 
-					CTakeDamageInfo info( this, this, 10, DMG_SLASH );
+					CTakeDamageInfo info( this, this, sk_ichthyosaur_shake.GetInt(), DMG_SLASH );
 					CalculateMeleeDamageForce( &info, vForward, pHurt->GetAbsOrigin() );
 					pHurt->TakeDamage( info );
 				}
 			}
-			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), "Ichthyosaur.Bite" );
+
+			// Do our bite sound
+			BiteSound();
 
 			bDidAttack = TRUE;
 		}
@@ -535,242 +834,21 @@ Class_T CNPC_Ichthyosaur::Classify ( void )
 
 void CNPC_Ichthyosaur::NPCThink ( void )
 {
+	// blink the eye
+	if (m_flBlink < gpGlobals->curtime)
+	{
+		m_nSkin = EYE_CLOSED;
+		if (m_flBlink + 0.2 < gpGlobals->curtime)
+		{
+			m_flBlink = gpGlobals->curtime + random->RandomFloat( 3, 4 );
+			if (m_bOnAttack)
+				m_nSkin = EYE_MAD;
+			else
+				m_nSkin = EYE_BASE;
+		}
+	}
+
 	BaseClass::NPCThink( );
-
-	if ( m_lifeState == LIFE_ALIVE )
-	{
-		if ( m_NPCState != NPC_STATE_SCRIPT)
-		{
-			m_flGroundSpeed = GetGroundSpeed();
-
-			if (GetNavigator()->IsGoalActive())
-			{
-				Vector vecDir =  ( GetNavigator()->GetPath()->CurWaypointPos() - GetAbsOrigin());	
-				VectorNormalize( vecDir );
-
-				m_SaveVelocity = vecDir * m_flGroundSpeed;
-			}
-
-//			Msg("%f\n", m_flGroundSpeed);
-
-			Swim();
-
-			// blink the eye
-			if (m_flBlink < gpGlobals->curtime)
-			{
-				m_nSkin = EYE_CLOSED;
-				if (m_flBlink + 0.2 < gpGlobals->curtime)
-				{
-					m_flBlink = gpGlobals->curtime + random->RandomFloat( 3, 4 );
-					if (m_bOnAttack)
-						m_nSkin = EYE_MAD;
-					else
-						m_nSkin = EYE_BASE;
-				}
-			}
-		}
-	}
-
-}
-
-void CNPC_Ichthyosaur::Swim( void )
-{
-	Vector start = GetAbsOrigin();
-
-	QAngle angAngles;
-	Vector Forward, Right, Up;
-	QAngle angRotation;
-
-
-	angRotation = GetAbsAngles();
-
-	if (GetFlags() & FL_ONGROUND)
-	{
-		angRotation.x = 0;
-		angRotation.y += RandomFloat( -45, 45 );
-		SetAbsAngles( angRotation );
-		RemoveFlag( FL_ONGROUND );
-
-		angAngles = QAngle( -GetAbsAngles().x, GetAbsAngles().y, GetAbsAngles().z );
-		AngleVectors( angAngles, &Forward, &Right, &Up );
-
-		SetAbsVelocity( Forward * 200 + Up * 200 );
-
-		return;
-	}
-
-	float dist = 500;
-	CBaseEntity* enemy = GetEnemy();
-	if ( enemy != NULL )
-	{
-		dist = (GetEnemy()->GetAbsOrigin() - GetAbsOrigin()).Length();
-	}
-
-//	Msg("%d\n", HasCondition(COND_SEE_ENEMY));
-#if 0
-	if ( (m_bOnAttack && !HasCondition( COND_SEE_ENEMY )) || dist > 200.0f )
-	{
-		m_bOnAttack = false;
-	}
-
-	if ( !m_bOnAttack  && m_flGroundSpeed > m_flMinSpeed ) 
-	{	
-		m_flGroundSpeed -= 15;
-	}
-#endif
-	if (m_bOnAttack && m_flGroundSpeed < m_flMaxSpeed)
-	{
-		m_flGroundSpeed += 40;
-	}
-	if ( m_flGroundSpeed < 180 )
-	{
-		if ( GetIdealActivity() == ACT_RUN)
-			SetActivity( ACT_WALK );
-		if ( GetIdealActivity() == ACT_WALK)
-			m_flPlaybackRate = m_flGroundSpeed / 150.0;
-		// ALERT( at_console, "walk %.2f\n", pev->framerate );
-	}
-	else
-	{
-		if ( GetIdealActivity() == ACT_WALK)
-			SetActivity( ACT_RUN );
-		if ( GetIdealActivity() == ACT_RUN)
-			m_flPlaybackRate = m_flGroundSpeed / 150.0;
-		// ALERT( at_console, "run  %.2f\n", pev->framerate );
-	}
-
-
-#define PROBE_LENGTH 150
-
-	VectorAngles( m_SaveVelocity, angAngles );
-	angAngles.x = -angAngles.x;
-	AngleVectors(angAngles, &Forward, &Right, &Up);
-
-	m_flGroundSpeed = GetGroundSpeed();
-
-	Vector f, u, l, r, d;
-	f = DoProbe(start + PROBE_LENGTH   * Forward);
-	r = DoProbe(start + PROBE_LENGTH/3 * Forward+Right);
-	l = DoProbe(start + PROBE_LENGTH/3 * Forward-Right);
-	u = DoProbe(start + PROBE_LENGTH/3 * Forward+Up);
-	d = DoProbe(start + PROBE_LENGTH/3 * Forward-Up);
-
-	Vector SteeringVector = f+r+l+u+d;
-	m_SaveVelocity = ( m_SaveVelocity + SteeringVector / 2 );
-	VectorNormalize( m_SaveVelocity );
-
-	angAngles = QAngle( -GetAbsAngles().x, GetAbsAngles().y, GetAbsAngles().z );
-	AngleVectors(angAngles, &Forward, &Right, &Up);
-	// ALERT( at_console, "%f : %f\n", Angles.x, Forward.z );
-
-	float flDot = DotProduct( Forward, m_SaveVelocity );
-	if (flDot > 0.5)
-		SetAbsVelocity( m_SaveVelocity = m_SaveVelocity * m_flGroundSpeed );
-	else if (flDot > 0)
-		SetAbsVelocity( m_SaveVelocity = m_SaveVelocity * m_flGroundSpeed * (flDot + 0.5) );
-	else
-		SetAbsVelocity( m_SaveVelocity = m_SaveVelocity * 80 );
-
-	// ALERT( at_console, "%.0f %.0f\n", m_flightSpeed, pev->velocity.Length() );
-
-
-	//Msg( "Steer %f %f %f\n", SteeringVector.x, SteeringVector.y, SteeringVector.z );
-
-	// ALERT( at_console, "speed %f\n", m_flightSpeed );
-	VectorAngles( m_SaveVelocity, angAngles );
-
-	// Smooth Pitch
-	//
-	if (angAngles.x > 180)
-		angAngles.x = angAngles.x - 360;
-	angRotation.x = UTIL_Approach(angAngles.x, angRotation.x, 50 * 0.1 );
-	if (angRotation.x < -80)
-		angRotation.x = -80;
-	if (angRotation.x >  80)
-		angRotation.x =  80;
-
-	// Smooth Yaw and generate Roll
-	//
-	float turn = 360;
-	// ALERT( at_console, "Y %.0f %.0f\n", Angles.y, GetAbsAngles().y );
-
-	if (fabs(angAngles.y - angRotation.y) < fabs(turn))
-	{
-		turn = angAngles.y - angRotation.y;
-	}
-	if (fabs(angAngles.y - angRotation.y + 360) < fabs(turn))
-	{
-		turn = angAngles.y - angRotation.y + 360;
-	}
-	if (fabs(angAngles.y - angRotation.y - 360) < fabs(turn))
-	{
-		turn = angAngles.y - angRotation.y - 360;
-	}
-
-	float speed = m_flGroundSpeed * 0.1;
-
-	// ALERT( at_console, "speed %.0f %f\n", turn, speed );
-	if (fabs(turn) > speed)
-	{
-		if (turn < 0.0)
-		{
-			turn = -speed;
-		}
-		else
-		{
-			turn = speed;
-		}
-	}
-	angRotation.y += turn;
-	angRotation.z -= turn;
-	angRotation.y = fmod((angRotation.y + 360.0), 360.0);
-
-	static float yaw_adj;
-
-	yaw_adj = yaw_adj * 0.8 + turn;
-
-   // Msg( "yaw %f : %f\n", turn, yaw_adj );
-
-	SetBoneController( 0, -yaw_adj / 4.0 );
-
-	// Roll Smoothing
-	//
-	turn = 360;
-	if (fabs(angAngles.z - angRotation.z) < fabs(turn))
-	{
-		turn = angAngles.z - angRotation.z;
-	}
-	if (fabs(angAngles.z - angRotation.z + 360) < fabs(turn))
-	{
-		turn = angAngles.z - angRotation.z + 360;
-	}
-	if (fabs(angAngles.z - angRotation.z - 360) < fabs(turn))
-	{
-		turn = angAngles.z - angRotation.z - 360;
-	}
-	speed = m_flGroundSpeed/2 * 0.1;
-	if (fabs(turn) < speed)
-	{
-		angRotation.z += turn;
-	}
-	else
-	{
-		if (turn < 0.0)
-		{
-			angRotation.z -= speed;
-		}
-		else
-		{
-			angRotation.z += speed;
-		}
-	}
-
-	if (angRotation.z < -20)
-		angRotation.z = -20;
-	if (angRotation.z >  20)
-		angRotation.z =  20;
-
-	SetAbsAngles( angRotation );
 }
 
 //-----------------------------------------------------------------------------
@@ -779,19 +857,17 @@ void CNPC_Ichthyosaur::Swim( void )
 //-----------------------------------------------------------------------------
 float CNPC_Ichthyosaur::GetGroundSpeed( void )
 {
-	if ( GetIdealActivity() == ACT_WALK )
+	if ( GetIdealActivity() == ACT_GLIDE )
 		return ICH_SWIM_SPEED_WALK;
 
 	return ICH_SWIM_SPEED_RUN;
 }
 
-
 Vector CNPC_Ichthyosaur::DoProbe( const Vector &Probe )
 {
-
 	Vector WallNormal = Vector(0,0,-1); // WATER normal is Straight Down for fish.
-	float frac;
-	BOOL bBumpedSomething = ProbeZ(GetAbsOrigin(), Probe, &frac);
+	float frac = 1.0;
+	bool bBumpedSomething = false;	// = ProbeZ(GetAbsOrigin(), Probe, &frac);
 
 	trace_t tr;
 	UTIL_TraceEntity( this, GetAbsOrigin(), Probe, MASK_NPCSOLID, &tr );
@@ -802,10 +878,13 @@ Vector CNPC_Ichthyosaur::DoProbe( const Vector &Probe )
 		if (tr.fraction < frac)
 		{
 			frac = tr.fraction;
-			bBumpedSomething = TRUE;
+			bBumpedSomething = true;
 			WallNormal = tr.plane.normal;
 		}
 	}
+	//NOTENOTE: Debug start
+	//NDebugOverlay::Line( tr.startpos, tr.endpos, 255.0f*(1.0f-tr.fraction), 255.0f * tr.fraction, 0.0f, true, 0.05f );
+	//NOTENOTE: Debug end
 
 	if (bBumpedSomething && (GetEnemy() == NULL || !tr.m_pEnt || tr.m_pEnt->entindex() != GetEnemy()->entindex()))
 	{
@@ -817,7 +896,7 @@ Vector CNPC_Ichthyosaur::DoProbe( const Vector &Probe )
 		VectorNormalize( WallNormal );
 		VectorNormalize( m_SaveVelocity );
 
-		float SteeringForce = m_flGroundSpeed * (1-frac) * (DotProduct( WallNormal, m_SaveVelocity));
+		float SteeringForce = m_flFlyingSpeed * (1-frac) * ( DotProduct( WallNormal, m_SaveVelocity ) );
 		if (SteeringForce < 0.0)
 		{
 			SteeringForce = -SteeringForce;
@@ -827,6 +906,8 @@ Vector CNPC_Ichthyosaur::DoProbe( const Vector &Probe )
 
 		VectorNormalize( vSteering );
 		SteeringVector = SteeringForce * vSteering;
+	
+		//NDebugOverlay::Line( GetAbsOrigin(), GetAbsOrigin() + (SteeringVector*4.0f), 0, 255, 255, true, 0.1f );
 		
 		return SteeringVector;
 	}
@@ -835,57 +916,109 @@ Vector CNPC_Ichthyosaur::DoProbe( const Vector &Probe )
 
 bool CNPC_Ichthyosaur::ProbeZ( const Vector &position, const Vector &probe, float *pFraction)
 {
+	int iPositionContents = UTIL_PointContents( position );
+	int iProbeContents = UTIL_PointContents( position );
 
-	if ( UTIL_PointContents( probe ) & MASK_WATER )
-		 return FALSE;
-	else
+	if( !(iPositionContents & MASK_WATER) )
 	{
-		Vector vProbePosition = (probe-position);
-		VectorNormalize( vProbePosition );
-
-		Vector ProbeUnit = vProbePosition;
-		float ProbeLength = (probe-position).Length();
-		float maxProbeLength = ProbeLength;
-		float minProbeLength = 0;
-
-		float diff = maxProbeLength - minProbeLength;
-		while (diff > 1.0)
-		{
-			float midProbeLength = minProbeLength + diff/2.0;
-			Vector midProbeVec = midProbeLength * ProbeUnit;
-			if ( !(UTIL_PointContents(position+midProbeVec) & MASK_WATER) )
-			{
-				minProbeLength = midProbeLength;
-			}
-			else
-			{
-				maxProbeLength = midProbeLength;
-			}
-			diff = maxProbeLength - minProbeLength;
-		}
-		*pFraction = minProbeLength/ProbeLength;
-
-		 return TRUE;
-	}
-
-	int conPosition = UTIL_PointContents(position);
-	if ( ((GetFlags() & FL_SWIM) == FL_SWIM) ^ (conPosition & MASK_WATER))
-	{
-		//    SWIMING & !WATER
-		// or FLYING  & WATER
-		//
+		// we're not in the water anymore
 		*pFraction = 0.0;
-		return TRUE; // We hit a water boundary because we are where we don't belong.
+		return true; // We hit a water boundary because we are where we don't belong.
 	}
-	int conProbe = UTIL_PointContents(probe);
-	if ( conProbe == conPosition )
+	if( iProbeContents == iPositionContents )
 	{
-		// The probe is either entirely inside the water (for fish) or entirely
-		// outside the water (for birds).
-		//
+		// The probe is entirely inside the water
 		*pFraction = 1.0;
-		return FALSE;
+		return false;
 	}
-	return TRUE;
 
+	Vector ProbeUnit = (probe-position);
+	VectorNormalize( ProbeUnit );
+	float ProbeLength = (probe-position).Length();
+	float maxProbeLength = ProbeLength;
+	float minProbeLength = 0;
+
+	float diff = maxProbeLength - minProbeLength;
+	while (diff > 1.0)
+	{
+		float midProbeLength = minProbeLength + diff/2.0;
+		Vector midProbeVec = midProbeLength * ProbeUnit;
+		if (UTIL_PointContents(position+midProbeVec) == iPositionContents)
+		{
+			minProbeLength = midProbeLength;
+		}
+		else
+		{
+			maxProbeLength = midProbeLength;
+		}
+		diff = maxProbeLength - minProbeLength;
+	}
+	*pFraction = minProbeLength/ProbeLength;
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : *pEntity - 
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CNPC_Ichthyosaur::FVisible( CBaseEntity *pEntity, int traceMask, CBaseEntity **ppBlocker )
+{
+	// Can't see entities that aren't in water
+	if ( pEntity->GetWaterLevel() < 1 )
+		return false;
+
+	return BaseClass::FVisible( pEntity, traceMask, ppBlocker );
+}
+
+void CNPC_Ichthyosaur::IdleSound( void )	
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Idle" );
+}
+
+void CNPC_Ichthyosaur::AlertSound( void ) 
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Alert" );
+}
+
+void CNPC_Ichthyosaur::AttackSound( void ) 
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Attack" );
+}
+
+void CNPC_Ichthyosaur::BiteSound( void ) 
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Bite" );
+}
+
+void CNPC_Ichthyosaur::DeathSound( const CTakeDamageInfo &info ) 
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Die" );
+}
+
+void CNPC_Ichthyosaur::PainSound( const CTakeDamageInfo &info )	
+{ 
+	CPASAttenuationFilter filter( this );
+	EmitSound( filter, entindex(), "Ichthyosaur.Pain" );
+}
+
+//-----------------------------------------------------------------------------
+void CNPC_Ichthyosaur::GatherEnemyConditions( CBaseEntity *pEnemy )
+{
+	// Do the base class
+	BaseClass::GatherEnemyConditions( pEnemy );
+
+	if ( HasCondition( COND_ENEMY_UNREACHABLE ) == false )
+	{
+		if( pEnemy == NULL || pEnemy->GetWaterLevel() != GetWaterLevel() )
+		{
+			SetCondition( COND_ENEMY_UNREACHABLE );
+		}
+	}
 }

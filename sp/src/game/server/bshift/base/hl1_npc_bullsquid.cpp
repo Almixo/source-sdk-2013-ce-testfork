@@ -1,34 +1,12 @@
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Cute hound like Alien.
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
-#include "game.h"
-#include "AI_Default.h"
-#include "AI_Schedule.h"
-#include "AI_Hull.h"
-#include "AI_Route.h"
-#include "AI_Hint.h"
-#include "AI_Navigator.h"
-#include "AI_Senses.h"
-#include "NPCEvent.h"
-#include "animation.h"
 #include "hl1_npc_bullsquid.h"
-#include "gib.h"
-#include "soundent.h"
-#include "ndebugoverlay.h"
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-#include "hl1_grenade_spit.h"
-#include "util.h"
-#include "shake.h"
-#include "movevars_shared.h"
-#include "decals.h"
-#include "hl2_shareddefs.h"
-#include "ammodef.h"
 
 #define		SQUID_SPRINT_DIST	256 // how close the squid has to get before starting to sprint and refusing to swerve
 
@@ -129,7 +107,11 @@ END_DATADESC()
 
 void CSquidSpit::Precache( void )
 {
-	m_nSquidSpitSprite = engine->PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+	m_nSquidSpitSprite = PrecacheModel("sprites/bigspit.vmt");// client side spittle.
+
+	PrecacheScriptSound( "NPC_BigMomma.SpitTouch1" );
+	PrecacheScriptSound( "NPC_BigMomma.SpitHit1" );
+	PrecacheScriptSound( "NPC_BigMomma.SpitHit2" );
 }
 
 void CSquidSpit:: Spawn( void )
@@ -140,7 +122,6 @@ void CSquidSpit:: Spawn( void )
 	SetClassname( "squidspit" );
 	
 	SetSolid( SOLID_BBOX );
-	SetSolidFlags( FSOLID_NOT_SOLID | FSOLID_TRIGGER );
 
 	m_nRenderMode = kRenderTransAlpha;
 	SetRenderColorA( 255 );
@@ -236,6 +217,8 @@ BEGIN_DATADESC( CNPC_Bullsquid )
 	DEFINE_FIELD( m_fCanThreatDisplay, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flLastHurtTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextSpitTime, FIELD_TIME ),
+
+	DEFINE_FIELD( m_flHungryTime, FIELD_TIME ),
 END_DATADESC()
 
 //=========================================================
@@ -317,7 +300,7 @@ Class_T	CNPC_Bullsquid::Classify( void )
 // IdleSound 
 //=========================================================
 #define SQUID_ATTN_IDLE	(float)1.5
-void CNPC_Bullsquid::IdleSound ( void )
+void CNPC_Bullsquid::IdleSound( void )
 {
 	CPASAttenuationFilter filter( this, SQUID_ATTN_IDLE );
 	EmitSound( filter, entindex(), "Bullsquid.Idle" );	
@@ -326,7 +309,7 @@ void CNPC_Bullsquid::IdleSound ( void )
 //=========================================================
 // PainSound 
 //=========================================================
-void CNPC_Bullsquid::PainSound ( void )
+void CNPC_Bullsquid::PainSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Bullsquid.Pain" );	
@@ -335,7 +318,7 @@ void CNPC_Bullsquid::PainSound ( void )
 //=========================================================
 // AlertSound
 //=========================================================
-void CNPC_Bullsquid::AlertSound ( void )
+void CNPC_Bullsquid::AlertSound( void )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Bullsquid.Alert" );	
@@ -344,7 +327,7 @@ void CNPC_Bullsquid::AlertSound ( void )
 //=========================================================
 // DeathSound
 //=========================================================
-void CNPC_Bullsquid::DeathSound ( void )
+void CNPC_Bullsquid::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Bullsquid.Die" );	
@@ -353,7 +336,7 @@ void CNPC_Bullsquid::DeathSound ( void )
 //=========================================================
 // AttackSound
 //=========================================================
-void CNPC_Bullsquid::AttackSound ( void )
+void CNPC_Bullsquid::AttackSound( void )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Bullsquid.Attack" );	
@@ -363,7 +346,7 @@ void CNPC_Bullsquid::AttackSound ( void )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-float CNPC_Bullsquid::MaxYawSpeed ( void )
+float CNPC_Bullsquid::MaxYawSpeed( void )
 {
 	float flYS = 0;
 
@@ -428,7 +411,7 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 				AngleVectors( GetAbsAngles(), &forward, NULL, &up );
 				pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() - (forward * 100) );
 				pHurt->SetAbsVelocity( pHurt->GetAbsVelocity() + (up * 100) );
-				pHurt->RemoveFlag( FL_ONGROUND );
+				pHurt->SetGroundEntity( NULL );
 			}
 		}
 		break;
@@ -459,12 +442,12 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 
 		case BSQUID_AE_HOP:
 		{
-			float flGravity = sv_gravity.GetFloat();
+			float flGravity = GetCurrentGravity();
 
 			// throw the squid up into the air on this frame.
 			if ( GetFlags() & FL_ONGROUND )
 			{
-				RemoveFlag( FL_ONGROUND );
+				SetGroundEntity( NULL );
 			}
 
 			// jump into air for 0.8 (24/30) seconds
@@ -881,7 +864,7 @@ bool CNPC_Bullsquid::FVisible ( Vector vecOrigin )
 	Vector		vecLookerOrigin;
 	
 	vecLookerOrigin = EyePosition();//look through the caller's 'eyes'
-	UTIL_TraceLine(vecLookerOrigin, vecOrigin, MASK_OPAQUE, this/*pentIgnore*/, COLLISION_GROUP_NONE, &tr);
+	UTIL_TraceLine(vecLookerOrigin, vecOrigin, MASK_BLOCKLOS, this/*pentIgnore*/, COLLISION_GROUP_NONE, &tr);
 	
 	if ( tr.fraction != 1.0 )
 		 return false; // Line of sight is not established
@@ -903,8 +886,7 @@ void CNPC_Bullsquid::StartTask ( const Task_t *pTask )
 	case TASK_MELEE_ATTACK2:
 		{
 			CPASAttenuationFilter filter( this );
-			EmitSound( filter, entindex(), "Bullsquid.Growl" );	
-
+			EmitSound( filter, entindex(), "Bullsquid.Growl" );		
 			BaseClass::StartTask ( pTask );
 			break;
 		}

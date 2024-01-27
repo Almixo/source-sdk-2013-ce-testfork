@@ -1,7 +1,16 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_BARNEY_H
 #define NPC_BARNEY_H
 
 #include "hl1_npc_talker.h"
+#include "ammodef.h"
+#include "IEffects.h"
 
 //=========================================================
 //=========================================================
@@ -33,8 +42,8 @@ public:
 	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	void	Event_Killed( const CTakeDamageInfo &info );
 
-	void    PainSound ( void );
-	void	DeathSound( void );
+	void    PainSound( const CTakeDamageInfo &info );
+	void	DeathSound( const CTakeDamageInfo &info );
 
 	void	HandleAnimEvent( animevent_t *pEvent );
 	int		TranslateSchedule( int scheduleType );
@@ -42,9 +51,15 @@ public:
 
 	void	DeclineFollowing( void );
 
+	bool	CanBecomeRagdoll( void );
+	bool	ShouldGib( const CTakeDamageInfo &info );
+
 	int		RangeAttack1Conditions( float flDot, float flDist );
 
-	NPC_STATE CNPC_Barney::SelectIdealState ( void );
+	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
+	void	SUB_LVFadeOut( void  );
+
+	NPC_STATE SelectIdealState ( void );
 
 	bool	m_fGunDrawn;
 	float	m_flPainTime;

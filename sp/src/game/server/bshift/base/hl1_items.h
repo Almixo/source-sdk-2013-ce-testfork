@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #ifndef HL1_ITEMS_H
 #define HL1_ITEMS_H
@@ -18,7 +18,8 @@ class CHL1Item : public CItem
 public:
 	DECLARE_CLASS( CHL1Item, CItem );
 
-	void	Spawn( void );
+	void Spawn( void );
+	void Activate( void );
 };
 
 

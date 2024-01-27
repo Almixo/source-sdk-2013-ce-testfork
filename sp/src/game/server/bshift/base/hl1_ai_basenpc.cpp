@@ -1,29 +1,22 @@
-/***
-*
-*	Copyright (c) 1999, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   This source code contains proprietary and confidential information of
-*   Valve LLC and its suppliers.  Access to this code is restricted to
-*   persons who have executed a written SDK license with Valve.  Any access,
-*   use or distribution of this code by or to any unlicensed person is illegal.
-*
-****/
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #include "cbase.h"
 #include "hl1_ai_basenpc.h"
 #include "scripted.h"
 #include "soundent.h"
 #include "animation.h"
-#include "EntityList.h"
-#include "AI_Navigator.h"
-#include "AI_Motor.h"
+#include "entitylist.h"
+#include "ai_navigator.h"
+#include "ai_motor.h"
 #include "player.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
-#include "NPCevent.h"
+#include "npcevent.h"
 
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
@@ -57,12 +50,11 @@ bool CHL1BaseNPC::NoFriendlyFire( void )
 	Vector  vForward, vRight, vUp;
 	QAngle  vAngleToEnemy;
 
-	VectorAngles( ( GetEnemy()->WorldSpaceCenter() - GetAbsOrigin() ), vAngleToEnemy );
-
-	//!!!BUGBUG - to fix this, the planes must be aligned to where the monster will be firing its gun, not the direction it is facing!!!
-
 	if ( GetEnemy() != NULL )
 	{
+		//!!!BUGBUG - to fix this, the planes must be aligned to where the monster will be firing its gun, not the direction it is facing!!!
+		VectorAngles( ( GetEnemy()->WorldSpaceCenter() - GetAbsOrigin() ), vAngleToEnemy );
+
 		AngleVectors ( vAngleToEnemy, &vForward, &vRight, &vUp );
 	}
 	else
@@ -156,8 +148,8 @@ bool CHL1BaseNPC::HasAlienGibs( void )
 
 void CHL1BaseNPC::Precache( void )
 {
-	engine->PrecacheModel( "models/agibs.mdl" );
-	engine->PrecacheModel( "models/hgibs.mdl" );
+	PrecacheModel( "models/gibs/agibs.mdl" );
+	PrecacheModel( "models/gibs/hgibs.mdl" );
 
 	BaseClass::Precache();
 }
@@ -196,4 +188,28 @@ bool CHL1BaseNPC::CorpseGib( const CTakeDamageInfo &info )
 int	CHL1BaseNPC::IRelationPriority( CBaseEntity *pTarget )
 {
 	return BaseClass::IRelationPriority( pTarget );
+}
+
+void CHL1BaseNPC::EjectShell( const Vector &vecOrigin, const Vector &vecVelocity, float rotation, int iType )
+{
+	CEffectData	data;
+	data.m_vStart	= vecVelocity;
+	data.m_vOrigin	= vecOrigin;
+	data.m_vAngles	= QAngle( 0, rotation, 0 );
+	data.m_fFlags	= iType;
+
+	DispatchEffect( "HL1ShellEject", data );
+}
+
+// HL1 version - never return Ragdoll as the automatic schedule at the end of a 
+// scripted sequence
+int CHL1BaseNPC::SelectDeadSchedule()
+{
+	// Alread dead (by animation event maybe?)
+	// Is it safe to set it to SCHED_NONE?
+	if ( m_lifeState == LIFE_DEAD )
+		 return SCHED_NONE;
+
+	CleanupOnDeath();
+	return SCHED_DIE;
 }

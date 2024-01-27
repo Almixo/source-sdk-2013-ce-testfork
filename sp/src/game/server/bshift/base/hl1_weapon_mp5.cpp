@@ -42,9 +42,7 @@ void CWeaponMP5::Precache( void )
 {
 	BaseClass::Precache();
 
-#ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "grenade_mp5" );
-#endif
 }
 
 
@@ -174,7 +172,12 @@ void CWeaponMP5::DryFire( void )
 
 void CWeaponMP5::WeaponIdle( void )
 {
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if ( pPlayer == NULL ) return;
+
 	BaseClass::WeaponIdle();
+
+	pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
 
 	if ( HasWeaponIdleTimeElapsed() )
 		SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 3, 5 ) );

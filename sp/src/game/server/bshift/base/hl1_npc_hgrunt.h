@@ -1,8 +1,20 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_HGRUNT_H
 #define NPC_HGRUNT_H
 
-#include "ai_squad.h"
 #include "hl1_ai_basenpc.h"
+#include "ai_interactions.h"
+#include "ammodef.h"
+#include "scripted.h"
+#include "hl1_basegrenade.h"
+#include "hl1_grenade_mp5.h"
+#include "beam_shared.h"
 
 class CNPC_HGrunt : public CHL1BaseNPC
 {
@@ -59,8 +71,8 @@ public:
 	int		TranslateSchedule( int scheduleType );
 
 
-	void	PainSound ( void );
-	void	DeathSound ( void );
+	void	PainSound( const CTakeDamageInfo &info );
+	void	DeathSound( const CTakeDamageInfo &info );
 	void	SetAim( const Vector &aimDir );
 
 	bool	HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt);
@@ -97,9 +109,6 @@ private:
 	int		m_iClipSize;
 
 	int		m_voicePitch;
-
-	int		m_iBrassShell;
-	int		m_iShotgunShell;
 
 	int		m_iSentence;
 

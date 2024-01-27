@@ -9,8 +9,6 @@
 #define NPC_HORNET_H
 
 #include "hl1_ai_basenpc.h"
-#include "ai_senses.h"
-#include "ammodef.h"
 
 //=========================================================
 // Hornets
@@ -36,33 +34,33 @@ public:
 
 	void Spawn( void );
 	void Precache( void );
-	Class_T	 Classify( void );
-	Disposition_t		IRelationType( CBaseEntity *pTarget );
+	Class_T	 Classify ( void );
+	Disposition_t		IRelationType(CBaseEntity *pTarget);
 
-	void DieTouch( CBaseEntity *pOther );
+	void DieTouch ( CBaseEntity *pOther );
 	void DartTouch( CBaseEntity *pOther );
-	void TrackTouch( CBaseEntity *pOther );
-	void TrackTarget( void );
-	void StartDart( void );
+	void TrackTouch ( CBaseEntity *pOther );
+	void TrackTarget ( void );
+	void StartDart ( void );
 	void IgniteTrail( void );
-	void StartTrack( void );
+	void StartTrack(void);
 
 
 	virtual unsigned int PhysicsSolidMaskForEntity( void ) const;
 	virtual bool ShouldGib( const CTakeDamageInfo &info ) { return false; }
-
+	
 	/*	virtual int		Save( CSave &save );
 	virtual int		Restore( CRestore &restore );
 	static	TYPEDESCRIPTION m_SaveData[];
 
-
+	
 	void EXPORT StartTrack ( void );
-
+	
 	void EXPORT TrackTarget ( void );
 	void EXPORT TrackTouch ( CBaseEntity *pOther );
 	void EXPORT DartTouch( CBaseEntity *pOther );
-
-
+	
+	
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );*/
 
 	float			m_flStopAttack;

@@ -1,3 +1,10 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_ZOMBIE_H
 #define NPC_ZOMBIE_H
 
@@ -28,17 +35,18 @@ public:
 
 	float m_flNextFlinch;
 
-	void PainSound( void );
+	void PainSound( const CTakeDamageInfo &info );
 	void AlertSound( void );
 	void IdleSound( void );
 	void AttackSound( void );
 
 	// No range attacks
-	bool CheckRangeAttack1 ( float flDot, float flDist ) { return false; }
-	bool CheckRangeAttack2 ( float flDot, float flDist ) { return false; }
+	BOOL CheckRangeAttack1 ( float flDot, float flDist ) { return FALSE; }
+	BOOL CheckRangeAttack2 ( float flDot, float flDist ) { return FALSE; }
 	int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 
 	void RemoveIgnoredConditions ( void );
+	int MeleeAttack1Conditions ( float flDot, float flDist );
 };
 
 #endif //NPC_ZOMBIE_H

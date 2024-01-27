@@ -1,8 +1,8 @@
-//========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #ifndef MONSTERMAKER_H
 #define MONSTERMAKER_H
@@ -23,23 +23,21 @@
 #define	SF_NPCMAKER_NO_DROP		64	// Do not adjust for the ground's position when checking for spawn
 
 
-class CBaseNPCMaker : public CBaseEntity
+class CNPCMaker : public CBaseEntity
 {
 public:
-	DECLARE_CLASS( CBaseNPCMaker, CBaseEntity );
+	DECLARE_CLASS( CNPCMaker, CBaseEntity );
+
+	CNPCMaker(void) {}
 
 	void Spawn( void );
+	void Precache( void );
 
 	void MakerThink( void );
 	bool CanMakeNPC( void );
 
-	virtual void DeathNotice( CBaseEntity *pChild );// NPC maker children use this to tell the NPC maker that they have died.
-	virtual void MakeNPC( void ) = 0;
-
-	virtual	void ChildPreSpawn( CAI_BaseNPC *pChild ) {}
-	virtual	void ChildPostSpawn( CAI_BaseNPC *pChild ) {}
-
-	CBaseNPCMaker(void) {}
+	void DeathNotice( CBaseEntity *pChild );// NPC maker children use this to tell the NPC maker that they have died.
+	void MakeNPC( void );
 
 	// Input handlers
 	void InputSpawnNPC( inputdata_t &inputdata );
@@ -58,36 +56,15 @@ public:
 	
 	int			m_iMaxNumNPCs;			// max number of NPCs this ent can create
 	float		m_flSpawnFrequency;		// delay (in secs) between spawns 
+	int			m_iMaxLiveChildren;		// max number of NPCs that this maker may have out at one time.
+	string_t	m_iszNPCClassname;		// classname of the NPC(s) that will be created.
 
 	COutputEvent m_OnSpawnNPC;
 	
-	int  m_cLiveChildren;// how many NPCs made by this NPC maker that are currently alive
-	int	 m_iMaxLiveChildren;// max number of NPCs that this maker may have out at one time.
+	int		m_cLiveChildren;// how many NPCs made by this NPC maker that are currently alive
 
-	float m_flGround; // z coord of the ground under me, used to make sure no NPCs are under the maker when it drops a new child
-	bool m_bDisabled;
-};
-
-
-class CNPCMaker : public CBaseNPCMaker
-{
-public:
-	DECLARE_CLASS( CNPCMaker, CBaseNPCMaker );
-
-	CNPCMaker( void );
-
-	void Precache( void );
-
-	virtual void MakeNPC( void );
-
-	DECLARE_DATADESC();
-	
-	string_t m_iszNPCClassname;			// classname of the NPC(s) that will be created.
-	string_t m_SquadName;
-	string_t m_strHintGroup;
-	string_t m_spawnEquipment;
-	string_t m_RelationshipString;		// Used to load up relationship keyvalues
-	string_t m_ChildTargetName;
+	float	m_flGround; // z coord of the ground under me, used to make sure no NPCs are under the maker when it drops a new child
+	bool	m_bDisabled;
 };
 
 

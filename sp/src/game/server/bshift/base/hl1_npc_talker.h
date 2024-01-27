@@ -1,23 +1,14 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Base combat character with no AI
 //
 // $Workfile:     $
 // $Date:         $
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #ifndef HL1TALKNPC_H
 #define HL1TALKNPC_H
-
-#pragma warning(push)
-#include <set>
-#pragma warning(pop)
 
 #ifdef _WIN32
 #pragma once
@@ -59,6 +50,8 @@ public:
 	{
 	}
 
+	virtual void Precache();
+
 	void	StartTask( const Task_t *pTask );
 	void	RunTask( const Task_t *pTask );
 	int		SelectSchedule ( void );
@@ -66,7 +59,7 @@ public:
 	bool	ShouldGib( const CTakeDamageInfo &info );
 
 	int		TranslateSchedule( int scheduleType );
-	void	IdleHeadTurn( const Vector &vTargetPos, float flDuration = 0.0, float flImportance = 1.0f );
+	void	IdleHeadTurn( CBaseEntity *pTarget, float flDuration = 0.0, float flImportance = 1.0f );
 	void    SetHeadDirection( const Vector &vTargetPos, float flInterval);
 	bool	CorpseGib( const CTakeDamageInfo &info );
 
@@ -74,19 +67,32 @@ public:
 
 	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 
-
 	void			StartFollowing( CBaseEntity *pLeader );
 	void			StopFollowing( void );
+	int				PlayScriptedSentence( const char *pszSentence, float delay, float volume, soundlevel_t soundlevel, bool bConcurrent, CBaseEntity *pListener );
+
 	
 	void			Touch( CBaseEntity *pOther );
 
-	float			PickRandomLookTarget( bool bExcludePlayers = false, float minTime = 1.5, float maxTime = 2.5 );
+	float			PickLookTarget( bool bExcludePlayers = false, float minTime = 1.5, float maxTime = 2.5 );
+
+	bool			OnObstructingDoor( AILocalMoveGoal_t *pMoveGoal, CBaseDoor *pDoor, float distClear, AIMoveResult_t *pResult );
+
+	// Hacks! HL2 has a system for avoiding the player, we don't
+	// This ensures that we fall back to the real player avoidance
+	// Essentially does the opposite of what it says
+	virtual bool ShouldPlayerAvoid( void ) { return false; }
+
+	bool IsValidSpeechTarget( int flags, CBaseEntity *pEntity );
 
 protected:
 	virtual void 	FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int FIdleSpeak ( void );
 
 private:
 	virtual void	DeclineFollowing( void ) {}
+
+	virtual int		SelectDeadSchedule( void );
 	
 public:
 

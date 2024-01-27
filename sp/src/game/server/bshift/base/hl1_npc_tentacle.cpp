@@ -1,9 +1,4 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -15,22 +10,23 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Senses.h"
-#include	"AI_Motor.h"
+#include	"ai_default.h"
+#include	"ai_task.h"
+#include	"ai_schedule.h"
+#include	"ai_node.h"
+#include	"ai_hull.h"
+#include	"ai_hint.h"
+#include	"ai_memory.h"
+#include	"ai_route.h"
+#include	"ai_motor.h"
+#include	"ai_senses.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -80,6 +76,9 @@ public:
 	void Precache( );
 	bool KeyValue( const char *szKeyName, const char *szValue );
 
+	bool QueryHearSound( CSound *pSound ) { return true; } // Tentacle isn't picky.
+
+	
 	int Level( float dz );
 	int MyLevel( void );
 	float MyHeight( void );
@@ -124,10 +123,6 @@ public:
 	Vector m_vecPrevSound;
 	float m_flPrevSoundTime;
 
-	static const char *pHitSilo[];
-	static const char *pHitDirt[];
-	static const char *pHitWater[];
-
 	float	MaxYawSpeed( void ) { 	return 18.0f;	}
 
 	bool	HeardAnything( void );
@@ -147,8 +142,8 @@ static const char *pTentacleFollowerBoneNames[] =
 	"Bone09"
 };
 
-int CNPC_Tentacle :: g_fFlySound;
-int CNPC_Tentacle :: g_fSquirmSound;
+int CNPC_Tentacle::g_fFlySound;
+int CNPC_Tentacle::g_fSquirmSound;
 
 LINK_ENTITY_TO_CLASS( monster_tentacle, CNPC_Tentacle );
 
@@ -238,8 +233,11 @@ BEGIN_DATADESC( CNPC_Tentacle )
 	DEFINE_FIELD( m_flNextSong, FIELD_TIME ),
 	DEFINE_FIELD( m_iTapSound, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flMaxYaw, FIELD_FLOAT ),
-	DEFINE_FIELD(m_vecPrevSound, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecPrevSound, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_flPrevSoundTime, FIELD_TIME ),
+
+	DEFINE_EMBEDDED( m_BoneFollowerManager ),
+
 	DEFINE_THINKFUNC( Start ),
 	DEFINE_THINKFUNC( Cycle ),
 	DEFINE_ENTITYFUNC( HitTouch ),
@@ -287,13 +285,16 @@ void CNPC_Tentacle::Spawn( )
 	//Necessary for TestCollision to be called for hitbox ray hits
 	AddSolidFlags( FSOLID_CUSTOMRAYTEST );
 
-	SetMoveType( MOVETYPE_FLY );
+	SetMoveType( MOVETYPE_NONE );
 	ClearEffects();
 	m_iHealth			= 75;
 	SetSequence( 0 );
 
 	SetModel( "models/tentacle2.mdl" );
 	UTIL_SetSize( this, Vector( -32, -32, 0 ), Vector( 32, 32, 64 ) );
+
+	// Use our hitboxes to determine our render bounds
+	CollisionProp()->SetSurroundingBoundsType( USE_HITBOXES );
 
 	m_takedamage		= DAMAGE_AIM;
 	AddFlag( FL_NPC );
@@ -324,6 +325,8 @@ void CNPC_Tentacle::Spawn( )
 	UTIL_SetOrigin( this, GetAbsOrigin() );
 
 	CreateVPhysics();
+
+	AddEffects( EF_NOSHADOW );
 }
 
 void CNPC_Tentacle::UpdateOnRemove( void )
@@ -466,14 +469,10 @@ void CNPC_Tentacle::Start( void )
 
 bool CNPC_Tentacle::HeardAnything( void )
 {
-	if ( HasCondition( COND_HEAR_DANGER ) ||
-		 HasCondition( COND_HEAR_THUMPER ) ||
-		 HasCondition( COND_HEAR_BUGBAIT ) ||
+	if ( HasCondition( COND_HEAR_DANGER ) || // I remove a bunch of sounds from here on purpose. Talk to me if you're changing this!(sjb)
 		 HasCondition( COND_HEAR_COMBAT ) ||
-		 HasCondition( COND_HEAR_WORLD ) ||
-		 HasCondition( COND_HEAR_PLAYER ) ||
-		 HasCondition( COND_HEAR_BULLET_IMPACT ) ||
-		 HasCondition( COND_HEAR_PHYSICS_DANGER ) )
+		 HasCondition( COND_HEAR_WORLD )  ||
+		 HasCondition( COND_HEAR_PLAYER ) )
 		 return true;
 
 	return false;
@@ -481,6 +480,8 @@ bool CNPC_Tentacle::HeardAnything( void )
 
 void CNPC_Tentacle::Cycle( void )
 {
+	//NDebugOverlay::Cross3D( EarPosition(), 32, 255, 0, 0, false, 0.1 );
+
 	// ALERT( at_console, "%s %.2f %d %d\n", STRING( pev->targetname ), pev->origin.z, m_MonsterState, m_IdealMonsterState );
 	SetNextThink( gpGlobals->curtime + 0.1 );
 
@@ -508,12 +509,14 @@ void CNPC_Tentacle::Cycle( void )
 
 	// Listen will set this if there's something in my sound list
 	if ( HeardAnything() )
-		 pSound = GetSenses()->GetClosestSound( false );
+		 pSound = GetSenses()->GetClosestSound( false, (SOUND_DANGER|SOUND_COMBAT|SOUND_WORLD|SOUND_PLAYER) );
 	else
 		 pSound = NULL;
 
 	if ( pSound )
 	{
+		//NDebugOverlay::Line( EarPosition(), pSound->GetSoundOrigin(), 0, 255, 0, false, 0.2 );
+
 		Vector vecDir;
 		if ( gpGlobals->curtime - m_flPrevSoundTime < 0.5 )
 		{
@@ -541,7 +544,7 @@ void CNPC_Tentacle::Cycle( void )
 		if (m_flSoundTime < gpGlobals->curtime)
 		{
 			// play "I hear new something" sound
-			UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Alert", 1.0, SNDLVL_GUNFIRE, 0, 100);
+			 UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin() + Vector( 0, 0, MyHeight()), "Tentacle.Alert", 1.0, SNDLVL_GUNFIRE, 0, 100);
 		}
 		m_flSoundTime = gpGlobals->curtime + random->RandomFloat( 5.0, 10.0 );
 	}
@@ -783,7 +786,7 @@ void CNPC_Tentacle::Cycle( void )
 		else
 		{
 			m_iDir = -1; // just to safe
-			SetCycle( 0 );
+			SetCycle( 1.0f );
 		}
 
 		ResetSequenceInfo( );
@@ -867,7 +870,6 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 
 	case 3: // start killing swing
 		m_iHitDmg = 200;
-		// UTIL_EmitAmbientSound(this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), "tentacle/te_swing1.wav", 1.0, SNDLVL_NORM, 0, 100);
 		break;
 
 	case 4: // end killing swing
@@ -875,7 +877,6 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 		break;
 
 	case 5: // just "whoosh" sound
-		// UTIL_EmitAmbientSound(this, GetAbsOrigin() + Vector( 0, 0, MyHeight()), "tentacle/te_swing2.wav", 1.0, SNDLVL_NORM, 0, 100);
 		break;
 
 	case 2:	// tap scrape
@@ -923,24 +924,28 @@ void CNPC_Tentacle::HandleAnimEvent( animevent_t *pEvent )
 
 void CNPC_Tentacle::HitTouch( CBaseEntity *pOther )
 {
-	trace_t tr;
-	tr = GetTouchTrace();
-
 	if (m_flHitTime > gpGlobals->curtime)
 		return;
 
 	// only look at the ones where the player hit me
-	if( pOther == NULL || pOther->GetModelIndex() == GetModelIndex() || (pOther->GetSolidFlags() & FSOLID_TRIGGER) )
+	if( pOther == NULL || pOther->GetModelIndex() == GetModelIndex() || ( pOther->GetSolidFlags() & FSOLID_TRIGGER ) )
 		 return;
 
 	//Right now the BoneFollower will always be hit in box 0, and 
 	//will pass that to us. Make *any* touch by the physics objects a kill
 	//as the ragdoll only covers the top portion of the tentacle.
-	CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
-	CalculateMeleeDamageForce( &info, (pOther->GetAbsOrigin() - GetAbsOrigin()), pOther->GetAbsOrigin() );
-	pOther->TakeDamage( info );
+	if ( pOther->m_takedamage )
+	{
+		CTakeDamageInfo info( this, this, m_iHitDmg, DMG_CLUB );
 
-	m_flHitTime = gpGlobals->curtime + 0.5;
+		Vector vDamageForce = pOther->GetAbsOrigin() - GetAbsOrigin();
+		VectorNormalize( vDamageForce );
+
+		CalculateMeleeDamageForce( &info, vDamageForce, pOther->GetAbsOrigin() );
+		pOther->TakeDamage( info );
+
+		m_flHitTime = gpGlobals->curtime + 0.5;
+	}
 }
 
 int CNPC_Tentacle::OnTakeDamage( const CTakeDamageInfo &info )
@@ -948,7 +953,7 @@ int CNPC_Tentacle::OnTakeDamage( const CTakeDamageInfo &info )
 	CTakeDamageInfo i = info;
 
 	//Don't allow the tentacle to die. Instead set health to 1, so we can do our own death and rebirth
-	if( i.GetDamage() > m_iHealth )
+	if( (int)i.GetDamage() >= m_iHealth )
 	{
 		i.SetDamage( 0.0f );
 		m_iHealth = 1;

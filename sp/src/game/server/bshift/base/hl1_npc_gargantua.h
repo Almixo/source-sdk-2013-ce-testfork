@@ -1,7 +1,21 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 #ifndef NPC_GARGANTUA_H
 #define NPC_GARGANTUA_H
 
 #include "hl1_ai_basenpc.h"
+#include "beam_shared.h"
+#include "Sprite.h"
+#include "IEffects.h"
+#include "shake.h"
+#include "gib.h"
+#include "func_break.h"
+#include "hl1_shareddefs.h"
 
 class CNPC_Gargantua : public CHL1BaseNPC
 {
@@ -24,9 +38,11 @@ public:
 	void StartTask( const Task_t *pTask );
 	void RunTask ( const Task_t *pTask );
 
+	bool CanBecomeRagdoll() { return false; }
+
 	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &info );
-	
+		
 /*	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType );
 	

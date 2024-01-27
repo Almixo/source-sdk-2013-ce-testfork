@@ -1,17 +1,10 @@
-/***
-*
-*	Copyright (c) 1999, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   Use, distribution, and modification of this source code and/or resulting
-*   object code is restricted to non-commercial enhancements to products from
-*   Valve LLC.  All other use, distribution, or modification is prohibited
-*   without written permission from Valve LLC.
-*
-****/
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
 /*
 
 ===== h_battery.cpp ========================================================
@@ -24,8 +17,10 @@
 #include "gamerules.h"
 #include "player.h"
 #include "engine/IEngineSound.h"
+#include "in_buttons.h"
 
 ConVar	sk_suitcharger( "sk_suitcharger","0" );
+#define HL1_MAX_ARMOR 100
 
 class CRecharge : public CBaseToggle
 {
@@ -33,12 +28,15 @@ public:
 	DECLARE_CLASS( CRecharge, CBaseToggle );
 
 	void Spawn( );
+
+	virtual void Precache();
+
 	bool CreateVPhysics();
 	void Off(void);
 	void Recharge(void);
 	bool KeyValue( const char *szKeyName, const char *szValue );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int	ObjectCaps( void ) { return (BaseClass :: ObjectCaps() | FCAP_CONTINUOUS_USE); }
+	virtual int	ObjectCaps( void ) { return (BaseClass::ObjectCaps() | m_iCaps ); }
 
 	DECLARE_DATADESC();
 
@@ -48,6 +46,8 @@ public:
 	int		m_iOn;			// 0 = off, 1 = startup, 2 = going
 	float   m_flSoundTime;
 	
+	int		m_iCaps;
+
 	COutputFloat m_OutRemainingCharge;
 };
 
@@ -58,12 +58,13 @@ BEGIN_DATADESC( CRecharge )
 	DEFINE_FIELD( m_iJuice, FIELD_INTEGER),
 	DEFINE_FIELD( m_iOn, FIELD_INTEGER),
 	DEFINE_FIELD( m_flSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_iCaps, FIELD_INTEGER ),
 
 	// Function Pointers
 	DEFINE_FUNCTION( Off ),
 	DEFINE_FUNCTION( Recharge ),
 
-	DEFINE_OUTPUT( m_OutRemainingCharge, "OutRemainingCharge" ),
+	DEFINE_OUTPUT(m_OutRemainingCharge, "OutRemainingCharge"),
 
 END_DATADESC()
 
@@ -97,12 +98,22 @@ void CRecharge::Spawn()
 	SetSolid( SOLID_BSP );
 	SetMoveType( MOVETYPE_PUSH );
 
-	UTIL_SetSize(this, CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs());
 	SetModel( STRING( GetModelName() ) );
 	m_iJuice = sk_suitcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
 
+	m_iCaps	= FCAP_CONTINUOUS_USE;
+
 	CreateVPhysics();
+}
+
+void CRecharge::Precache()
+{
+	BaseClass::Precache();
+
+	PrecacheScriptSound( "SuitRecharge.Deny" );
+	PrecacheScriptSound( "SuitRecharge.Start" );
+	PrecacheScriptSound( "SuitRecharge.ChargingLoop" );
 }
 
 bool CRecharge::CreateVPhysics()
@@ -113,9 +124,21 @@ bool CRecharge::CreateVPhysics()
 
 void CRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 { 
+	// Make sure that we have a caller
+	if (!pActivator)
+		return;
+
 	// if it's not a player, ignore
 	if ( !pActivator->IsPlayer() )
 		return;
+
+	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>( pActivator );
+
+	if ( pPlayer == NULL )
+		 return;
+
+	// Reset to a state of continuous use.
+	m_iCaps = FCAP_CONTINUOUS_USE;
 
 	// if there is no juice left, turn it off
 	if (m_iJuice <= 0)
@@ -135,6 +158,17 @@ void CRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 		return;
 	}
 
+		// If we're over our limit, debounce our keys
+	if ( pPlayer->ArmorValue() >= HL1_MAX_ARMOR)
+	{
+		// Make the user re-use me to get started drawing health.
+		pPlayer->m_afButtonPressed &= ~IN_USE;
+		m_iCaps = FCAP_IMPULSE_USE;
+		
+		EmitSound( "SuitRecharge.Deny" );
+		return;
+	}
+
 	SetNextThink( gpGlobals->curtime + 0.25 );
 	SetThink(&CRecharge::Off);
 
@@ -143,16 +177,8 @@ void CRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	if (m_flNextCharge >= gpGlobals->curtime)
 		return;
 
-	// Make sure that we have a caller
-	if (!pActivator)
-		return;
-
 	m_hActivator = pActivator;
 
-	//only recharge the player
-
-	if (!m_hActivator->IsPlayer() )
-		return;
 	
 	// Play the on sound or the looping charging sound
 	if (!m_iOn)
@@ -172,10 +198,10 @@ void CRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	CBasePlayer *pl = (CBasePlayer *) m_hActivator.Get();
 
 	// charge the player
-	if (pl->ArmorValue() < 100)
+	if (pl->ArmorValue() < HL1_MAX_ARMOR)
 	{
 		m_iJuice--;
-		pl->IncrementArmorValue( 1, 100 );
+		pl->IncrementArmorValue( 1, HL1_MAX_ARMOR );
 	}
 
 	// Send the output.
@@ -190,7 +216,7 @@ void CRecharge::Recharge(void)
 {
 	m_iJuice = sk_suitcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
-	SetThink( &CRecharge::SUB_DoNothing );
+	SetThink( &CBaseEntity::SUB_DoNothing );
 }
 
 void CRecharge::Off(void)

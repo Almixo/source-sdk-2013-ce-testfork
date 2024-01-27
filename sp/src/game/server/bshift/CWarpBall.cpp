@@ -24,7 +24,7 @@ public:
 	void Spawn(void);
 	void Precache(void);
 	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
-	void Think(void) override;
+	void BallThink(void);
 	void InputActivate(inputdata_t &inputdata);
 
 	void RunBeams(void);
@@ -59,6 +59,8 @@ BEGIN_DATADESC(CWarpBall)
 	DEFINE_FIELD(bActive, FIELD_BOOLEAN),
 	DEFINE_FIELD(fActiveTime, FIELD_TIME),
 	DEFINE_FIELD(fBeamTime, FIELD_TIME),
+
+	DEFINE_ENTITYFUNC(BallThink),
 END_DATADESC();
 //============================================================
 
@@ -100,6 +102,7 @@ void CWarpBall::Spawn(void)
 
 	DevMsg("%s spawned at %f %f %f!\n", GetDebugName(), vecOrigin.x, vecOrigin.y, vecOrigin.z);
 
+	SetThink( NULL );
 	SetNextThink(TICK_NEVER_THINK);
 }
 void CWarpBall::Precache(void)
@@ -136,6 +139,7 @@ void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 	RunSprites();
 	RunSounds();
 
+	SetThink( &CWarpBall::BallThink );
 	SetNextThink(gpGlobals->curtime);
 }
 void CWarpBall::RunBeams(void)
@@ -154,32 +158,60 @@ void CWarpBall::RunBeams(void)
 	//	te->BeamPoints(filter, 0, &vecOrigin, &tr.endpos, PrecacheModel("sprites/lgtning.vmt"), 0, 0, 10, 0.5, 1.8, 1.8, 0, 64, 197, 243, 169, 150, 35);
 	//}
 
-	pBeam = (CEnvBeam*)CreateNoSpawn("env_beam", vecOrigin, vec3_angle);
+	//pBeam = (CEnvBeam*)CreateNoSpawn("env_beam", vecOrigin, vec3_angle);
 
-	if (!pBeam)
+	//if (!pBeam)
+	//	return;
+
+	//pBeam->m_iszSpriteName = MAKE_STRING("sprites/lgtning.vmt");
+	//pBeam->SetAbsOrigin(vecOrigin);
+	//pBeam->m_restrike = -0.5;
+	//pBeam->m_noiseAmplitude = 15.0; //65 :questionmark:
+	//pBeam->m_boltWidth = 1.8;
+	//pBeam->m_life = 0.5;
+	//pBeam->SetColor(0, 255, 0);
+	//pBeam->AddSpawnFlags(SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON); //SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON
+	//pBeam->m_radius = fRadius;
+	//pBeam->m_iszStartEntity = MAKE_STRING(GetDebugName()); //SetStartEntity will fuck itself TODO: work around this!
+
+	//DispatchSpawn(pBeam);
+
+	///*pBeam->SetThink(&CEnvBeam::StrikeThink);
+	//pBeam->SetNextThink(gpGlobals->curtime);*/
+
+	//inputdata_t info;
+	//info.pActivator = this;
+	//info.pCaller = this;
+
+	//pBeam->InputToggle(info);
+
+	pBeam = ( CEnvBeam *)CreateNoSpawn( "env_beam", vecOrigin, vec3_angle );
+	if ( !pBeam )
 		return;
 
-	pBeam->m_iszSpriteName = MAKE_STRING("sprites/lgtning.vmt");
-	pBeam->SetAbsOrigin(vecOrigin);
-	pBeam->m_restrike = -0.5;
-	pBeam->m_noiseAmplitude = 15.0; //65 :questionmark:
+	char szName[ 64 + 1 ];
+	Q_snprintf( szName, sizeof szName, "%s_beams", GetDebugName() );
+
 	pBeam->m_boltWidth = 1.8;
-	pBeam->m_life = 0.5;
-	pBeam->SetColor(0, 255, 0);
-	pBeam->AddSpawnFlags(SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON); //SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON
-	pBeam->m_radius = fRadius;
-	pBeam->m_iszStartEntity = MAKE_STRING(GetDebugName()); //SetStartEntity will fuck itself TODO: work around this!
+	pBeam->m_iszSpriteName = MAKE_STRING( "sprites/lgtning.vmt" );
+	pBeam->SetName( MAKE_STRING( szName ) );
+	pBeam->m_life = .5;
+	pBeam->m_restrike = -.5;
+	pBeam->m_iszStartEntity = MAKE_STRING( pBeam->GetDebugName() );
+	pBeam->AddSpawnFlags( SF_BEAM_TOGGLE | SF_BEAM_RANDOM );
+	pBeam->m_noiseAmplitude = 35;
+	pBeam->m_radius = 100;
+	pBeam->SetRenderColor( 0, 255, 0 );
+	pBeam->SetBrightness( 150 );
 
-	DispatchSpawn(pBeam);
+	DispatchSpawn( pBeam );
 
-	/*pBeam->SetThink(&CEnvBeam::StrikeThink);
-	pBeam->SetNextThink(gpGlobals->curtime);*/
+	inputdata_t input;
+	input.pActivator = input.pCaller = this;
 
-	inputdata_t info;
-	info.pActivator = this;
-	info.pCaller = this;
+	pBeam->InputToggle( input );
 
-	pBeam->InputToggle(info);
+	Msg( "name %s\n", pBeam->GetDebugName() );
 }
 void CWarpBall::RunSprites(void)
 {
@@ -206,7 +238,7 @@ void CWarpBall::RunSounds(void)
 
 	CSoundEnt::InsertSound(SOUND_DANGER, vecOrigin, 1024, 0.5);
 }
-void CWarpBall::Think(void)
+void CWarpBall::BallThink(void)
 {
 	if (!bActive)
 		return;
@@ -222,7 +254,7 @@ void CWarpBall::Think(void)
 
 			for (int i = 0; i < iCount; i++)
 			{
-				if (pList[i] == nullptr)
+				if (!pList[i])
 					continue;
 
 				if (pList[i]->IsWorld())
@@ -255,6 +287,7 @@ void CWarpBall::Think(void)
 		pBeam->m_life = 0;
 		pBeam->TurnOff();
 		pBeam->SetThink(&CEnvBeam::SUB_Remove);
+		pBeam->SetNextThink( gpGlobals->curtime );
 	}
 
 	if (fActiveTime < gpGlobals->curtime)
@@ -267,5 +300,5 @@ void CWarpBall::Think(void)
 		return;
 	}
 
-	SetNextThink(gpGlobals->curtime);
+	SetNextThink(gpGlobals->curtime + 0.1f);
 }

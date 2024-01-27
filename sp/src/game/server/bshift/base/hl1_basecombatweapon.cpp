@@ -1,17 +1,15 @@
-#include "hl1_basecombatweapon_shared.h"
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 
 #include "cbase.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "effect_dispatch_data.h"
+#include "te_effect_dispatch.h"
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
 void CBaseHL1CombatWeapon::Precache()
 {
 	BaseClass::Precache();
@@ -25,18 +23,29 @@ void CBaseHL1CombatWeapon::Precache()
 void CBaseHL1CombatWeapon::FallInit( void )
 {
 	SetModel( GetWorldModel() );
-	SetSize( Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );	// Pointsize until it lands on the ground
-	SetMoveType( MOVETYPE_FLYGRAVITY );
+	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_TRIGGER );
 	AddSolidFlags( FSOLID_NOT_SOLID );
 
 	SetPickupTouch();
-	
+
 	SetThink( &CBaseHL1CombatWeapon::FallThink );
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
+
+	// HACKHACK - On ground isn't always set, so look for ground underneath
+	trace_t tr;
+	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector( 0, 0, 2 ), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+
+	if ( tr.fraction < 1.0 )
+	{
+		SetGroundEntity( tr.m_pEnt );
+	}
+
+	SetViewOffset( Vector( 0, 0, 8 ) );
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Items that have just spawned run this think to catch them when 
@@ -44,11 +53,11 @@ void CBaseHL1CombatWeapon::FallInit( void )
 //			we change its solid type to trigger and set it in a large box that 
 //			helps the player get it.
 //-----------------------------------------------------------------------------
-void CBaseHL1CombatWeapon::FallThink ( void )
+void CBaseHL1CombatWeapon::FallThink( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if ( CBaseEntity::GetFlags() & FL_ONGROUND )
+	if ( GetFlags() & FL_ONGROUND )
 	{
 		// clatter if we have an owner (i.e., dropped by someone)
 		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
@@ -63,6 +72,51 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 		ang.z = 0;
 		SetAbsAngles( ang );
 
-		Materialize(); 
+		Materialize();
+
+		SetSize( Vector( -24, -24, 0 ), Vector( 24, 24, 16 ) );
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Eject boolets!
+//-----------------------------------------------------------------------------
+void CBaseHL1CombatWeapon::EjectShell( CBaseEntity *pPlayer, int iType )
+{
+	QAngle angShellAngles = pPlayer->GetAbsAngles();
+
+	Vector vecForward, vecRight, vecUp;
+	AngleVectors( angShellAngles, &vecForward, &vecRight, &vecUp );
+
+	Vector vecShellPosition = pPlayer->GetAbsOrigin() + pPlayer->GetViewOffset();
+	switch ( iType )
+	{
+	case 0:
+	default:
+		vecShellPosition += vecRight * 4;
+		vecShellPosition += vecUp * -12;
+		vecShellPosition += vecForward * 20;
+		break;
+	case 1:
+		vecShellPosition += vecRight * 6;
+		vecShellPosition += vecUp * -12;
+		vecShellPosition += vecForward * 32;
+		break;
+	}
+
+	Vector vecShellVelocity = vec3_origin;
+	vecShellVelocity += vecRight * RandomFloat( 50, 70 );
+	vecShellVelocity += vecUp * RandomFloat( 100, 150 );
+	vecShellVelocity += vecForward * 25;
+
+	angShellAngles.x = 0;
+	angShellAngles.z = 0;
+
+	CEffectData	data;
+	data.m_vStart = vecShellVelocity;
+	data.m_vOrigin = vecShellPosition;
+	data.m_vAngles = angShellAngles;
+	data.m_fFlags = iType;
+
+	DispatchEffect( "HL1ShellEject", data );
 }

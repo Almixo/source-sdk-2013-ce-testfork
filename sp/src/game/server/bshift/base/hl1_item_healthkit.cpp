@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 
 #include "cbase.h"
 #include "gamerules.h"
@@ -10,6 +10,7 @@
 #include "items.h"
 #include "engine/IEngineSound.h"
 #include "hl1_items.h"
+#include "in_buttons.h"
 
 
 ConVar	sk_healthkit( "sk_healthkit","0" );		
@@ -36,10 +37,10 @@ PRECACHE_REGISTER(item_healthkit);
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHealthKit :: Spawn( void )
+void CHealthKit::Spawn( void )
 {
 	Precache();
-	SetModel( "models/items/healthkit.mdl" );
+	SetModel( "models/w_medkit.mdl" );
 
 	BaseClass::Spawn();
 }
@@ -50,8 +51,9 @@ void CHealthKit :: Spawn( void )
 //-----------------------------------------------------------------------------
 void CHealthKit::Precache( void )
 {
-	BaseClass::Precache();
-	PrecacheModel("models/items/healthkit.mdl");
+	PrecacheModel("models/w_medkit.mdl");
+
+	PrecacheScriptSound( "HealthKit.Touch" );
 }
 
 
@@ -108,7 +110,9 @@ public:
 
 	void Precache( void )
 	{
-		engine->PrecacheModel("models/healthvial.mdl");
+		PrecacheModel("models/healthvial.mdl");
+
+		PrecacheScriptSound( "HealthVial.Touch" );
 	}
 
 	bool MyTouch( CBasePlayer *pPlayer )
@@ -159,13 +163,14 @@ public:
 	void Recharge(void);
 	bool KeyValue(  const char *szKeyName, const char *szValue );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int	ObjectCaps( void ) { return BaseClass :: ObjectCaps() | FCAP_CONTINUOUS_USE; }
+	virtual int	ObjectCaps( void ) { return BaseClass::ObjectCaps() | m_iCaps; }
 
 	float m_flNextCharge; 
 	int		m_iReactivate ; // DeathMatch Delay until reactvated
 	int		m_iJuice;
 	int		m_iOn;			// 0 = off, 1 = startup, 2 = going
 	float   m_flSoundTime;
+	int		m_iCaps;
 
 	DECLARE_DATADESC();
 };
@@ -180,6 +185,7 @@ BEGIN_DATADESC( CWallHealth )
 	DEFINE_FIELD( m_iJuice, FIELD_INTEGER),
 	DEFINE_FIELD( m_iOn, FIELD_INTEGER),
 	DEFINE_FIELD( m_flSoundTime, FIELD_TIME),
+	DEFINE_FIELD( m_iCaps, FIELD_INTEGER ),
 
 	// Function Pointers
 	DEFINE_FUNCTION( Off ),
@@ -223,11 +229,12 @@ void CWallHealth::Spawn(void)
 	SetSolid( SOLID_BSP );
 	SetMoveType( MOVETYPE_PUSH );
 
-	UTIL_SetSize(this, CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs());
 	SetModel( STRING( GetModelName() ) );
 
 	m_iJuice = sk_healthcharger.GetFloat();
 	SetTextureFrameIndex( 0 );
+
+	m_iCaps	= FCAP_CONTINUOUS_USE;
 
 	CreateVPhysics();
 }
@@ -246,6 +253,10 @@ bool CWallHealth::CreateVPhysics(void)
 //-----------------------------------------------------------------------------
 void CWallHealth::Precache(void)
 {
+	PrecacheScriptSound( "WallHealth.Deny" );
+	PrecacheScriptSound( "WallHealth.Start" );
+	PrecacheScriptSound( "WallHealth.LoopingContinueCharge" );
+	PrecacheScriptSound( "WallHealth.Recharge" );
 }
 
 
@@ -265,6 +276,9 @@ void CWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 	if ( !pActivator->IsPlayer() )
 		return;
 
+	// Reset to a state of continuous use.
+	m_iCaps = FCAP_CONTINUOUS_USE;
+
 	// if there is no juice left, turn it off
 	if (m_iJuice <= 0)
 	{
@@ -272,16 +286,32 @@ void CWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 		SetTextureFrameIndex( 1 );
 	}
 
+	CBasePlayer *pPlayer = ToBasePlayer( pActivator );
+	
 	// if the player doesn't have the suit, or there is no juice left, make the deny noise.
-	// disabled HEV suit dependency for now.
-	//if ((m_iJuice <= 0) || (!(pActivator->m_bWearingSuit)))
-	if (m_iJuice <= 0)
+	if ((m_iJuice <= 0) || (!(pPlayer->m_Local.m_bWearingSuit)))
 	{
 		if (m_flSoundTime <= gpGlobals->curtime)
 		{
 			m_flSoundTime = gpGlobals->curtime + 0.62;
 			EmitSound( "WallHealth.Deny" );
 		}
+		return;
+	}
+
+	if( pActivator->GetHealth() >= pActivator->GetMaxHealth() )
+	{
+		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>(pActivator);
+
+		if( pPlayer )
+		{
+			pPlayer->m_afButtonPressed &= ~IN_USE;
+		}
+		
+		// Make the user re-use me to get started drawing health.
+		m_iCaps = FCAP_IMPULSE_USE;
+
+		EmitSound( "WallHealth.Deny" );
 		return;
 	}
 

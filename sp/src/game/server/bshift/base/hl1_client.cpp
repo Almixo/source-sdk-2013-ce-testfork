@@ -191,13 +191,16 @@ void InstallGameRules( void )
 	}
 	else
 	{
-		if (teamplay.GetInt() > 0)
+		if (teamplay.GetBool())
 		{
 			// teamplay
 			CreateGameRulesObject("CTeamplayRules");
 		}
-		// vanilla deathmatch
-		CreateGameRulesObject("CMultiplayRules");
+		else
+		{
+			// vanilla deathmatch
+			CreateGameRulesObject("CMultiplayRules");
+		}
 	}
 }
 

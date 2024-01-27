@@ -1,8 +1,8 @@
-//====== Copyright © 1996-2003, Valve Corporation, All rights reserved. =======
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
-//=============================================================================
+//=============================================================================//
 /*
 ===== item_suit.cpp ========================================================
 
@@ -20,6 +20,8 @@
 
 #define SUIT_MODEL "models/w_suit.mdl"
 
+extern int gEvilImpulse101;
+
 class CItemSuit : public CHL1Item
 {
 public:
@@ -30,20 +32,25 @@ public:
 		Precache( );
 		SetModel( SUIT_MODEL );
 		BaseClass::Spawn( );
+
+		CollisionProp()->UseTriggerBounds( true, 12.0f );
 	}
 	void Precache( void )
 	{
-		engine->PrecacheModel( SUIT_MODEL );
+		PrecacheModel( SUIT_MODEL );
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
 		if ( pPlayer->IsSuitEquipped() )
 			return false;
 
-		if ( HasSpawnFlags( SF_SUIT_SHORTLOGON ) )
-			UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_A0");		// short version of suit logon,
-		else
-			UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_AAx");	// long version of suit logon
+		if( !gEvilImpulse101 )
+		{
+			if ( HasSpawnFlags( SF_SUIT_SHORTLOGON ) )
+				UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_A0");		// short version of suit logon,
+			else
+				UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_AAx");	// long version of suit logon
+		}
 
 		pPlayer->EquipSuit();
 		return true;

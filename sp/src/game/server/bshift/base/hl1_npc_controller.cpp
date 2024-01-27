@@ -1,9 +1,4 @@
-//=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -15,32 +10,19 @@
 // $Log: $
 //
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #include	"cbase.h"
-#include	"AI_Default.h"
-#include	"AI_Task.h"
-#include	"AI_Schedule.h"
-#include	"AI_Node.h"
-#include	"AI_Hull.h"
-#include	"AI_Hint.h"
-#include	"AI_Route.h"
-#include	"AI_Navigator.h"
-//#include	"hl1_npc_controller.h"
 #include	"ai_basenpc_flyer.h"
 #include	"soundent.h"
-#include	"game.h"
-#include	"NPCEvent.h"
-#include	"EntityList.h"
+#include	"npcevent.h"
+#include	"entitylist.h"
 #include	"activitylist.h"
-#include	"animation.h"
 #include	"basecombatweapon.h"
 #include	"IEffects.h"
-#include	"vstdlib/random.h"
-#include	"engine/IEngineSound.h"
 #include	"ammodef.h"
 #include	"Sprite.h"
-#include	"AI_MoveProbe.h"
+#include	"ai_moveprobe.h"
 
 
 //=========================================================
@@ -60,6 +42,13 @@ ConVar sk_controller_health ( "sk_controller_health", "60" );
 ConVar sk_controller_dmgzap ( "sk_controller_dmgzap", "15" );
 ConVar sk_controller_speedball ( "sk_controller_speedball", "650" );
 ConVar sk_controller_dmgball ( "sk_controller_dmgball", "3" );
+
+int ACT_CONTROLLER_UP;
+int ACT_CONTROLLER_DOWN;
+int ACT_CONTROLLER_LEFT;
+int ACT_CONTROLLER_RIGHT;
+int ACT_CONTROLLER_FORWARD;
+int ACT_CONTROLLER_BACKWARD;
 
 class CSprite;
 class CNPC_Controller;
@@ -125,6 +114,7 @@ public:
 
 	void MoveToTarget( float flInterval, const Vector &vecMoveTarget );
 
+	Activity NPC_TranslateActivity( Activity eNewActivity );
 	void SetActivity ( Activity NewActivity );
 	bool ShouldAdvanceRoute( float flWaypointDist );
 	int LookupFloat( );
@@ -139,16 +129,14 @@ public:
 	bool HasAlienGibs( void ) { return true; }
 	bool HasHumanGibs( void ) { return false; }
 
-	float m_flNextFlinch; 
-
 	float m_flShootTime;
 	float m_flShootEnd;
 
-	void PainSound( void );
+	void PainSound( const CTakeDamageInfo &info );
 	void AlertSound( void );
 	void IdleSound( void );
 	void AttackSound( void );
-	void DeathSound( void );
+	void DeathSound( const CTakeDamageInfo &info );
 
 	int OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	void Event_Killed( const CTakeDamageInfo &info );
@@ -183,8 +171,6 @@ public:
 	void EXPORT BounceTouch( CBaseEntity *pOther );
 	void MovetoTarget( Vector vecTarget );
 
-	int m_iTrail;
-	int m_flNextAttack;
 	float m_flSpawnTime;
 	Vector m_vecIdeal;
 	EHANDLE m_hOwner;
@@ -225,6 +211,9 @@ BEGIN_DATADESC( CNPC_Controller )
 	DEFINE_FIELD( m_velocity, FIELD_VECTOR ),
 	DEFINE_FIELD( m_fInCombat, FIELD_BOOLEAN ),
 
+	DEFINE_FIELD( m_flShootTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flShootEnd, FIELD_TIME ),
+
 END_DATADESC()
 
 
@@ -263,7 +252,6 @@ void CNPC_Controller::Spawn()
 	SetDefaultEyeOffset();
 }
 
-
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
@@ -281,6 +269,7 @@ void CNPC_Controller::Precache()
 	PrecacheScriptSound( "Controller.Die" );
 	PrecacheScriptSound( "Controller.Idle" );
 	PrecacheScriptSound( "Controller.Attack" );
+
 }	
 
 //=========================================================
@@ -288,7 +277,7 @@ void CNPC_Controller::Precache()
 //=========================================================
 int CNPC_Controller::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 {
-	PainSound();
+	PainSound( info );
 	return BaseClass::OnTakeDamage_Alive( info );
 }
 
@@ -297,7 +286,7 @@ bool CNPC_Controller::ShouldGib( const CTakeDamageInfo &info )
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
-	if ( (  g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
+	if ( ( g_pGameRules->Damage_ShouldGibCorpse( info.GetDamageType() ) && m_iHealth < GIB_HEALTH_VALUE ) || ( info.GetDamageType() & DMG_ALWAYSGIB ) )
 		 return true;
 	
 	return false;
@@ -348,7 +337,7 @@ void CNPC_Controller::Event_Killed( const CTakeDamageInfo &info )
 	BaseClass::Event_Killed( info );
 }
 
-void CNPC_Controller::PainSound( void )
+void CNPC_Controller::PainSound( const CTakeDamageInfo &info )
 {
 	if (random->RandomInt(0,5) < 2)
 	{
@@ -375,7 +364,7 @@ void CNPC_Controller::AttackSound( void )
 	EmitSound( filter, entindex(), "Controller.Attack" );
 }
 
-void CNPC_Controller::DeathSound( void )
+void CNPC_Controller::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "Controller.Die" );
@@ -472,6 +461,13 @@ AI_BEGIN_CUSTOM_NPC( monster_alien_controller, CNPC_Controller )
 	DECLARE_TASK( TASK_CONTROLLER_STRAFE )
 	DECLARE_TASK( TASK_CONTROLLER_TAKECOVER )
 	DECLARE_TASK( TASK_CONTROLLER_FAIL )
+
+	DECLARE_ACTIVITY( ACT_CONTROLLER_UP )
+	DECLARE_ACTIVITY( ACT_CONTROLLER_DOWN )
+	DECLARE_ACTIVITY( ACT_CONTROLLER_LEFT )
+	DECLARE_ACTIVITY( ACT_CONTROLLER_RIGHT )
+	DECLARE_ACTIVITY( ACT_CONTROLLER_FORWARD )
+	DECLARE_ACTIVITY( ACT_CONTROLLER_BACKWARD )
 
 	//=========================================================
 	// > SCHED_CONTROLLER_CHASE_ENEMY
@@ -590,7 +586,7 @@ int CNPC_Controller::LookupFloat( )
 {
 	if (m_velocity.Length( ) < 32.0)
 	{
-		return LookupSequence( "up" );
+		return ACT_CONTROLLER_UP;
 	}
 
 	Vector vecForward, vecRight, vecUp;
@@ -603,23 +599,23 @@ int CNPC_Controller::LookupFloat( )
 	if (fabs(x) > fabs(y) && fabs(x) > fabs(z))
 	{
 		if (x > 0)
-			return LookupSequence( "forward");
+			return ACT_CONTROLLER_FORWARD;
 		else
-			return LookupSequence( "backward");
+			return ACT_CONTROLLER_BACKWARD;
 	}
 	else if (fabs(y) > fabs(z))
 	{
 		if (y > 0)
-			return LookupSequence( "right");
+			return ACT_CONTROLLER_RIGHT;
 		else
-			return LookupSequence( "left");
+			return ACT_CONTROLLER_LEFT;
 	}
 	else
 	{
 		if (z > 0)
-			return LookupSequence( "up");
+			return ACT_CONTROLLER_UP;
 		else
-			return LookupSequence( "down");
+			return ACT_CONTROLLER_DOWN;
 	}
 }
 
@@ -701,7 +697,7 @@ void CNPC_Controller::RunTask ( const Task_t *pTask )
 				if( HasCondition( COND_CAN_RANGE_ATTACK1 ))
 				{
 					SetActivity( ACT_RANGE_ATTACK1 );
-					SetCycle( 0 );
+					SetCycle( 0 ); 
 					ResetSequenceInfo( );
 					m_fInCombat = true;
 				}
@@ -714,12 +710,10 @@ void CNPC_Controller::RunTask ( const Task_t *pTask )
 				}
 				else
 				{
-					int iFloat = LookupFloat();
-					if( IsSequenceFinished() || iFloat != GetSequence() )
+					int iFloatActivity = LookupFloat();
+					if( IsSequenceFinished() || iFloatActivity != GetActivity() )
 					{
-						SetSequence( iFloat );
-						SetCycle( 0 );
-						ResetSequenceInfo( );
+						SetActivity( (Activity)iFloatActivity );
 					}
 				}
 			}
@@ -733,10 +727,6 @@ void CNPC_Controller::RunTask ( const Task_t *pTask )
 
 void CNPC_Controller::SetSequence( int nSequence )
 {
-	int x;
-
-	x = 4;
-
 	BaseClass::SetSequence( nSequence );
 }
 
@@ -811,6 +801,21 @@ int CNPC_Controller::RangeAttack2Conditions ( float flDot, float flDist )
 //	}
 
 	return COND_CAN_RANGE_ATTACK2;
+}
+
+//=========================================================
+//=========================================================
+Activity CNPC_Controller::NPC_TranslateActivity( Activity eNewActivity )
+{
+	switch ( eNewActivity)
+	{
+	case ACT_IDLE:
+		return (Activity)LookupFloat();
+		break;
+
+	default:
+		return BaseClass::NPC_TranslateActivity( eNewActivity );
+	}
 }
 
 //=========================================================
@@ -1033,6 +1038,12 @@ BEGIN_DATADESC( CNPC_ControllerHeadBall )
 	DEFINE_THINKFUNC( KillThink ),
 	DEFINE_ENTITYFUNC( BounceTouch ),
 
+	DEFINE_FIELD( m_pSprite, FIELD_CLASSPTR ),
+
+	DEFINE_FIELD( m_flSpawnTime, FIELD_TIME ),
+	DEFINE_FIELD( m_vecIdeal, FIELD_VECTOR ),
+	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
+
 END_DATADESC()
 
 
@@ -1065,20 +1076,22 @@ void CNPC_ControllerHeadBall::Spawn( void )
 }
 
 
-void CNPC_ControllerHeadBall :: Precache( void )
+void CNPC_ControllerHeadBall::Precache( void )
 {
-	/*engine->PrecacheModel( "sprites/xspark4.vmt");
-	enginesound->PrecacheSound("debris/zap4.wav");
-	enginesound->PrecacheSound("weapons/electro4.wav");*/
-
 	PrecacheModel( "sprites/xspark4.vmt");
 }
 
 extern short		g_sModelIndexLaser;	
 
-void CNPC_ControllerHeadBall :: HuntThink( void  )
+void CNPC_ControllerHeadBall::HuntThink( void  )
 {
 	SetNextThink( gpGlobals->curtime + 0.1 );
+
+	if( !m_pSprite )
+	{
+		Assert(0);
+		return;
+	}
 
 	m_pSprite->SetBrightness( m_pSprite->GetBrightness() - 5, 0.1f );
 
@@ -1126,7 +1139,7 @@ void CNPC_ControllerHeadBall :: HuntThink( void  )
 
 		}
 
-		UTIL_EmitAmbientSound( entindex(), GetAbsOrigin(), "Controller.ElectroSound", 0.5, SNDLVL_NORM, 0, 100);
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), GetAbsOrigin(), "Controller.ElectroSound", 0.5, SNDLVL_NORM, 0, 100 );
 
 		SetNextAttack( gpGlobals->curtime + 3.0 );
 
@@ -1163,7 +1176,7 @@ void CNPC_ControllerHeadBall::BounceTouch( CBaseEntity *pOther )
 	VectorNormalize( vecDir );
 
 	trace_t tr;
-	tr = GetTouchTrace();
+	tr = CBaseEntity::GetTouchTrace( );
 
 	float n = -DotProduct(tr.plane.normal, vecDir);
 
@@ -1189,6 +1202,10 @@ BEGIN_DATADESC( CNPC_ControllerZapBall )
 
 	DEFINE_THINKFUNC( AnimateThink ),
 	DEFINE_ENTITYFUNC( ExplodeTouch ),
+
+	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_flSpawnTime, FIELD_TIME ),
+	DEFINE_FIELD( m_pSprite, FIELD_CLASSPTR ),
 
 END_DATADESC()
 
@@ -1220,9 +1237,9 @@ void CNPC_ControllerZapBall::Spawn( void )
 }
 
 
-void CNPC_ControllerZapBall :: Precache( void )
+void CNPC_ControllerZapBall::Precache( void )
 {
-	engine->PrecacheModel( "sprites/xspark4.vmt");
+	PrecacheModel( "sprites/xspark4.vmt");
 }
 
 
@@ -1230,7 +1247,7 @@ void CNPC_ControllerZapBall::AnimateThink( void  )
 {
 	SetNextThink( gpGlobals->curtime + 0.1 );
 	
-	SetCycle( ((int)GetCycle() + 1) % 11);
+	SetCycle( ((int)GetCycle() + 1) % 11 );
 
 	if (gpGlobals->curtime - m_flSpawnTime > 5 || GetAbsVelocity().Length() < 10)
 	{
@@ -1244,8 +1261,8 @@ void CNPC_ControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 {
 	if (m_takedamage = DAMAGE_YES )
 	{
-		trace_t	tr;
-		tr = GetTouchTrace();
+		trace_t tr;
+		tr = GetTouchTrace( );
 
 		ClearMultiDamage( );
 
@@ -1269,7 +1286,7 @@ void CNPC_ControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 
 	//	void UTIL_EmitAmbientSound( CBaseEntity *entity, const Vector &vecOrigin, const char *samp, float vol, soundlevel_t soundlevel, int fFlags, int pitch, float soundtime /*= 0.0f*/ )
 
-		UTIL_EmitAmbientSound( entindex(), tr.endpos, "Controller.ElectroSound", 0.3, SNDLVL_NORM, 0, random->RandomInt(90, 99));
+		UTIL_EmitAmbientSound( GetSoundSourceIndex(), tr.endpos, "Controller.ElectroSound", 0.3, SNDLVL_NORM, 0, random->RandomInt( 90, 99 ) );
 	}
 
 	Kill();

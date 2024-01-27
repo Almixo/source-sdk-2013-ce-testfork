@@ -384,6 +384,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 //			data6.m_nEntIndex	= pPlayer->GetViewModel()->entindex();
 			data6.m_nEntIndex = pPlayer->entindex();
 			data6.m_fFlags = m_bPrimaryFire;
+			data6.m_nColor = flDamage;
 			te->DispatchEffect( filter, 0.0, data6.m_vOrigin, "HL1GaussBeam", data6 );
 		}
 		else
@@ -391,6 +392,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 			data6.m_vOrigin = tr.endpos;
 			data6.m_vStart = vecSrc;
 			data6.m_fFlags = m_bPrimaryFire;
+			data6.m_nColor = flDamage;
 			te->DispatchEffect( filter, 0.0, data6.m_vOrigin, "HL1GaussBeamReflect", data6 );
 		}
 
@@ -430,6 +432,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 				data1.m_vOrigin = tr.endpos;
 				data1.m_vNormal = tr.plane.normal;
 				data1.m_flMagnitude = flDamage * n;
+				data6.m_flRadius = m_bPrimaryFire ? 128 : min( flDamage, 255 );
 				DispatchEffect( "HL1GaussReflect", data1 );
 
 				// lose energy

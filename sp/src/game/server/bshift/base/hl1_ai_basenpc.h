@@ -1,23 +1,14 @@
-//=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
-//
-// The copyright to the contents herein is the property of Valve, L.L.C.
-// The contents may be used and/or copied only with the written permission of
-// Valve, L.L.C., or in accordance with the terms and conditions stipulated in
-// the agreement/contract under which the contents have been supplied.
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Base combat character with no AI
 //
 // $Workfile:     $
 // $Date:         $
 // $NoKeywords: $
-//=============================================================================
+//=============================================================================//
 
 #ifndef HL1_AI_BASENPC_H
 #define HL1_AI_BASENPC_H
-
-#pragma warning(push)
-#include <set>
-#pragma warning(pop)
 
 #ifdef _WIN32
 #pragma once
@@ -25,7 +16,18 @@
 
 
 #include "ai_basenpc.h"
-#include "AI_Motor.h"
+#include "ai_default.h"
+#include "ai_task.h"
+#include "ai_schedule.h"
+#include "ai_node.h"
+#include "ai_hull.h"
+#include "ai_hint.h"
+#include "ai_memory.h"
+#include "ai_route.h"
+#include "ai_motor.h"
+#include "ai_squad.h"
+#include "ai_senses.h"
+#include "npcevent.h"
 //=============================================================================
 // >> CHL1NPCTalker
 //=============================================================================
@@ -51,6 +53,10 @@ public:
 
 	int		IRelationPriority( CBaseEntity *pTarget );
 	bool	NoFriendlyFire( void );
+
+	void	EjectShell( const Vector &vecOrigin, const Vector &vecVelocity, float rotation, int iType );
+
+	virtual int		SelectDeadSchedule();
 };
 
 #endif //HL1_AI_BASENPC_H
