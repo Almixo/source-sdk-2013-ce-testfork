@@ -101,15 +101,6 @@ void CNPC_Scientist::Precache( void )
 	BaseClass::Precache();
 }
 
-void CNPC_Scientist::ModifyOrAppendCriteria( AI_CriteriaSet& criteriaSet )
-{
-	BaseClass::ModifyOrAppendCriteria( criteriaSet );
-
-	bool predisaster = FBitSet( m_spawnflags, SF_NPC_PREDISASTER ) ? true : false;
-
-	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
-}
-
 // Init talk data
 void CNPC_Scientist::TalkInit()
 {

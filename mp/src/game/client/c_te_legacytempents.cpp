@@ -2401,15 +2401,19 @@ void CTempEnts::LevelInit()
 
 	m_pSpriteCombineFlash[0] = (model_t *)engine->LoadModel( "effects/combinemuzzle1.vmt" );
 	m_pSpriteCombineFlash[1] = (model_t *)engine->LoadModel( "effects/combinemuzzle2.vmt" );
-
+#ifndef CLIENT_DLL
 	m_pShells[0] = (model_t *) engine->LoadModel( "models/weapons/shell.mdl" );
 	m_pShells[1] = (model_t *) engine->LoadModel( "models/weapons/rifleshell.mdl" );
 	m_pShells[2] = (model_t *) engine->LoadModel( "models/weapons/shotgun_shell.mdl" );
+#endif
 #endif
 
 #if defined( HL1_CLIENT_DLL )
 	m_pHL1Shell			= (model_t *)engine->LoadModel( "models/shell.mdl" );
 	m_pHL1ShotgunShell	= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
+
+	m_pShells[0]		= (model_t *)engine->LoadModel( "models/shell.mdl" );
+	m_pShells[1]		= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
 #endif
 
 #if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )
@@ -2442,7 +2446,9 @@ void CTempEnts::Init (void)
 
 	m_pShells[0] = NULL;
 	m_pShells[1] = NULL;
+#ifndef HL1_CLIENT_DLL
 	m_pShells[2] = NULL;
+#endif
 
 #if defined( HL1_CLIENT_DLL )
 	m_pHL1Shell			= NULL;

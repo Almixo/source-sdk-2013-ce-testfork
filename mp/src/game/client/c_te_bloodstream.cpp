@@ -101,13 +101,22 @@ static inline void RecordBloodStream( const Vector &start, const Vector &directi
 
 
 void TE_BloodStream( IRecipientFilter& filter, float delay,
-	const Vector* org, const Vector* direction, int r, int g, int b, int a, int amount )
+	const Vector* org, const Vector* direction, int r1, int g1, int b1, int a, int amount )
 {
-	RecordBloodStream( *org, *direction, r, g, b, a, amount );
+	RecordBloodStream( *org, *direction, r1, g1, b1, a, amount );
 
 	CSmartPtr<CTEParticleRenderer> pRen = CTEParticleRenderer::Create( "TEBloodStream", *org );
 	if( !pRen )
 		return;
+
+	/*r = 255;
+	g = b = 0;*/
+
+	//Msg( "CLIENT: red %d, green %d, blue %d.\n", r1, g1, b1 );
+
+	float r =  r1 / 255.0f;
+	float g = g1 / 255.0f;
+	float b = b1 / 255.0f;
 
 	// Add our particles.
 	Vector		dirCopy;
@@ -150,7 +159,7 @@ void TE_BloodStream( IRecipientFilter& filter, float delay,
 		if(p)
 		{
 			pRen->SetParticleLifetime(p, 3);
-			p->SetColor(r * random->RandomFloat(0.7, 1.0), g, b);
+			p->SetColor(r  * random->RandomFloat(0.7, 1.0) , g, b);
 			p->SetAlpha(a);
 			p->m_Pos = *org;
 			pRen->SetParticleType(p, pt_vox_slowgrav);
@@ -177,7 +186,7 @@ void TE_BloodStream( IRecipientFilter& filter, float delay,
 				if(p)
 				{
 					pRen->SetParticleLifetime(p, 3);
-					p->SetColor(random->RandomFloat(0.7, 1.0), g, b);
+					p->SetColor(r  * random->RandomFloat(0.7, 1.0), g, b);
 					p->SetAlpha(a);
 					p->m_Pos.Init(
 						(*org)[0] + random->RandomFloat(-1,1),

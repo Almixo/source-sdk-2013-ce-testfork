@@ -19,13 +19,10 @@ public:
 	
 	DECLARE_DATADESC();
 
-	virtual void ModifyOrAppendCriteria( AI_CriteriaSet& set );
-
 	void	Precache( void );
 	void	Spawn( void );
 	void	TalkInit( void );
 
-	void	StartTask( const Task_t *pTask );
 	void	RunTask( const Task_t *pTask );
 
 	int		GetSoundInterests ( void );

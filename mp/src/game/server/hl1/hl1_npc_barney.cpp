@@ -127,15 +127,6 @@ void CNPC_Barney::Precache()
 	BaseClass::Precache();
 }	
 
-void CNPC_Barney::ModifyOrAppendCriteria( AI_CriteriaSet& criteriaSet )
-{
-	BaseClass::ModifyOrAppendCriteria( criteriaSet );
-
-	bool predisaster = FBitSet( m_spawnflags, SF_NPC_PREDISASTER ) ? true : false;
-
-	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
-}
-
 // Init talk data
 void CNPC_Barney::TalkInit()
 {
@@ -238,20 +229,22 @@ bool CNPC_Barney::CheckRangeAttack1 ( float flDot, float flDist )
 
 	if ( flDist <= 1024 && flDot >= 0.5 )
 	{
-		if ( gpGlobals->curtime > m_flCheckAttackTime )
+		if ( gpGlobals->curtime >= m_flCheckAttackTime )
 		{
 			trace_t tr;
 			
 			Vector shootOrigin = GetAbsOrigin() + Vector(0, 0, 55);
 			CBaseEntity *pEnemy = GetEnemy();
-			Vector shootTarget = ( (pEnemy->BodyTarget( shootOrigin ) - pEnemy->GetAbsOrigin()) + GetEnemyLKP() );
+			Vector shootTarget = ( ( pEnemy->BodyTarget( shootOrigin ) - pEnemy->GetAbsOrigin() ) + GetEnemyLKP() );
+
 			UTIL_TraceLine( shootOrigin, shootTarget, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
-			m_flCheckAttackTime = gpGlobals->curtime + 1;
+
 			if ( tr.fraction == 1.0 || (tr.m_pEnt != NULL && tr.m_pEnt == pEnemy) )
 				m_fLastAttackCheck = true;
 			else
 				m_fLastAttackCheck = false;
-			m_flCheckAttackTime = gpGlobals->curtime + 1.5;
+
+			m_flCheckAttackTime = gpGlobals->curtime + 2.5;
 		}
 		return m_fLastAttackCheck;
 	}
@@ -425,17 +418,14 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 	case 10:
 		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
 		{
-			info.SetDamage( info.GetDamage() - 20 );
-			if ( info.GetDamage() <= 0 )
+			if ( ( info.GetDamage() - 20 ) <= 0 )
 			{
 				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
 				info.SetDamage(0.01);
 			}
-			else
-			{
-				// always a head shot
-				ptr->hitgroup = HITGROUP_HEAD;
-			}
+
+			// always a head shot
+			ptr->hitgroup = HITGROUP_HEAD;
 		}
 		break;
 	}
@@ -461,11 +451,6 @@ void CNPC_Barney::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	BaseClass::Event_Killed( info );
-}
-
-void CNPC_Barney::StartTask( const Task_t *pTask )
-{
-	BaseClass::StartTask( pTask );	
 }
 
 void CNPC_Barney::RunTask( const Task_t *pTask )

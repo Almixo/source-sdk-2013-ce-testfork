@@ -103,6 +103,8 @@ public:
 	void SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
 	void SUB_LVFadeOut( void );
 
+	void ModifyOrAppendCriteria( AI_CriteriaSet &criteriaSet );
+
 
 protected:
 	virtual void 	FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );

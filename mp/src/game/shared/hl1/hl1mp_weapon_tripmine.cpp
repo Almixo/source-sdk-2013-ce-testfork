@@ -1,4 +1,4 @@
-//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Tripmine
 //
@@ -6,31 +6,12 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
 #include "hl1mp_basecombatweapon_shared.h"
-#include "baseentity_shared.h"
-#ifndef CLIENT_DLL
-#include "basecombatcharacter.h"
-#include "AI_BaseNPC.h"
 #include "hl1_player.h"
 #include "hl1_basegrenade.h"
-#else
-#include "c_hl1mp_player.h"
-#include "c_basecombatcharacter.h"
-#include "c_ai_basenpc.h"
-#endif
-#include "gamerules.h"
-#include "in_buttons.h"
-#ifdef CLIENT_DLL
-#else
-#include "soundent.h"
-#include "game.h"
-#endif
-#include "vstdlib/random.h"
-#include "engine/IEngineSound.h"
-
-
 #include "beam_shared.h"
+
+#include "tier0/memdbgon.h"
 
 extern ConVar sk_plr_dmg_tripmine;
 
@@ -38,11 +19,6 @@ extern ConVar sk_plr_dmg_tripmine;
 //-----------------------------------------------------------------------------
 // CWeaponTripMine
 //-----------------------------------------------------------------------------
-
-#ifdef CLIENT_DLL
-#define CWeaponTripMine C_WeaponTripMine
-#endif
-
 
 #define TRIPMINE_MODEL "models/w_tripmine.mdl"
 
@@ -61,37 +37,24 @@ public:
 	void	WeaponIdle( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 
-#ifndef CLIENT_DLL
 	DECLARE_SERVERCLASS();
-#endif
 	DECLARE_DATADESC();
-#ifdef CLIENT_DLL
-	DECLARE_NETWORKCLASS();
-	DECLARE_PREDICTABLE();
-#endif
 
 private:
 	int		m_iGroundIndex;
 	int		m_iPickedUpIndex;
+	bool	m_bDrawThink;
 };
 
 LINK_ENTITY_TO_CLASS( weapon_tripmine, CWeaponTripMine );
 
 PRECACHE_WEAPON_REGISTER( weapon_tripmine );
 
-#ifndef CLIENT_DLL
 IMPLEMENT_SERVERCLASS_ST(CWeaponTripMine, DT_WeaponTripMine)
 END_SEND_TABLE()
-#endif
-#ifdef CLIENT_DLL
-BEGIN_NETWORK_TABLE(CWeaponTripMine, DT_WeaponTripMine)
-END_NETWORK_TABLE()
-
-BEGIN_PREDICTION_DATA(CWeaponTripMine)
-END_PREDICTION_DATA()
-#endif
 
 BEGIN_DATADESC( CWeaponTripMine )
+	DEFINE_FIELD( m_bDrawThink, FIELD_BOOLEAN ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -101,6 +64,8 @@ CWeaponTripMine::CWeaponTripMine( void )
 {
 	m_bReloadsSingly	= false;
 	m_bFiresUnderwater	= true;
+
+	m_bDrawThink = false;
 }
 
 void CWeaponTripMine::Spawn( void )
@@ -147,9 +112,7 @@ void CWeaponTripMine::PrimaryAttack( void )
 {
 	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
 	if ( !pPlayer )
-	{
 		return;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 		return;
@@ -175,26 +138,40 @@ void CWeaponTripMine::PrimaryAttack( void )
 
 			pPlayer->SetAnimation( PLAYER_ATTACK1 );
 			
-			if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-			{
-				if ( !pPlayer->SwitchToNextBestWeapon( pPlayer->GetActiveWeapon() ) )
-					Holster();
-			}
-			else
-			{
-				SendWeaponAnim( ACT_VM_DRAW );
-				SetWeaponIdleTime( gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
-			}
+			m_bDrawThink = true;
 
-			m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
-			
-			SetWeaponIdleTime( gpGlobals->curtime ); // MO curtime correct ?
+			SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+
+			m_flNextPrimaryAttack = gpGlobals->curtime + 0.3;
+			m_flTimeWeaponIdle = gpGlobals->curtime + 0.5;
+
+			return;
 		}
 	}
-	else
+
+	if ( m_bDrawThink )
 	{
-		SetWeaponIdleTime( m_flTimeWeaponIdle = gpGlobals->curtime + random->RandomFloat( 10, 15 ) );
+		// little hack
+		if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
+		{
+			if ( !pPlayer->SwitchToNextBestWeapon( pPlayer->GetActiveWeapon() ) )
+				Holster();
+
+			return;
+		}
+
+
+		SendWeaponAnim( ACT_VM_DEPLOY );
+
+		m_bDrawThink = false;
+		SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 10, 15 ) );
+
+		return;
 	}
+
+	
+	m_flNextPrimaryAttack = gpGlobals->curtime + 0.3;
+	SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 10, 15 ) );
 }
 
 void CWeaponTripMine::WeaponIdle( void )
@@ -202,9 +179,7 @@ void CWeaponTripMine::WeaponIdle( void )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
 	if ( !pPlayer )
-	{
 		return;
-	}
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
@@ -227,14 +202,10 @@ bool CWeaponTripMine::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )
-	{
 		return false;
-	}
 
 	if ( !BaseClass::Holster( pSwitchingTo ) )
-	{
 		return false;
-	}
 
 	if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{
@@ -362,9 +333,11 @@ void CTripmineGrenade::Spawn( void )
 
 	if ( GetOwnerEntity() != NULL )
 	{
+		CPASAttenuationFilter filter( this );
+
 		// play deploy sound
-		EmitSound( "TripmineGrenade.Deploy" );
-		EmitSound( "TripmineGrenade.Charge" );
+		EmitSound( filter, entindex(), "TripmineGrenade.Deploy" );
+		EmitSound( filter, entindex(), "TripmineGrenade.Charge" );
 
 		m_hRealOwner = GetOwnerEntity();
 	}
@@ -466,8 +439,10 @@ void CTripmineGrenade::PowerupThink( void  )
 
 		m_bIsLive = true;
 
+		CPASAttenuationFilter filter( this );
+
 		// play enabled sound
-		EmitSound( "TripmineGrenade.Activate" );
+		EmitSound( filter, entindex(), "TripmineGrenade.Activate" );
 	}
 
 	SetNextThink( gpGlobals->curtime + 0.1f );

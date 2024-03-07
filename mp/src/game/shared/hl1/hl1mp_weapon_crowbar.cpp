@@ -22,6 +22,9 @@
 
 #include "vstdlib/random.h"
 
+#include "decals.h"
+#include "IEffects.h"
+
 extern ConVar sk_plr_dmg_crowbar;
 
 #define	CROWBAR_RANGE		64.0f
@@ -101,6 +104,117 @@ END_DATADESC()
 static const Vector g_bludgeonMins(-BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM);
 static const Vector g_bludgeonMaxs(BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM);
 
+#ifndef CLIENT_DLL
+void HandleSound( trace_t *ptr )
+{
+	// hit the world, try to play sound based on texture material type
+
+	char chTextureType;
+	char *strTextureSound = "";
+	float fvol;
+	float fvolbar;
+
+	if ( !g_pGameRules->PlayTextureSounds() )
+		return;
+
+	CBaseEntity *pEntity = ptr->m_pEnt;
+
+	chTextureType = 0;
+
+	if ( pEntity && pEntity->Classify() != CLASS_NONE && pEntity->Classify() != CLASS_MACHINE )
+		// hit body
+		chTextureType = CHAR_TEX_FLESH;
+	else
+		chTextureType = TEXTURETYPE_Find( ptr );
+
+	switch ( chTextureType )
+	{
+	default:
+	case CHAR_TEX_CONCRETE:
+		fvol = 0.9;
+		fvolbar = 0.6;
+		strTextureSound = "HL1.Concrete";
+		break;
+	case CHAR_TEX_METAL:
+		fvol = 0.9;
+		fvolbar = 0.3;
+		strTextureSound = "HL1.Metal";
+		break;
+	case CHAR_TEX_DIRT:
+		fvol = 0.9;
+		fvolbar = 0.1;
+		strTextureSound = "HL1.Dirt";
+		break;
+	case CHAR_TEX_VENT:
+		fvol = 0.5;
+		fvolbar = 0.3;
+		strTextureSound = "HL1.Vent";
+		break;
+	case CHAR_TEX_GRATE:
+		fvol = 0.9;
+		fvolbar = 0.5;
+		strTextureSound = "HL1.Grate";
+		break;
+	case CHAR_TEX_TILE:
+		fvol = 0.8;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Tile";
+		break;
+	case CHAR_TEX_SLOSH:
+		fvol = 0.9;
+		fvolbar = 0.0;
+		strTextureSound = "HL1.Slosh";
+		break;
+	case CHAR_TEX_WOOD:
+		fvol = 0.9;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Wood";
+		break;
+	case CHAR_TEX_GLASS:
+	case CHAR_TEX_COMPUTER:
+		fvol = 0.8;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Glass_Computer";
+		break;
+	case CHAR_TEX_FLESH:
+		fvol = 1.0;
+		fvolbar = 0.0;
+		strTextureSound = "Weapon_Crowbar.Melee_Hit";
+		break;
+	}
+
+	// did we hit a breakable?
+
+	if ( pEntity && FClassnameIs( pEntity, "func_breakable" ) )
+	{
+		// drop volumes, the object will already play a damaged sound
+		fvol /= 1.5;
+		fvolbar /= 2.0;
+	}
+	else if ( chTextureType == CHAR_TEX_COMPUTER )
+	{
+		// play random spark if computer
+
+		if ( ptr->fraction != 1.0 && RandomInt( 0, 1 ) )
+		{
+			g_pEffects->Sparks( ptr->endpos );
+		}
+	}
+
+	// play the surface sound
+	UTIL_EmitAmbientSound( 0, ptr->endpos, strTextureSound, fvol, SNDLVL_80dB, 0, 96 + RandomInt( 0, 15 ) );
+
+	CSoundParameters params;
+	if ( CBaseEntity::GetParametersForSound( "Weapon_Crowbar.Melee_HitWorld", params, nullptr ) )
+	{
+		params.volume = fvolbar;
+
+		// play the crowbar sound
+		UTIL_EmitAmbientSound( 0, ptr->endpos, params.soundname, fvolbar, params.soundlevel, 0, params.pitch );
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
@@ -116,6 +230,17 @@ void CWeaponCrowbar::Precache(void)
 {
 	//Call base class first
 	BaseClass::Precache();
+
+	//crowbar
+	CBaseEntity::PrecacheScriptSound( "HL1.Concrete" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Metal" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Dirt" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Vent" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Grate" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Tile" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Slosh" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Wood" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Glass_Computer" );
 }
 
 //------------------------------------------------------------------------------
@@ -180,13 +305,26 @@ void CWeaponCrowbar::Hit(void)
 		// Now hit all triggers along the ray that... 
 		TraceAttackToTriggers(CTakeDamageInfo(GetOwner(), GetOwner(), sk_plr_dmg_crowbar.GetFloat(), DMG_CLUB), m_traceHit.startpos, m_traceHit.endpos, hitDirection);
 
-		//Play an impact sound	
-		if (pHitEntity->Classify() != CLASS_NONE && pHitEntity->Classify() != CLASS_MACHINE)
+		////Play an impact sound	
+		//if (pHitEntity->Classify() != CLASS_NONE && pHitEntity->Classify() != CLASS_MACHINE)
+		//{
+		//	WeaponSound(MELEE_HIT);
+		//}
+		///*else if (pHitEntity->IsWorld())
+		//	WeaponSound(MELEE_HIT_WORLD);*/
+
+		/*if (pHitEntity->Classify() != CLASS_NONE && pHitEntity->Classify() != CLASS_MACHINE)
 		{
 			WeaponSound(MELEE_HIT);
 		}
-		/*else if (pHitEntity->IsWorld())
-			WeaponSound(MELEE_HIT_WORLD);*/
+		else
+		{
+			CPASAttenuationFilter filter( pPlayer, ATTN_NORM );
+			
+		}*/
+			
+		HandleSound( &m_traceHit );
+
 	}
 #endif
 

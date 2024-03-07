@@ -122,6 +122,8 @@ static CTEBloodStream g_TEBloodStream( "Blood Stream" );
 void TE_BloodStream( IRecipientFilter& filter, float delay,
 	const Vector* org, const Vector* dir, int r, int g, int b, int a, int amount )
 {
+	//Msg( "SERVER: red %d, green %d, blue %d.\n", r, g, b );
+
 	g_TEBloodStream.m_vecOrigin = *org;
 	g_TEBloodStream.m_vecDirection = *dir;	
 	g_TEBloodStream.r = r;

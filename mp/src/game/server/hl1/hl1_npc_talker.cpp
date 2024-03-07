@@ -265,6 +265,15 @@ void CHL1NPCTalker::SUB_LVFadeOut( void )
 	}
 }
 
+void CHL1NPCTalker::ModifyOrAppendCriteria( AI_CriteriaSet &criteriaSet )
+{
+	BaseClass::ModifyOrAppendCriteria( criteriaSet );
+
+	bool predisaster = HasSpawnFlags( SF_NPC_PREDISASTER );
+
+	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
+}
+
 void CHL1NPCTalker::StartTask( const Task_t *pTask )
 {
 	switch( pTask->iTask )
