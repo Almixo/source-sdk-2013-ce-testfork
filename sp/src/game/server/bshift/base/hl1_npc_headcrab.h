@@ -36,7 +36,9 @@ public:
 	void TouchDamage( CBaseEntity *pOther );
 	void HandleAnimEvent( animevent_t *pEvent );
 	int	 SelectSchedule( void );
+#if 0
 	void Touch( CBaseEntity *pOther );
+#endif
 	int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 	int TranslateSchedule( int scheduleType );
 	void PrescheduleThink( void );

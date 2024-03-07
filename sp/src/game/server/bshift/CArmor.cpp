@@ -22,8 +22,8 @@ class CItemArmorVest : public CHL1Item
 	DECLARE_DATADESC()
 public:
 	
-	short iBackupPose;
-	short iPose;
+	short iBackupPose = -1;
+	short iPose = -1;
 
 	void Spawn(void)
 	{
@@ -32,7 +32,7 @@ public:
 		Precache();
 		SetModel(ARMOR_VEST_MODEL);
 
-		if (iBackupPose != NULL)
+		if (iBackupPose >= 0)
 		{
 			SetSequence(iBackupPose);
 		}
@@ -86,8 +86,8 @@ class CItemHelmet : public CHL1Item
 	DECLARE_DATADESC()
 public:
 
-	short iBackupPose;
-	short iPose;
+	short iBackupPose = -1;
+	short iPose = -1;
 
 	void Spawn(void)
 	{
@@ -96,7 +96,7 @@ public:
 		Precache();
 		SetModel(ARMOR_HELMET_MODEL);	//barney_helmet
 		
-		if (iBackupPose != NULL)
+		if (iBackupPose >= 0)
 		{
 			SetSequence(iBackupPose);
 		}

@@ -21,8 +21,6 @@ public:
 	
 	DECLARE_DATADESC();
 
-	virtual void ModifyOrAppendCriteria( AI_CriteriaSet& set );
-
 	void	Precache( void );
 	void	Spawn( void );
 	void	TalkInit( void );
@@ -51,8 +49,6 @@ public:
 	void	DeclineFollowing( void );
 
 	int		RangeAttack1Conditions( float flDot, float flDist );
-
-	NPC_STATE SelectIdealState ( void );
 
 	bool	m_fGunDrawn;
 	float	m_flPainTime;

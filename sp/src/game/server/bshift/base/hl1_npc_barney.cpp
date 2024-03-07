@@ -44,9 +44,6 @@ BEGIN_DATADESC( CNPC_Barney )
 	DEFINE_FIELD( m_flPainTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flCheckAttackTime, FIELD_TIME ),
 	DEFINE_FIELD( m_fLastAttackCheck, FIELD_BOOLEAN ),
-
-	DEFINE_THINKFUNC( SUB_LVFadeOut ),
-
 	//DEFINE_FIELD( m_iAmmoType, FIELD_INTEGER ),
 END_DATADESC()
 
@@ -54,7 +51,7 @@ END_DATADESC()
 LINK_ENTITY_TO_CLASS( monster_barney, CNPC_Barney );
 
 
-static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
+static bool IsFacing( CBaseEntity *pevTest, const Vector &reference )
 {
 	Vector vecDir = (reference - pevTest->GetAbsOrigin());
 	vecDir.z = 0;
@@ -67,9 +64,9 @@ static BOOL IsFacing( CBaseEntity *pevTest, const Vector &reference )
 	// He's facing me, he meant it
 	if ( DotProduct( forward, vecDir ) > 0.96 )	// +/- 15 degrees or so
 	{
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 //=========================================================
@@ -95,7 +92,7 @@ void CNPC_Barney::Spawn()
 	m_flFieldOfView		= VIEW_FIELD_WIDE; // NOTE: we need a wide field of view so npc will notice player and say hello
 	m_NPCState			= NPC_STATE_NONE;
 
-	SetBodygroup( 1, 0 );
+	SetBodygroup( 1, BARNEY_BODY_GUNHOLSTERED );
 
 	m_fGunDrawn			= false;
 
@@ -127,23 +124,10 @@ void CNPC_Barney::Precache()
 	BaseClass::Precache();
 }	
 
-void CNPC_Barney::ModifyOrAppendCriteria( AI_CriteriaSet& criteriaSet )
-{
-	BaseClass::ModifyOrAppendCriteria( criteriaSet );
-
-	bool predisaster = FBitSet( m_spawnflags, SF_NPC_PREDISASTER ) ? true : false;
-
-	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
-}
-
 // Init talk data
 void CNPC_Barney::TalkInit()
 {
 	BaseClass::TalkInit();
-
-	m_szFriends[0] = "monster_scientist";
-	m_szFriends[1] = "monster_sitting_scientist";
-	m_szFriends[2] = "monster_barney";
 
 	// get voice for head - just one barney voice for now
 	GetExpresser()->SetVoicePitch( 100 );
@@ -194,9 +178,7 @@ void CNPC_Barney::AlertSound( void )
 //=========================================================
 void CNPC_Barney::SetYawSpeed ( void )
 {
-	int ys;
-
-	ys = 0;
+	int ys = 0;
 
 	switch ( GetActivity() )
 	{
@@ -361,7 +343,7 @@ void CNPC_Barney::PainSound( const CTakeDamageInfo &info )
 	if (gpGlobals->curtime < m_flPainTime)
 		return;
 	
-	m_flPainTime = gpGlobals->curtime + random->RandomFloat( 0.5, 0.75 );
+	m_flPainTime = gpGlobals->curtime + RandomFloat( 0.5, 0.75 );
 
 	CPASAttenuationFilter filter( this );
 
@@ -410,8 +392,7 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 	case 10:
 		if ( info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB) )
 		{
-			info.SetDamage( info.GetDamage() - 20 );
-			if ( info.GetDamage() <= 0 )
+			if ( ( info.GetDamage() - 20 ) <= 0 )
 			{
 				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
 				info.SetDamage( 0.01 );
@@ -664,11 +645,6 @@ int CNPC_Barney::SelectSchedule( void )
 	return BaseClass::SelectSchedule();
 }
 
-NPC_STATE CNPC_Barney::SelectIdealState ( void )
-{
-	return BaseClass::SelectIdealState();
-}
-
 void CNPC_Barney::DeclineFollowing( void )
 {
 	if ( CanSpeakAfterMyself() )
@@ -833,7 +809,7 @@ void CNPC_DeadBarney::Spawn( void )
 		Msg ( "Dead barney with bad pose\n" );
 	}
 	// Corpses have less health
-	m_iHealth			= 0.0;//gSkillData.barneyHealth;
+	m_iHealth			= 8; //0.0;//gSkillData.barneyHealth;
 
 	NPCInitDead();
 }

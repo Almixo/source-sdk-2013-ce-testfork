@@ -253,59 +253,62 @@ int CNPC_Headcrab::SelectSchedule( void )
 	return BaseClass::SelectSchedule();
 }
 
+#if 0
 //------------------------------------------------------------------------------
 // Purpose :
 // Input   :
 // Output  :
 //------------------------------------------------------------------------------
 void CNPC_Headcrab::Touch( CBaseEntity *pOther )
-{ 
+{
 	// If someone has smacked me into a wall then gib!
-/*	if (m_NPCState == NPC_STATE_DEAD) 
+/*	if (m_NPCState == NPC_STATE_DEAD)
 	{
 		if (GetAbsVelocity().Length() > 250)
 		{
 			trace_t tr;
 			Vector vecDir = GetAbsVelocity();
 			VectorNormalize(vecDir);
-			UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vecDir * 100, 
-				MASK_SOLID_BRUSHONLY, pev, COLLISION_GROUP_NONE, &tr); 
+			UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vecDir * 100,
+				MASK_SOLID_BRUSHONLY, pev, COLLISION_GROUP_NONE, &tr);
 			float dotPr = DotProduct(vecDir,tr.plane.normal);
-			if ((tr.fraction						!= 1.0) && 
+			if ((tr.fraction						!= 1.0) &&
 				(dotPr <  -0.8) )
 			{
 				Event_Gibbed();
-				// Throw headcrab guts 
+				// Throw headcrab guts
 				CGib::SpawnSpecificGibs( this, HEADCRAB_GUTS_GIB_COUNT, 300, 400, "models/gibs/hc_gibs.mdl");
 			}
-		
+
 		}
 	}*/
 
-	if ( m_NPCState == NPC_STATE_IDLE )
-	{
-		if ( /*GetAbsVelocity().Length() > 250*/ true )
-		{
-			trace_t tr;
-			Vector vecDir = GetAbsVelocity();
-			VectorNormalize( vecDir );
+	//if ( m_NPCState == NPC_STATE_IDLE )
+	//{
+	//	if ( /*GetAbsVelocity().Length() > 250*/ true )
+	//	{
+	//		trace_t tr;
+	//		Vector vecDir = GetAbsVelocity();
+	//		VectorNormalize( vecDir );
 
-			UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + vecDir * 100, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+	//		UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + vecDir * 100, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
 
-			float dotPr = DotProduct( vecDir, tr.plane.normal );
+	//		float dotPr = DotProduct( vecDir, tr.plane.normal );
 
-			if ( ( tr.fraction != 1.0 ) && ( dotPr < -0.8 ) )
-			{
-				CTakeDamageInfo info;
-				Event_Gibbed( info ); //no clue who, how strong, or even what damage type got inflicted on me
+	//		if ( ( tr.fraction != 1.0 ) && ( dotPr < -0.8 ) )
+	//		{
+	//			CTakeDamageInfo info;
+	//			Event_Gibbed( info ); //no clue who, how strong, or even what damage type got inflicted on me
 
-				CGib::SpawnSpecificGibs( this, HEADCRAB_GUTS_GIB_COUNT, 300, 400, "models/gibs/hc_gibs.mdl" );
-			}
-		}
-	}
+	//			CGib::SpawnSpecificGibs( this, HEADCRAB_GUTS_GIB_COUNT, 300, 400, "models/gibs/hc_gibs.mdl" );
+	//		}
+	//	}
+	//}
 
-	BaseClass::Touch(pOther);
+	BaseClass::Touch( pOther );
 }
+#endif // 0
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 

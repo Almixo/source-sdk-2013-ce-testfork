@@ -163,12 +163,7 @@ void CRosenberg::ModifyOrAppendCriteria(AI_CriteriaSet& criteriaSet)
 // Init talk data
 void CRosenberg::TalkInit()
 {
-
 	BaseClass::TalkInit();
-
-	m_szFriends[0] = "monster_scientist";
-	m_szFriends[1] = "monster_sitting_scientist";
-	m_szFriends[2] = "monster_barney";
 
 	GetExpresser()->SetVoicePitch(100);
 }

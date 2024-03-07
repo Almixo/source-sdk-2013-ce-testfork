@@ -16,6 +16,7 @@ void RegisterUserMessages( void )
 	usermessages->Register( "HudText", -1 );
 	usermessages->Register( "SayText", -1 );
 	usermessages->Register( "TextMsg", -1 );
+	usermessages->Register( "HudMsg", -1 );
 	usermessages->Register( "ResetHUD", 1 );		// called every respawn
 	usermessages->Register( "InitHUD", 0 );		// called every time a new player joins the server
 	usermessages->Register( "GameTitle", 1 );

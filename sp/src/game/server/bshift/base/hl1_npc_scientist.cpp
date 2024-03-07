@@ -61,8 +61,6 @@ BEGIN_DATADESC( CNPC_Scientist )
 	DEFINE_FIELD( m_flHealTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flPainTime, FIELD_TIME ),
 
-	DEFINE_THINKFUNC( SUB_LVFadeOut ),
-
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -81,26 +79,10 @@ void CNPC_Scientist::Precache( void )
 	BaseClass::Precache();
 }
 
-void CNPC_Scientist::ModifyOrAppendCriteria( AI_CriteriaSet& criteriaSet )
-{
-	BaseClass::ModifyOrAppendCriteria( criteriaSet );
-
-	bool predisaster = FBitSet( m_spawnflags, SF_NPC_PREDISASTER ) ? true : false;
-
-	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
-}
-
 // Init talk data
 void CNPC_Scientist::TalkInit()
 {
-	
 	BaseClass::TalkInit();
-
-	// scientist will try to talk to friends in this order:
-
-	m_szFriends[0] = "monster_scientist";
-	m_szFriends[1] = "monster_sitting_scientist";
-	m_szFriends[2] = "monster_barney";
 
 	// get voice for head
 	switch (m_nBody % 3)
@@ -109,7 +91,7 @@ void CNPC_Scientist::TalkInit()
 	case HEAD_GLASSES:	GetExpresser()->SetVoicePitch( 105 );	break;	//glasses
 	case HEAD_EINSTEIN: GetExpresser()->SetVoicePitch( 100 );	break;	//einstein
 	case HEAD_LUTHER:	GetExpresser()->SetVoicePitch( 95 );	break;	//luther
-	case HEAD_SLICK:	GetExpresser()->SetVoicePitch( 100 );	break;//slick
+	case HEAD_SLICK:	GetExpresser()->SetVoicePitch( 100 );	break;	//slick
 	}
 }
 
@@ -839,7 +821,7 @@ void CNPC_DeadScientist::Spawn( void )
 		Msg ( "Dead scientist with bad pose\n" );
 	}
 
-	m_iHealth			= 0.0;//gSkillData.barneyHealth;
+	m_iHealth			= 8;// 0.0 gSkillData.barneyHealth;
 
 	NPCInitDead();
 

@@ -27,8 +27,6 @@ public:
 	Class_T Classify( void );
 	int		GetSoundInterests ( void );
 
-	virtual void ModifyOrAppendCriteria( AI_CriteriaSet& set );
-
 	virtual int ObjectCaps( void ) { return UsableNPCObjectCaps(BaseClass::ObjectCaps()); }
 	float	MaxYawSpeed( void );
 

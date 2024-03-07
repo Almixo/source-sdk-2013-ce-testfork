@@ -36,6 +36,8 @@ BEGIN_DATADESC( CHL1NPCTalker )
 	DEFINE_FIELD( m_bInBarnacleMouth,	FIELD_BOOLEAN ),
 	DEFINE_USEFUNC( FollowerUse ),
 
+	DEFINE_THINKFUNC( SUB_LVFadeOut ),
+
 END_DATADESC()
 
 void CHL1NPCTalker::RunTask( const Task_t *pTask )
@@ -263,6 +265,15 @@ void CHL1NPCTalker::SUB_LVFadeOut( void )
 	{
 		SetNextThink( gpGlobals->curtime );
 	}
+}
+
+void CHL1NPCTalker::ModifyOrAppendCriteria( AI_CriteriaSet &criteriaSet )
+{
+	BaseClass::ModifyOrAppendCriteria( criteriaSet );
+
+	bool predisaster = HasSpawnFlags( SF_NPC_PREDISASTER );
+
+	criteriaSet.AppendCriteria( "disaster", predisaster ? "[disaster::pre]" : "[disaster::post]" );
 }
 
 void CHL1NPCTalker::StartTask( const Task_t *pTask )

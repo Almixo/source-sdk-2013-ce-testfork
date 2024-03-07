@@ -39,10 +39,17 @@ END_DATADESC()
 // array of friend names
 char *CNPCSimpleTalker::m_szFriends[TLK_CFRIENDS] = 
 {
+#ifdef HL1_DLL
 	"monster_barney",
 	"monster_scientist",
 	"monster_sitting_scientist",
 	NULL,
+#else
+	"NPC_barney",
+	"NPC_scientist",
+	"NPC_sitting_scientist",
+	NULL,
+#endif // HL1_DLL
 };
 
 bool CNPCSimpleTalker::KeyValue( const char *szKeyName, const char *szValue )
