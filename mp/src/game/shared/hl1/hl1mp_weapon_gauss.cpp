@@ -621,7 +621,8 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 	}
 
 	pPlayer->ViewPunch( QAngle( -2, 0, 0 ) );
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+
+	SendWeaponAnim( m_bPrimaryFire ? ACT_VM_PRIMARYATTACK : ACT_VM_SECONDARYATTACK );
 
 	CPASAttenuationFilter filter( this );
 

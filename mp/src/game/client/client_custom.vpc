@@ -124,6 +124,8 @@ $Project "Client (CUSTOM)"
 			$File	"..\shared\custom\CGuidedDot.h"
 			$File	"..\shared\custom\CGuidedWeapon.cpp"
 			$File	"..\shared\custom\CGuidedWeapon.h"
+			
+			$File	"..\shared\custom\teh_weapon_chumtoad.cpp"
 		}
 	}
 }

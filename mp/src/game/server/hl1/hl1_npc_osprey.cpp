@@ -60,7 +60,7 @@ public:
 	
 	void Spawn( void );
 	void Precache( void );
-	Class_T  Classify( void ) { return CLASS_NONE; };
+	Class_T  Classify( void ) { return CLASS_MACHINE; };
 	int  BloodColor( void ) { return DONT_BLEED; }
 
 	void FindAllThink( void );

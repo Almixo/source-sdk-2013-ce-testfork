@@ -186,16 +186,21 @@ $Project "Server (CUSTOM)"
 		
 		$Folder "CUSTOM"
 		{
-			$File "..\shared\custom\CGuidedDot.h"
-			$File "..\shared\custom\CGuidedDot.cpp"
-			$File "..\shared\custom\CGDWeapon.h"
-			$File "..\shared\custom\CGDWeapon.cpp"
-			$File "..\shared\custom\CGuidedWeapon.h"
-			$File "..\shared\custom\CGuidedWeapon.cpp"
-			$File "custom\CWarpball.cpp"
-//			$File "custom\CWarpball.h"
-			$File "custom\CWeaponBox.h"
-			$File "custom\CWeaponBox.cpp"
+			$File	"..\shared\custom\CGuidedDot.h"
+			$File	"..\shared\custom\CGuidedDot.cpp"
+			$File	"..\shared\custom\CGDWeapon.h"
+			$File	"..\shared\custom\CGDWeapon.cpp"
+			$File	"..\shared\custom\CGuidedWeapon.h"
+			$File	"..\shared\custom\CGuidedWeapon.cpp"
+			$File	"custom\CWarpball.cpp"
+//			$File	"custom\CWarpball.h"
+			$File	"custom\CWeaponBox.h"
+			$File	"custom\CWeaponBox.cpp"
+			
+			$File 	"custom\teh_npc_chumtoad.cpp"
+			$File 	"custom\teh_npc_chumtoad.h"
+			
+			$File 	"..\shared\custom\teh_weapon_chumtoad.cpp"
 		}
 	}
 }

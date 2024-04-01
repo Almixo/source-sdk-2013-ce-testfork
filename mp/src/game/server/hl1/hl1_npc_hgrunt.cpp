@@ -592,7 +592,7 @@ int CNPC_HGrunt::MeleeAttack1Conditions ( float flDot, float flDist )
 //=========================================================
 int CNPC_HGrunt::RangeAttack1Conditions ( float flDot, float flDist )
 {
-	if ( !HasCondition( COND_ENEMY_OCCLUDED ) && flDist <= 2048 && flDot >= 0.5 && NoFriendlyFire() )
+	if ( HasCondition( COND_SEE_ENEMY ) && flDist <= 2048 && flDot >= 0.5 && NoFriendlyFire() )
 	{
 		trace_t	tr;
 

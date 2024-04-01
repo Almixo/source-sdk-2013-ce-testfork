@@ -225,7 +225,7 @@ void CSquidSpit::Touch ( CBaseEntity *pOther )
 	}
 	else
 	{
-		CTakeDamageInfo info( this, this, sk_bullsquid_dmg_spit.GetFloat(), DMG_BULLET );
+		CTakeDamageInfo info( this, this, sk_bullsquid_dmg_spit.GetFloat(), DMG_GENERIC );
 		CalculateBulletDamageForce( &info, GetAmmoDef()->Index("9mmRound"), GetAbsVelocity(), GetAbsOrigin() );
 		pOther->TakeDamage( info );
 	}
