@@ -115,7 +115,20 @@ void HandleSound( trace_t *ptr )
 	float fvolbar;
 
 	if ( !g_pGameRules->PlayTextureSounds() )
+	{
+		fvolbar = 0.6;
+
+		CSoundParameters params;
+		if ( CBaseEntity::GetParametersForSound( "Weapon_Crowbar.Melee_HitWorld", params, nullptr ) )
+		{
+			params.volume = fvolbar;
+
+			// play the crowbar sound
+			UTIL_EmitAmbientSound( 0, ptr->endpos, params.soundname, fvolbar, params.soundlevel, 0, params.pitch );
+		}
+
 		return;
+	}
 
 	CBaseEntity *pEntity = ptr->m_pEnt;
 
@@ -330,6 +343,7 @@ void CWeaponCrowbar::Hit(void)
 
 	//Apply an impact effect
 	ImpactEffect();
+	//UTIL_DecalTrace( &m_traceHit, "Impact.Concrete");
 }
 
 Activity CWeaponCrowbar::ChooseIntersectionPointAndActivity(trace_t& hitTrace, const Vector& mins, const Vector& maxs, CBasePlayer* pOwner)

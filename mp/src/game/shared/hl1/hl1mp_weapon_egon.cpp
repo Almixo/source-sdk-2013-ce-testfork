@@ -297,7 +297,7 @@ void CWeaponEgon::Fire( const Vector &vecOrigSrc, const Vector &vecDir )
 	//CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 450, 0.1 );
     WeaponSound( SINGLE );
 
-	Vector vecDest	= vecOrigSrc + (vecDir * MAX_TRACE_LENGTH);
+	Vector vecDest	= vecOrigSrc + (vecDir * 2048);
 
 	trace_t	tr;
 	UTIL_TraceLine( vecOrigSrc, vecDest, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr );

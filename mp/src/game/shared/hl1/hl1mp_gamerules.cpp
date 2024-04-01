@@ -361,6 +361,8 @@ void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		}
 	}
 
+
+
 	BaseClass::ClientSettingsChanged( pHL1Player );
 }
 
