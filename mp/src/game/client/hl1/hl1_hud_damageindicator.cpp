@@ -92,6 +92,7 @@ void CHudDamageIndicator::Reset( void )
 	m_flAttackLeft	= 0.0;
 
 	m_clrIndicator.SetColor( 250, 0, 0, 255 );
+	//m_clrIndicator.SetColor( 0, 255, 0, 255 );
 }
 
 void CHudDamageIndicator::Init( void )
@@ -225,6 +226,17 @@ void CHudDamageIndicator::DrawDamageIndicatorRight( float flFade )
 //-----------------------------------------------------------------------------
 void CHudDamageIndicator::Paint()
 {
+	/*int r, g, b;
+	int iHealth;
+
+	iHealth = C_BasePlayer::GetLocalPlayer()->GetHealth();
+
+	g = iHealth * 255 / 100;
+	r = 255 - g;
+	b = 0;
+
+	m_clrIndicator.SetColor( r, g, b, 255 );*/
+
 	// draw damage indicators	
 	float flFade = gpGlobals->frametime * 2;
 	DrawDamageIndicatorFront( flFade );

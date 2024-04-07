@@ -566,7 +566,7 @@ int CHAssault::SelectSchedule( void )
 		if ( HasCondition( COND_LIGHT_DAMAGE ) && !HasMemory( bits_MEMORY_FLINCHED ) )
 			return SCHED_ASSAULT_FLINCH;
 
-		if ( ( HasCondition( !COND_SEE_ENEMY ) ) || ( HasCondition( COND_ENEMY_OCCLUDED ) ) )
+		if ( ( !HasCondition( COND_SEE_ENEMY ) ) || ( HasCondition( COND_ENEMY_OCCLUDED ) ) )
 			return SCHED_ASSAULT_SPINDOWN;
 
 		if ( HasCondition( COND_CAN_MELEE_ATTACK1 ) )

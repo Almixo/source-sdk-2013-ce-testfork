@@ -375,7 +375,7 @@ void CNPC_Vortigaunt::HandleAnimEvent( animevent_t *pEvent )
 			}
 
 // Huh?  Model doesn't have multiple texturegroups, commented this out.  -LH
-//			m_nSkin = m_iBeams / 2;
+			m_nSkin = m_iBeams / 2;
 		}
 		break;
 
