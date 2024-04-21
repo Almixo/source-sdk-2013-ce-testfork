@@ -32,7 +32,7 @@ jobs:
        ubuntu-latest
        
     steps:
-       - name: Copy DLLs to game repo
+      - name: Copy DLLs to game repo
         uses: nkoppel/push-files-to-another-repository@v1.1.2
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
