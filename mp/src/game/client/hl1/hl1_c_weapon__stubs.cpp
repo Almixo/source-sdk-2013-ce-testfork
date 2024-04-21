@@ -32,4 +32,5 @@ STUB_WEAPON_CLASS( weapon_physcannon, PhysgunCannon, C_BaseCombatWeapon );
 STUB_WEAPON_CLASS( weapon_snark,		WeaponSnark,		C_BaseHL1MPCombatWeapon );
 STUB_WEAPON_CLASS( weapon_tripmine,		WeaponTripMine,		C_BaseHL1MPCombatWeapon );
 STUB_WEAPON_CLASS( weapon_cubemap,		WeaponCubemap,		C_BaseCombatWeapon );
-STUB_WEAPON_CLASS( weapon_displacer_sv, Displacer_sv, C_BaseHL1CombatWeapon );
+STUB_WEAPON_CLASS( weapon_displacer_sv, Displacer_sv,		C_BaseHL1CombatWeapon );
+STUB_WEAPON_CLASS( weapon_garand,		M1Rifle,			C_BaseHL1CombatWeapon );
