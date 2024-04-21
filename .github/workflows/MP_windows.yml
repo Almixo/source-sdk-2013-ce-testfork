@@ -28,6 +28,7 @@ jobs:
         run: cd mp/src;devenv custom.sln /Build Release
 
   dllcopy:
+    needs: build
     runs-on:
        ubuntu-latest
        
