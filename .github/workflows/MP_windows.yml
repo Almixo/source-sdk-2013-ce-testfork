@@ -26,8 +26,13 @@ jobs:
 
       - name: Build project
         run: cd mp/src;devenv custom.sln /Build Release
-        
-      - name: Copy DLLs to game repo
+
+  dllcopy:
+    runs-on:
+       ubuntu-latest
+       
+    steps:
+       - name: Copy DLLs to game repo
         uses: nkoppel/push-files-to-another-repository@v1.1.2
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
