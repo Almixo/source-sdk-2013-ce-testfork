@@ -805,16 +805,20 @@ void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 	// check for helmet shot
 	if (ptr->hitgroup == 11)
 	{
+		// it's head shot anyways
+		ptr->hitgroup = HITGROUP_HEAD;
+
 		// make sure we're wearing one
 		if ( GetBodygroup( 1 ) == HEAD_GRUNT && (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST | DMG_CLUB)))
 		{
 			// absorb damage
-			info.SetDamage( info.GetDamage() - 20 );
-			if ( info.GetDamage() <= 0 )
+			/*info.SetDamage( info.GetDamage() - 20 );*/
+			if ( ( info.GetDamage() - 20 ) <= 0 )
+			{
+				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
 				info.SetDamage( 0.01 );
+			}
 		}
-		// it's head shot anyways
-		ptr->hitgroup = HITGROUP_HEAD;
 	}
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
@@ -877,8 +881,7 @@ float CNPC_HGrunt::MaxYawSpeed( void )
 		break;
 	}
 
-	// Yaw speed is handled differently now!
-	return flYS * 0.5f;
+	return flYS;
 }
 
 void CNPC_HGrunt::IdleSound( void )

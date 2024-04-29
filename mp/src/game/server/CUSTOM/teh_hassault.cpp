@@ -62,7 +62,7 @@ class CHAssault : public CHL1BaseNPC
 public:
 	void Spawn( void );
 	void Precache( void );
-	Class_T Classify( void );
+	Class_T Classify( void ) { return CLASS_HUMAN_MILITARY; }
 	float MaxYawSpeed( void );
 	void AlertSound( void );
 	void SpinDown( void );
@@ -193,6 +193,9 @@ void CHAssault::Spawn()
 
 	SetModel( "models/hassault.mdl" );
 
+	SetHullType( HULL_HUMAN );
+	SetHullSizeNormal();
+
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
@@ -202,7 +205,11 @@ void CHAssault::Spawn()
 	m_flFieldOfView = 0.3;	// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_bloodColor = BLOOD_COLOR_RED;
 	SetState( NPC_STATE_NONE );
-	CapabilitiesAdd( bits_CAP_DOORS_GROUP );
+	CapabilitiesClear();
+	CapabilitiesAdd( bits_CAP_SQUAD | bits_CAP_TURN_HEAD | bits_CAP_DOORS_GROUP | bits_CAP_MOVE_GROUND );
+	CapabilitiesAdd( bits_CAP_INNATE_RANGE_ATTACK1 );
+
+	m_NPCState = NPC_STATE_NONE;
 
 	m_ifirestate = -1;
 	bAlerted = false;
@@ -227,15 +234,6 @@ void CHAssault::Precache()
 	PrecacheSound( "weapons/cbar_hitbod2.wav" );
 	PrecacheSound( "weapons/cbar_hitbod3.wav" );
 	PrecacheSound( "hassault/hw_alert.wav" );*/
-}
-
-//=========================================================
-// Classify - indicates this monster's place in the 
-// relationship table.
-//=========================================================
-Class_T CHAssault::Classify( void )
-{
-	return	CLASS_HUMAN_MILITARY;
 }
 
 //=========================================================

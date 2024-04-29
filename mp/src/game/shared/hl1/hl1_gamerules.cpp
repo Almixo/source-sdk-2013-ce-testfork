@@ -76,6 +76,9 @@ ConVar sk_max_satchel				( "sk_max_satchel",				"0", FCVAR_REPLICATED );
 
 ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATED );
 
+
+ConVar sk_plr_dmg_garand_bullet		( "sk_plr_dmg_garand_bullet",	"0", FCVAR_REPLICATED );
+
 ConVar sk_mp_dmg_multiplier ( "sk_mp_dmg_multiplier", "2.0" );
 
 // Damage Queries.
@@ -734,6 +737,9 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType( "Satchel",			DMG_BURN | DMG_BLAST,		TRACER_NONE, "sk_plr_dmg_satchel",		NULL,					"sk_max_satchel",		0, 0 );
 
 		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
+
+		// custom
+		def.AddAmmoType( "GarandRound",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	BULLET_IMPULSE(2910, 2820), 0 );
 
 		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,						8,					0, 0 );
 	}

@@ -415,18 +415,17 @@ void CNPC_Barney::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 			info.ScaleDamage( 0.5f );
 		}
 		break;
-	case 10:
-		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
+	case HITGROUP_GEAR:
+		if ( info.GetDamageType() & ( DMG_BULLET | DMG_SLASH | DMG_CLUB ) )
 		{
-			if ( ( info.GetDamage() - 20 ) <= 0 )
+			info.SetDamage( info.GetDamage() - 20 );
+			if ( info.GetDamage() <= 0 )
 			{
 				g_pEffects->Ricochet( ptr->endpos, ptr->plane.normal );
-				info.SetDamage(0.01);
+				info.SetDamage( 0.01 );
 			}
-
-			// always a head shot
-			ptr->hitgroup = HITGROUP_HEAD;
 		}
+		ptr->hitgroup = HITGROUP_HEAD;
 		break;
 	}
 

@@ -12,6 +12,7 @@ public:
 	Activity GetDrawActivity( void );
 	void PrimaryAttack( void );
 	//void SecondaryAttack( void );
+	void WeaponIdle( void );
 	bool Reload( void );
 };
 
@@ -93,19 +94,43 @@ void CM1Rifle::PrimaryAttack( void )
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
 
-	pPlayer->FireBullets( 3, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 6 );
-
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+
+	Vector vecSpread;
 
 	//Disorient the player
 	QAngle angles = pPlayer->EyeAngles();
 	
-	angles.x -= 10;
+	if ( pPlayer->m_Local.m_bDucked )
+	{ 
+		angles.x -= 5 + RandomFloat( -1, 1 );
+		vecSpread = vec3_origin;
+	}
+	else
+	{
+		angles.x -= 10 + RandomFloat( -5.0f, 2.5f );
+		vecSpread = Vector( 0.01f, 0.01f, 0.01f );
+	}
 
 	pPlayer->SnapEyeAngles( angles );
+
+	pPlayer->FireBullets( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 3 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
 
 	if ( m_iClip1 <= 0 )
 		WeaponSound( SPECIAL1 );
+}
+
+void CM1Rifle::WeaponIdle( void )
+{
+	if ( !HasWeaponIdleTimeElapsed() )
+		return;
+
+	if ( m_iClip1 <= 0 )
+		SendWeaponAnim( ACT_VM_IDLE_EMPTY );
+	else
+		SendWeaponAnim( ACT_VM_IDLE );
+
+	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt( 5, 10 );
 }

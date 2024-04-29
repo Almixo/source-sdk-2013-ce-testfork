@@ -29,6 +29,7 @@
 #include	"ai_interactions.h"
 #include	"scripted.h"
 #include	"hl1_grenade_mp5.h"
+#include	"IEffects.h"
 
 class CNPC_HGrunt : public CHL1BaseNPC
 {

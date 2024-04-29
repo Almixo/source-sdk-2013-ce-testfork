@@ -201,6 +201,8 @@ $Project "Server (CUSTOM)"
 			$File 	"custom\teh_npc_chumtoad.cpp"
 			$File 	"custom\teh_npc_chumtoad.h"
 			
+			$File	"custom\teh_hassault.cpp"
+			
 			$File	"custom\m1garand.cpp"
 			
 			$File 	"..\shared\custom\teh_weapon_chumtoad.cpp"
