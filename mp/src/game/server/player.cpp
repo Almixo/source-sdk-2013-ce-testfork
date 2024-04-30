@@ -1008,11 +1008,11 @@ void CBasePlayer::DamageEffect(float flDamage, int fDamageType)
 		// Burn sound 
 		EmitSound( "Player.PlasmaDamage" );
 	}
-	else if (fDamageType & DMG_SONIC)
-	{
-		// Sonic damage sound 
-		EmitSound( "Player.SonicDamage" );
-	}
+	//else if (fDamageType & DMG_SONIC)
+	//{
+	//	// Sonic damage sound 
+	//	EmitSound( "Player.SonicDamage" );
+	//}
 	else if ( fDamageType & DMG_BULLET )
 	{
 		EmitSound( "Flesh.BulletImpact" );

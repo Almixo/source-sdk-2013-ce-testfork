@@ -55,6 +55,8 @@ public:
 
 	void StartNPC ( void );
 
+	void R_Implosion( const Vector &end, float radius, int count, float life );
+
 	virtual float	InnateRange1MinRange( void ) { return 0.0f; }
 	virtual float	InnateRange1MaxRange( void ) { return HOUNDEYE_MAX_ATTACK_RADIUS; }
 

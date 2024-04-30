@@ -41,6 +41,54 @@ ConVar sk_houndeye_dmg_blast ( "sk_houndeye_dmg_blast", "15" );
 
 static int s_iSquadIndex = 0;
 
+
+//dont care anymore
+void CNPC_Houndeye::R_Implosion( const Vector &end, float radius, int count, float life )
+{
+	//float        dist = ( radius / 100.0f );
+	//Vector        start, temp, vel;
+	//float        factor;
+	//int        i;
+
+	//if ( life <= 0.0f ) life = 0.1f; // to avoid divide by zero
+	//factor = -1.0 / life;
+
+	//for ( i = 0; i < count; i++ )
+	//{
+	//	temp[0] = dist * RandomFloat( -100.0f, 100.0f );
+	//	temp[1] = dist * RandomFloat( -100.0f, 100.0f );
+	//	temp[2] = dist * RandomFloat( 0.0f, 100.0f );
+	//	VectorScale( temp, factor, vel );
+	//	VectorAdd( temp, end, start );
+
+	//	NDebugOverlay::Line( start, end, 255, 0, 0, true, life );
+
+	//	//UTIL_Tracer( start, end, 0, TRACER_DONT_USE_ATTACHMENT, 100 );
+
+
+
+	//	//if ( ( p = R_AllocTracer( start, vel, life ) ) == NULL )
+	//	//	return;
+
+	//	//p->type = pt_explode;
+	//}
+
+	Vector vecStart, vecEnd;
+
+	vecStart = vecEnd = end;
+	vecStart.z += 64;
+
+	//UTIL_Tracer( vecStart, end, 0, TRACER_DONT_USE_ATTACHMENT, 10 );
+
+	//UTIL_ParticleTracer( nullptr, vecStart, vecEnd, 0, 0 );
+
+	UTIL_Tracer( vecStart, vecEnd, 0, TRACER_DONT_USE_ATTACHMENT, 10 );
+
+	NDebugOverlay::Line( vecStart, vecEnd, 255, 0, 0, true, life );
+
+
+}
+
 //=========================================================
 // Monster's Anim Events Go Here
 //=========================================================
@@ -718,7 +766,7 @@ void CNPC_Houndeye::RunTask ( const Task_t *pTask )
 			}
 			break;
 		}
-	case TASK_SPECIAL_ATTACK1:
+	case TASK_RANGE_ATTACK1:
 		{
 			m_nSkin = random->RandomInt(0, HOUNDEYE_EYE_FRAMES - 1);
 
@@ -742,10 +790,26 @@ void CNPC_Houndeye::RunTask ( const Task_t *pTask )
 				WRITE_BYTE( pev->frame / 25.0 ); // count
 				WRITE_BYTE( life * 10 ); // life
 			MessageEnd();*/
+
+			//NDebugOverlay::Line( temp, GetEnemy()->BodyTarget( vec3_origin ), 255, 0, 0, false, 1.0f );
+
+			Vector vecOrg = this->GetAbsOrigin();
+			vecOrg.z += 16;
+
+			Vector FUCKOFF = vecOrg;
+
+			FUCKOFF.z += 128;
+
+			//R_Implosion( vecOrg, 50 * life + 100, 100, life * 10 );
+
+			UTIL_Tracer( vecOrg, FUCKOFF, 0, TRACER_DONT_USE_ATTACHMENT, 15 );
+
+			NDebugOverlay::Line( vecOrg, FUCKOFF, 255, 0, 0, true, 0.1f );
+
 			
 			if ( IsSequenceFinished() )
 			{
-				SonicAttack(); 
+				//SonicAttack(); 
 				TaskComplete();
 			}
 
