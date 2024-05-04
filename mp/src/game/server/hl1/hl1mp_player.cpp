@@ -663,9 +663,14 @@ void CHL1MP_Player::SetPlayerModel( void )
 	int i = modelinfo->GetModelIndex( szModelName );
 	if ( i == -1 )
 	{
-		SetModel( "models/player/mp/gordon/gordon.mdl" );
-		engine->ClientCommand( edict(), "cl_playermodel gordon\n" );
-		return;
+		i = PrecacheModel(szModelName, true);
+
+		if (i == -1)
+		{
+			SetModel("models/player/mp/gordon/gordon.mdl");
+			engine->ClientCommand(edict(), "cl_playermodel gordon\n");
+			return;
+		}
 	}
 
 	SetModel( szModelName );

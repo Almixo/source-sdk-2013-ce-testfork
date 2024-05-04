@@ -1,6 +1,7 @@
 #include "cbase.h"
 #include "soundent.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "hl1_items.h"
 
 class CM1Rifle : public CBaseHL1CombatWeapon
 {
@@ -134,3 +135,36 @@ void CM1Rifle::WeaponIdle( void )
 
 	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt( 5, 10 );
 }
+
+#define AMMO_MODEL "models/w_chainammo.mdl"
+
+class CM1RifleClip : public CHL1Item
+{
+public:
+	DECLARE_CLASS(CM1RifleClip, CHL1Item);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel(AMMO_MODEL);
+		BaseClass::Spawn();
+	}
+	void Precache(void)
+	{
+		PrecacheModel(AMMO_MODEL);
+	}
+	bool MyTouch(CBasePlayer* pPlayer)
+	{
+		if (pPlayer->GiveAmmo(32, "GarandRound"))
+		{
+			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
+			{
+				UTIL_Remove(this);
+			}
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(ammo_garandclip, CM1RifleClip);
+PRECACHE_REGISTER(ammo_garandclip);

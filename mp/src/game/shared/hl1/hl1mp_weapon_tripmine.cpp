@@ -149,27 +149,6 @@ void CWeaponTripMine::PrimaryAttack( void )
 		}
 	}
 
-	if ( m_bDrawThink )
-	{
-		// little hack
-		if ( pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
-		{
-			if ( !pPlayer->SwitchToNextBestWeapon( pPlayer->GetActiveWeapon() ) )
-				Holster();
-
-			return;
-		}
-
-
-		SendWeaponAnim( ACT_VM_DEPLOY );
-
-		m_bDrawThink = false;
-		SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 10, 15 ) );
-
-		return;
-	}
-
-	
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.3;
 	SetWeaponIdleTime( gpGlobals->curtime + RandomInt( 10, 15 ) );
 }
@@ -183,6 +162,25 @@ void CWeaponTripMine::WeaponIdle( void )
 
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
+
+	if (m_bDrawThink)
+	{
+		// little hack
+		if (pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+		{
+			if (!pPlayer->SwitchToNextBestWeapon(pPlayer->GetActiveWeapon()))
+				Holster();
+
+			return;
+		}
+
+
+		//SendWeaponAnim( ACT_VM_DEPLOY );
+
+		m_bDrawThink = false;
+		Deploy();
+		return;
+	}
 
 	int iAnim;
 
