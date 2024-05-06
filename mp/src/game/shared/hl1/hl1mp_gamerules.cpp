@@ -329,19 +329,19 @@ void CHL1MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		return;
 
 	char szCurrMDL[32];
-	V_FileBase( STRING( pHL1Player->GetModelName() ), szCurrMDL, 32 );
+	V_FileBase( STRING( pHL1Player->GetModelName() ), szCurrMDL, 12 );
 
 	char szAccMDL[32];
-	V_FileBase( engine->GetClientConVarValue( pHL1Player->entindex(), "cl_playermodel" ), szAccMDL, 32 );
+	V_FileBase( engine->GetClientConVarValue( pHL1Player->entindex(), "cl_playermodel" ), szAccMDL, 12 );
 
 	if ( IsTeamplay() )
 	{
 		if ( !FStrEq( szCurrMDL, pHL1Player->TeamID() ) )
 		{
-			char szSetMDL[64];
-			V_snprintf( szSetMDL, sizeof szSetMDL, "models/player/mp/%s/%s.mdl", pHL1Player->TeamID(), pHL1Player->TeamID() );
+			/*char szSetMDL[64];
+			V_snprintf( szSetMDL, sizeof szSetMDL, "models/player/mp/%s/%s.mdl", pHL1Player->TeamID(), pHL1Player->TeamID() );*/
 
-			pHL1Player->SetModel( szSetMDL );
+			pHL1Player->SetPlayerTeamModel(pHL1Player->TeamID());
 		}
 	}
 	else

@@ -650,8 +650,8 @@ void CHL1MP_Player::SetPlayerModel( void )
 	char szBaseName[ 16 ];
 	V_snprintf( szBaseName, 16, "%s", engine->GetClientConVarValue( entindex(), "cl_playermodel" ) );
 
-	// Don't let it be 'none'; default to Barney
-	if ( V_stricmp( "none", szBaseName ) == 0 )
+	// Don't let it be 'none'; default to --Barney-- Gordon
+	if ( V_stricmp( "none", szBaseName ) == 0 || V_stricmp( "models", szBaseName ) == 0 ) //temporary fix... gets set to models for some reason!
 	{
 		V_strcpy( szBaseName, "gordon" );
 	}
@@ -678,8 +678,12 @@ void CHL1MP_Player::SetPlayerModel( void )
 	m_flNextModelChangeTime = gpGlobals->curtime + 5;
 }
 
-void CHL1MP_Player::SetPlayerTeamModel( char *sz )
+void CHL1MP_Player::SetPlayerTeamModel( const char *szTeamName )
 {
+	char szModelName[64];
+	V_snprintf(szModelName, sizeof szModelName, "%s%s/%s.mdl", s_szModelPath, szTeamName, szTeamName);
+
+	SetModel(szModelName);
 }
 
 // -------------------------------------------------------------------------------- //

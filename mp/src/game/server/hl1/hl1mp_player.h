@@ -47,7 +47,7 @@ public:
 	void DoAnimationEvent( PlayerAnimEvent_t event, int nData = 0 );
 
 	void SetPlayerModel( );
-	void SetPlayerTeamModel( char *sz );
+	void SetPlayerTeamModel( const char *szTeamName );
 	float GetNextModelChangeTime( void ) { return m_flNextModelChangeTime; }
 	float GetNextTeamChangeTime( void ) { return m_flNextTeamChangeTime; }
 
