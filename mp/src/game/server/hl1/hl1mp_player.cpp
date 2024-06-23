@@ -373,7 +373,10 @@ void CHL1MP_Player::PackDeadPlayerItems( void )
 
 	for ( int i = 0; i < ARRAYSIZE( iAmmoIndex ) && iAmmoIndex[i] >= 0; i++ )
 	{
-		pBox->AddAmmo( base_t( GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[i] )->pName, GetAmmoCount( iAmmoIndex[i] ) ) );
+		int index = iAmmoIndex[i];
+		const char *name = GetAmmoDef()->GetAmmoOfIndex( iAmmoIndex[i] )->pName;
+		int count = GetAmmoCount( iAmmoIndex[i] );
+		pBox->AddAmmo( index, name, count );
 	}
 
 	for ( int i = 0; i < ARRAYSIZE( pWeapon ) && pWeapon[i] != nullptr; i++ )

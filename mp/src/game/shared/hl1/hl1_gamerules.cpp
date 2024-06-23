@@ -740,6 +740,7 @@ CAmmoDef *GetAmmoDef()
 
 		// custom
 		def.AddAmmoType( "GarandRound",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	BULLET_IMPULSE(2910, 2820), 0 );
+		def.AddAmmoType( "Kar98Round",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_kar98_bullet", NULL,					"sk_max_9mm_bullet",	BULLET_IMPULSE(2910, 2820), 0 );
 
 		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,						8,					0, 0 );
 	}

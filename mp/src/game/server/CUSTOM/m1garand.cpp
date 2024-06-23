@@ -2,6 +2,7 @@
 #include "soundent.h"
 #include "hl1_basecombatweapon_shared.h"
 #include "hl1_items.h"
+#include "in_buttons.h"
 
 class CM1Rifle : public CBaseHL1CombatWeapon
 {
@@ -56,11 +57,11 @@ void CM1Rifle::PrimaryAttack( void )
 
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-
 	if ( !pPlayer )
-	{
 		return;
-	}
+
+	if ( pPlayer->m_afButtonLast & IN_ATTACK )
+		return;
 
 	if ( m_iClip1 <= 0 )
 	{
@@ -71,7 +72,8 @@ void CM1Rifle::PrimaryAttack( void )
 		else
 		{
 			WeaponSound( EMPTY );
-			m_flNextPrimaryAttack = 0.15;
+			m_flNextEmptySoundTime = gpGlobals->curtime + 1.0;
+			m_flNextPrimaryAttack = gpGlobals->curtime + 0.15f;
 		}
 
 		return;
@@ -80,7 +82,7 @@ void CM1Rifle::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.35f;
+	m_flNextPrimaryAttack = gpGlobals->curtime + 0.37f;
 	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt(2, 5);
 
 	m_iClip1--;
@@ -110,7 +112,7 @@ void CM1Rifle::PrimaryAttack( void )
 	else
 	{
 		angles.x -= 10 + RandomFloat( -5.0f, 2.5f );
-		vecSpread = Vector( 0.01f, 0.01f, 0.01f );
+		vecSpread = Vector( 0.014f, 0.014f, 0.014f );
 	}
 
 	pPlayer->SnapEyeAngles( angles );

@@ -1,6 +1,7 @@
 #include "cbase.h"
 #include "soundent.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "in_buttons.h"
 
 class CLuger : public CBaseHL1CombatWeapon
 {
@@ -9,12 +10,12 @@ class CLuger : public CBaseHL1CombatWeapon
 public:
 	CLuger();
 
+	Activity GetDrawActivity( void );
+	Activity GetPrimaryAttackActivity( void );
+
 	void PrimaryAttack( void );
-
-	Activity GetDrawActivity(void);
-	Activity GetPrimaryAttackActivity(void);
-
-	void WeaponIdle(void);
+	bool Reload( void );
+	void WeaponIdle( void );
 };
 
 LINK_ENTITY_TO_CLASS(weapon_luger, CLuger);
@@ -30,10 +31,29 @@ CLuger::CLuger()
 	m_bReloadsSingly = false;
 }
 
+Activity CLuger::GetDrawActivity( void )
+{
+	if ( m_iClip1 <= 0 )
+		return ACT_VM_DRAW_EMPTY;
+	else
+		return ACT_VM_DRAW;
+}
+
+Activity CLuger::GetPrimaryAttackActivity( void )
+{
+	if ( m_iClip1 <= 0 )
+		return ACT_GLOCK_SHOOTEMPTY;
+	else
+		return ACT_VM_PRIMARYATTACK;
+}
+
 void CLuger::PrimaryAttack( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )
+		return;
+
+	if ( pPlayer->m_afButtonLast & IN_ATTACK )
 		return;
 
 	if ( m_iClip1 <= 0 )
@@ -45,7 +65,8 @@ void CLuger::PrimaryAttack( void )
 		else
 		{
 			WeaponSound( EMPTY );
-			m_flNextPrimaryAttack = 0.15;
+			m_flNextEmptySoundTime = gpGlobals->curtime + 1.0;
+			m_flNextPrimaryAttack = gpGlobals->curtime + 0.1f;
 		}
 
 		return;
@@ -54,8 +75,8 @@ void CLuger::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.20f;
-	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt( 2, 5 );
+	m_flNextPrimaryAttack = gpGlobals->curtime + 0.175f;
+	m_flTimeWeaponIdle = gpGlobals->curtime + 60 * 10;
 
 	m_iClip1--;
 
@@ -73,7 +94,7 @@ void CLuger::PrimaryAttack( void )
 	//Disorient the player
 	QAngle angles = pPlayer->EyeAngles();
 	angles.x -= 2 + RandomFloat( -0.5f, 0.5f );
-	vecSpread = Vector( 0.01f, 0.01f, 0.01f );
+	vecSpread = Vector( 0.055f, 0.055f, 0.055f );
 
 	pPlayer->SnapEyeAngles( angles );
 
@@ -82,20 +103,16 @@ void CLuger::PrimaryAttack( void )
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
 }
 
-Activity CLuger::GetDrawActivity(void)
+bool CLuger::Reload( void )
 {
-	if (m_iClip1 <= 0)
-		return ACT_VM_DRAW_EMPTY;
-	else
-		return ACT_VM_DRAW;
-}
+	int activity;
 
-Activity CLuger::GetPrimaryAttackActivity(void)
-{
-	if (m_iClip1 <= 0)
-		return ACT_GLOCK_SHOOTEMPTY;
+	if ( m_iClip1 == 0 )
+		activity = ACT_VM_RELOAD_EMPTY;
 	else
-		return ACT_VM_PRIMARYATTACK;
+		activity = ACT_VM_RELOAD;
+
+	return DefaultReload( GetMaxClip1(), GetMaxClip2(), activity );
 }
 
 void CLuger::WeaponIdle(void)

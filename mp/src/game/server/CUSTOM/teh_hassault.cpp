@@ -207,7 +207,7 @@ void CHAssault::Spawn()
 	SetState( NPC_STATE_NONE );
 	CapabilitiesClear();
 	CapabilitiesAdd( bits_CAP_SQUAD | bits_CAP_TURN_HEAD | bits_CAP_DOORS_GROUP | bits_CAP_MOVE_GROUND );
-	CapabilitiesAdd( bits_CAP_INNATE_RANGE_ATTACK1 );
+	//CapabilitiesAdd( bits_CAP_INNATE_RANGE_ATTACK1 );
 
 	m_NPCState = NPC_STATE_NONE;
 
@@ -225,15 +225,13 @@ void CHAssault::Precache()
 	PrecacheModel( "models/hassault.mdl" );
 	m_iAmmoType = GetAmmoDef()->Index( "12mmRound" );
 
-	/*PrecacheSound( "hassault/hw_gun3.wav" );
-	PrecacheSound( "hassault/hw_spin.wav" );
-	PrecacheSound( "hassault/hw_spindown.wav" );
-	PrecacheSound( "hassault/hw_spinup.wav" );
+	PrecacheScriptSound( "Hassault.Shoot" );
+	PrecacheScriptSound( "Hassault.Spin" );
+	PrecacheScriptSound( "Hassault.SpinDown" );
+	PrecacheScriptSound( "Hassault.SpinUp" );
+	PrecacheScriptSound( "Hassault.Alert" );
 
-	PrecacheSound( "weapons/cbar_hitbod1.wav" );
-	PrecacheSound( "weapons/cbar_hitbod2.wav" );
-	PrecacheSound( "weapons/cbar_hitbod3.wav" );
-	PrecacheSound( "hassault/hw_alert.wav" );*/
+	PrecacheScriptSound( "Weapon_Crowbar.Melee_Hit" );
 }
 
 //=========================================================
@@ -282,8 +280,8 @@ void CHAssault::AlertSound()
 {
 	if ( GetEnemy() != NULL )
 	{
-		/*if ( !bAlerted )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "hassault/hw_alert.wav", 1, ATTN_NORM, 0, 100 );*/
+		if ( !bAlerted )
+			EmitSound( "Hassault.Alert" );
 
 		CallForBackup( "monster_human_grunt", 2048, GetEnemy(),	GetEnemyLKP());
 
@@ -296,9 +294,9 @@ void CHAssault::SpinDown()
 	if ( m_ifirestate >= 0 )
 	{
 		m_ifirestate = -1;
-		//STOP_SOUND( ENT( pev ), CHAN_ITEM, "hassault/hw_spin.wav" );
-		//STOP_SOUND( ENT( pev ), CHAN_WEAPON, "hassault/hw_gun3.wav" );
-		//EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "hassault/hw_spindown.wav", 1, ATTN_NORM, 0, 100 );
+		StopSound( "Hassault.Spin" );
+		StopSound( "Hassault.Shoot" );
+		EmitSound( "Hassault.SpinDown" );
 	}
 }
 
@@ -365,11 +363,15 @@ void CHAssault::FireGun()
 	EjectBrass( vecShootOrigin - vecShootDir, vecShellVelocity, pev->angles.y, m_iShell, TE_BOUNCE_SHELL );
 	FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_4DEGREES, 2048, BULLET_MONSTER_MP5, 1 );*/
 
+	Vector vecShellVelocity = Vector( GetAbsOrigin().x * RandomFloat( 40, 90 )
+		+ GetAbsOrigin().y * RandomFloat( 75, 200 )
+		+ GetAbsOrigin().x * RandomFloat( -40, 40 ) );
+
 	FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_4DEGREES, 2048, m_iAmmoType, 1 );
 
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 384, 0.3);
 
-	//EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, "hassault/hw_gun3.wav", 1, ATTN_NORM, 0, 100 );
+	EmitSound( "Hassault.Shoot" );
 }
 
 void CHAssault::Melee()
@@ -381,6 +383,7 @@ void CHAssault::Melee()
 		if ( pHurt->GetFlags() & ( FL_NPC | FL_CLIENT ) )
 		{
 			QAngle ang;
+			//Vector vecVel = pHurt->GetAbsVelocity();
 
 			switch ( RandomInt( 0, 3 ) )
 			{
@@ -392,6 +395,7 @@ void CHAssault::Melee()
 				ang.z = -15;
 
 				pHurt->ViewPunch( ang );
+
 				break;
 			case 1:
 				/*pHurt->pev->punchangle.z = 15;
@@ -404,6 +408,7 @@ void CHAssault::Melee()
 				ang.z = 15;
 
 				pHurt->ViewPunch( ang );
+
 				break;
 			case 2:
 				/*pHurt->pev->punchangle.z = -15;
@@ -431,13 +436,7 @@ void CHAssault::Melee()
 		}
 
 		// Play a random attack hit sound
-		switch ( RandomInt( 0, 2 ) )
-		{
-		case 0: //EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "weapons/cbar_hitbod1.wav", 1, ATTN_NORM, 0, 100 ); break;
-		case 1: //EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "weapons/cbar_hitbod2.wav", 1, ATTN_NORM, 0, 100 ); break;
-		case 2: //EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "weapons/cbar_hitbod3.wav", 1, ATTN_NORM, 0, 100 ); break;
-			break;
-		}
+		EmitSound( "Weapon_Crowbar.Melee_Hit" );
 	}
 }
 
@@ -467,6 +466,8 @@ void CHAssault::CallForBackup( char* szClassname, float flDist, EHANDLE hEnemy, 
 			{
 				pMonster->HasMemory(bits_MEMORY_PROVOKED);
 				//pMonster->PushEnemy( hEnemy, vecLocation );
+
+				pMonster->SetEnemy( GetEnemy() );
 			}
 		}
 	}
@@ -512,16 +513,16 @@ void CHAssault::StartTask( const Task_t* pTask )
 		if ( m_ifirestate == -1 )
 		{
 			m_ifirestate = 0;
-			//STOP_SOUND( ENT( pev ), CHAN_WEAPON, "hassault/hw_gun3.wav" );
-			//EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "hassault/hw_spinup.wav", 1, ATTN_NORM, 0, 100 );
+			StopSound( "Hassault.Shoot" );
+			EmitSound( "Hassault.SpinUp" );
 		}
 		TaskComplete();
 		break;
 
 	case TASK_ASSAULT_SPIN:
 		m_ifirestate = 1;
-		//STOP_SOUND( ENT( pev ), CHAN_BODY, "hassault/hw_spinup.wav" );
-		//EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "hassault/hw_spin.wav", 1, ATTN_NORM, 0, 100 );
+		StopSound( "Hassault.SpinUp" );
+		EmitSound( "Hassault.Spin" );
 		TaskComplete();
 		break;
 

@@ -1,6 +1,7 @@
 #include "cbase.h"
 #include "soundent.h"
 #include "hl1_basecombatweapon_shared.h"
+#include "in_buttons.h"
 
 class CKar98 : public CBaseHL1CombatWeapon
 {
@@ -12,7 +13,7 @@ public:
 
 	void PrimaryAttack( void );
 	bool Reload(void);
-	Activity GetDrawActivity(void);
+	Activity GetDrawActivity( void ) { return ACT_VM_DRAW; };
 };
 
 LINK_ENTITY_TO_CLASS(weapon_kar98, CKar98);
@@ -34,6 +35,9 @@ void CKar98::PrimaryAttack( void )
 	if ( !pPlayer )
 		return;
 
+	if ( pPlayer->m_afButtonLast & IN_ATTACK )
+		return;
+
 	if ( m_iClip1 <= 0 )
 	{
 		if ( !m_bFireOnEmpty )
@@ -43,7 +47,8 @@ void CKar98::PrimaryAttack( void )
 		else
 		{
 			WeaponSound( EMPTY );
-			m_flNextPrimaryAttack = 0.15;
+			m_flNextEmptySoundTime = gpGlobals->curtime + 1.0;
+			m_flNextPrimaryAttack = gpGlobals->curtime + 0.15f;
 		}
 
 		return;
@@ -57,7 +62,10 @@ void CKar98::PrimaryAttack( void )
 
 	m_iClip1--;
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	if ( m_iClip1 > 0 )
+		SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	else
+		SendWeaponAnim( ACT_GLOCK_SHOOTEMPTY );
 
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
@@ -70,8 +78,16 @@ void CKar98::PrimaryAttack( void )
 
 	//Disorient the player
 	QAngle angles = pPlayer->EyeAngles();
-	angles.x -= 2 + RandomFloat( -0.5f, 0.5f );
-	vecSpread = Vector( 0.01f, 0.01f, 0.01f );
+	if ( pPlayer->m_Local.m_bDucked )
+	{
+		angles.x -= 5 + RandomFloat( -1, 1 );
+		vecSpread = vec3_origin;
+	}
+	else
+	{
+		angles.x -= 10 + RandomFloat( -5.0f, 2.5f );
+		vecSpread = Vector( 0.014f, 0.014f, 0.014f );
+	}
 
 	pPlayer->SnapEyeAngles( angles );
 
@@ -82,6 +98,9 @@ void CKar98::PrimaryAttack( void )
 
 bool CKar98::Reload(void)
 {
+	if ( m_bInReload )
+		return false;
+
 	CBaseCombatCharacter *pOwner = GetOwner();
 	if (!pOwner)
 		return false;
@@ -90,15 +109,10 @@ bool CKar98::Reload(void)
 	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 		return false;
 
+	if ( m_iClip1 == GetMaxClip1() )
+		return false;
+
 	m_iClip1 = 0;
 
-	return BaseClass::Reload();
-}
-
-Activity CKar98::GetDrawActivity(void)
-{
-	if (m_iClip1 == 0)
-		return ACT_VM_DRAW_EMPTY;
-	else
-		return ACT_VM_DRAW;
+	return BaseClass::DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
 }
