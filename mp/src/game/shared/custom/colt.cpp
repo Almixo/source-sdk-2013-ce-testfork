@@ -1,12 +1,21 @@
 #include "cbase.h"
+#ifdef GAME_DLL
 #include "soundent.h"
-#include "hl1_basecombatweapon_shared.h"
+#endif // GAME_DLL
+#include "hl1mp_basecombatweapon_shared.h"
 #include "in_buttons.h"
 
-class CColt : public CBaseHL1CombatWeapon
+#ifdef CLIENT_DLL
+#define CColt C_Colt
+#endif
+
+class CColt : public CBaseHL1MPCombatWeapon
 {
 	DECLARE_CLASS(CColt, CBaseHL1CombatWeapon);
-	DECLARE_SERVERCLASS();
+	/*DECLARE_SERVERCLASS();*/
+
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
 public:
 	CColt();
 
@@ -18,12 +27,20 @@ public:
 	void WeaponIdle(void);
 };
 
+IMPLEMENT_NETWORKCLASS_ALIASED( Colt, DT_Colt );
+
+BEGIN_NETWORK_TABLE( CColt, DT_Colt )
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA( CColt )
+END_PREDICTION_DATA()
+
 LINK_ENTITY_TO_CLASS(weapon_colt, CColt);
 
 PRECACHE_WEAPON_REGISTER(weapon_colt);
 
-IMPLEMENT_SERVERCLASS_ST(CColt, DT_Colt)
-END_SEND_TABLE();
+//IMPLEMENT_SERVERCLASS_ST(CColt, DT_Colt)
+//END_SEND_TABLE();
 
 CColt::CColt()
 {
@@ -75,6 +92,10 @@ void CColt::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
+#ifdef GAME_DLL
+	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+#endif
+
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.175f;
 	m_flTimeWeaponIdle = gpGlobals->curtime + 0.75;
 
@@ -86,21 +107,19 @@ void CColt::PrimaryAttack( void )
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
+	Vector vecSpread = Vector( 0.055f, 0.055f, 0.055f );
 
-	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+	FireBulletsInfo_t info( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType ); // 3 tracer count rip
+	pPlayer->FireBullets( info );
 
-	Vector vecSpread;
-
+#ifdef GAME_DLL
 	//Disorient the player
 	QAngle angles = pPlayer->EyeAngles();
 	angles.x -= 2 + RandomFloat( -0.5f, 0.5f );
-	vecSpread = Vector( 0.055f, 0.055f, 0.055f );
 
 	pPlayer->SnapEyeAngles( angles );
-
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 3 );
-
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
+#endif
 }
 
 bool CColt::Reload( void )

@@ -1,12 +1,21 @@
 #include "cbase.h"
+#ifdef GAME_DLL
 #include "soundent.h"
-#include "hl1_basecombatweapon_shared.h"
+#endif // GAME_DLL
+#include "hl1mp_basecombatweapon_shared.h"
 #include "in_buttons.h"
 
-class CKar98 : public CBaseHL1CombatWeapon
+#ifdef CLIENT_DLL
+#define CKar98 C_Kar98
+#endif
+
+class CKar98 : public CBaseHL1MPCombatWeapon
 {
 	DECLARE_CLASS(CKar98, CBaseHL1CombatWeapon);
-	DECLARE_SERVERCLASS();
+	/*DECLARE_SERVERCLASS();*/
+
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
 public:
 
 	CKar98();
@@ -16,12 +25,20 @@ public:
 	Activity GetDrawActivity( void ) { return ACT_VM_DRAW; };
 };
 
+IMPLEMENT_NETWORKCLASS_ALIASED( Kar98, DT_Kar98 );
+
+BEGIN_NETWORK_TABLE( CKar98, DT_Kar98 )
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA( CKar98 )
+END_PREDICTION_DATA()
+
 LINK_ENTITY_TO_CLASS(weapon_kar98, CKar98);
 
 PRECACHE_WEAPON_REGISTER(weapon_kar98);
 
-IMPLEMENT_SERVERCLASS_ST(CKar98, DT_Kar98)
-END_SEND_TABLE();
+//IMPLEMENT_SERVERCLASS_ST(CKar98, DT_Kar98)
+//END_SEND_TABLE();
 
 CKar98::CKar98()
 {
@@ -57,6 +74,10 @@ void CKar98::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
+#ifdef GAME_DLL
+	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+#endif
+
 	m_flNextPrimaryAttack = gpGlobals->curtime + 1.5f;
 	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt( 2, 5 );
 
@@ -71,9 +92,6 @@ void CKar98::PrimaryAttack( void )
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
-
-	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
-
 	Vector vecSpread;
 
 	//Disorient the player
@@ -89,11 +107,13 @@ void CKar98::PrimaryAttack( void )
 		vecSpread = Vector( 0.014f, 0.014f, 0.014f );
 	}
 
+	FireBulletsInfo_t info( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType ); // 3 tracer count rip
+	pPlayer->FireBullets( info );
+
+#ifdef GAME_DLL
 	pPlayer->SnapEyeAngles( angles );
-
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 3 );
-
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
+#endif
 }
 
 bool CKar98::Reload(void)

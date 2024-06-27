@@ -98,7 +98,7 @@ void CWpnBox::GiveWeapon()
 		if ( pWeapon[i] == nullptr )
 			continue;
 
-		if ( pWeapon[i]->GetAbsOrigin() == vec3_origin )
+		if ( pWeapon[i]->GetAbsOrigin() == vec3_origin ) // it wasn't spawned yet, packed through KVs
 			pWeapon[i]->Spawn();
 
 		pWeapon[i]->GiveTo( pPlayer );

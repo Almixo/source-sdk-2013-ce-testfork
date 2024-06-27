@@ -207,10 +207,10 @@ $Project "Server (CUSTOM)"
 			
 			$Folder "WEAPONS"
 			{
-				$File	"custom\m1garand.cpp"
-				$File	"custom\kar98.cpp"
-				$File	"custom\colt.cpp"
-				$File	"custom\luger.cpp"
+				$File	"..\shared\custom\m1garand.cpp"
+				$File	"..\shared\custom\kar98.cpp"
+				$File	"..\shared\custom\colt.cpp"
+				$File	"..\shared\custom\luger.cpp"
 			}
 		}
 	}

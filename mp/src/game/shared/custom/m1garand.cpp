@@ -1,13 +1,23 @@
 #include "cbase.h"
-#include "soundent.h"
-#include "hl1_basecombatweapon_shared.h"
-#include "hl1_items.h"
+#include "hl1mp_basecombatweapon_shared.h"
 #include "in_buttons.h"
 
-class CM1Rifle : public CBaseHL1CombatWeapon
+#ifdef GAME_DLL
+#include "soundent.h"
+#include "hl1_items.h"
+#endif // GAME_DLL
+
+#ifdef CLIENT_DLL
+#define CM1Rifle C_M1Rifle
+#endif
+
+class CM1Rifle : public CBaseHL1MPCombatWeapon
 {
 	DECLARE_CLASS( CM1Rifle, CBaseHL1CombatWeapon );
-	DECLARE_SERVERCLASS();
+	//DECLARE_SERVERCLASS();
+
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
 public:
 	CM1Rifle();
 
@@ -18,12 +28,20 @@ public:
 	bool Reload( void );
 };
 
+IMPLEMENT_NETWORKCLASS_ALIASED( M1Rifle, DT_M1Rifle );
+
+BEGIN_NETWORK_TABLE( CM1Rifle, DT_M1Rifle )
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA( CM1Rifle )
+END_PREDICTION_DATA()
+
 LINK_ENTITY_TO_CLASS( weapon_garand, CM1Rifle );
 
 PRECACHE_WEAPON_REGISTER( weapon_garand );
 
-IMPLEMENT_SERVERCLASS_ST( CM1Rifle, DT_M1Rifle )
-END_SEND_TABLE()
+/*IMPLEMENT_SERVERCLASS_ST(CM1Rifle, DT_M1Rifle)
+END_SEND_TABLE()*/
 
 CM1Rifle::CM1Rifle()
 {
@@ -82,6 +100,10 @@ void CM1Rifle::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
+#ifdef GAME_DLL
+	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+#endif
+
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.37f;
 	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt(2, 5);
 
@@ -96,16 +118,13 @@ void CM1Rifle::PrimaryAttack( void )
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
-
-	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
-
 	Vector vecSpread;
 
 	//Disorient the player
 	QAngle angles = pPlayer->EyeAngles();
-	
+
 	if ( pPlayer->m_Local.m_bDucked )
-	{ 
+	{
 		angles.x -= 5 + RandomFloat( -1, 1 );
 		vecSpread = vec3_origin;
 	}
@@ -115,11 +134,13 @@ void CM1Rifle::PrimaryAttack( void )
 		vecSpread = Vector( 0.014f, 0.014f, 0.014f );
 	}
 
+	FireBulletsInfo_t info( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType ); // 3 tracer count rip
+	pPlayer->FireBullets( info );
+
+#ifdef GAME_DLL
 	pPlayer->SnapEyeAngles( angles );
-
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 3 );
-
 	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
+#endif
 
 	if ( m_iClip1 <= 0 )
 		WeaponSound( SPECIAL1 );
@@ -138,8 +159,8 @@ void CM1Rifle::WeaponIdle( void )
 	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt( 5, 10 );
 }
 
+#ifdef GAME_DLL
 #define AMMO_MODEL "models/w_chainammo.mdl"
-
 class CM1RifleClip : public CHL1Item
 {
 public:
@@ -170,3 +191,4 @@ public:
 };
 LINK_ENTITY_TO_CLASS(ammo_garandclip, CM1RifleClip);
 PRECACHE_REGISTER(ammo_garandclip);
+#endif

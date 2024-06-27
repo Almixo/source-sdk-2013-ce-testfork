@@ -78,6 +78,7 @@ ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATE
 
 
 ConVar sk_plr_dmg_garand_bullet		( "sk_plr_dmg_garand_bullet",	"0", FCVAR_REPLICATED );
+ConVar sk_plr_dmg_kar98_bullet		( "sk_plr_dmg_kar98_bullet",	"0", FCVAR_REPLICATED );
 
 ConVar sk_mp_dmg_multiplier ( "sk_mp_dmg_multiplier", "2.0" );
 
@@ -98,14 +99,19 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 
 	const char *CHalfLife1::GetGameDescription( void )
 	{
-		if ( IsMultiplayer() )
+		/*if ( IsMultiplayer() )
 		{
 			return "Half-Life 1: Deathmatch";
 		}
 		else
 		{
 			return "Half-Life 1";
-		}
+		}*/
+
+		if ( IsMultiplayer() )
+			Warning( "SP gamerules used for MP! Something went horribly wrong!\n" );
+
+		return "Half-Life 1";
 	}
 
 	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
@@ -739,8 +745,8 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
 
 		// custom
-		def.AddAmmoType( "GarandRound",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	BULLET_IMPULSE(2910, 2820), 0 );
-		def.AddAmmoType( "Kar98Round",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_kar98_bullet", NULL,					"sk_max_9mm_bullet",	BULLET_IMPULSE(2910, 2820), 0 );
+		def.AddAmmoType( "GarandRound",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 );
+		def.AddAmmoType( "Kar98Round",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_kar98_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 );
 
 		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,						8,					0, 0 );
 	}

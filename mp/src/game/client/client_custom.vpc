@@ -126,6 +126,14 @@ $Project "Client (CUSTOM)"
 			$File	"..\shared\custom\CGuidedWeapon.h"
 			
 			$File	"..\shared\custom\teh_weapon_chumtoad.cpp"
+
+			$Folder "WEAPONS"
+			{
+				$File	"..\shared\custom\m1garand.cpp"
+				$File	"..\shared\custom\kar98.cpp"
+				$File	"..\shared\custom\colt.cpp"
+				$File	"..\shared\custom\luger.cpp"
+			}
 		}
 	}
 }
