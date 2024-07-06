@@ -783,6 +783,9 @@ void CBaseButton::ButtonBackHome( void )
 
 	m_OnOut.FireOutput(m_hActivator, this);
 
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
+
 	//
 	// Re-instate touch method, movement cycle is complete.
 	//
