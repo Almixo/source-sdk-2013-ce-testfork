@@ -21,7 +21,11 @@
 
 #define MAX_BEAM_WIDTH			102.3f
 #define MAX_BEAM_SCROLLSPEED	100.0f
+#if !defined (BSHIFT_DLL) && !defined (BSHIFT_CLIENT_DLL)
 #define MAX_BEAM_NOISEAMPLITUDE		64
+#else
+#define MAX_BEAM_NOISEAMPLITUDE		128
+#endif
 
 #define SF_BEAM_STARTON			0x0001
 #define SF_BEAM_TOGGLE			0x0002

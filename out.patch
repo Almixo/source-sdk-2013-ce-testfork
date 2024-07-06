@@ -1,0 +1,563 @@
+diff --git a/sp/src/game/client/bshift/base/hl1_hud_health.cpp b/sp/src/game/client/bshift/base/hl1_hud_health.cpp
+index 1f69c93..d60275c 100644
+--- a/sp/src/game/client/bshift/base/hl1_hud_health.cpp
++++ b/sp/src/game/client/bshift/base/hl1_hud_health.cpp
+@@ -166,12 +166,12 @@ void CHudHealth::Paint()
+ 	// If health is getting low, make it bright red
+ 	if ( m_iHealth <= 15 )
+ 		a = 255;
++
++	int r, g, b, nUnused;
++	(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
+ 		
+ 	if (m_iHealth > 25)
+ 	{
+-		int r, g, b, nUnused;
+-
+-		(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
+ 		clrHealth.SetColor( r, g, b, a );
+ 	}
+ 	else
+@@ -197,7 +197,7 @@ void CHudHealth::Paint()
+ 	int iHeight	= nFontHeight;
+ 	int iWidth	= nFontWidth / 10;
+ 
+-	clrHealth.SetColor( 255, 160, 0, a  );
++	clrHealth.SetColor( r, g, b, a );
+ 	vgui::surface()->DrawSetColor( clrHealth );
+ 	vgui::surface()->DrawFilledRect( x, y, x + iWidth, y + iHeight );
+ }
+diff --git a/sp/src/game/server/bshift/CWarpBall.cpp b/sp/src/game/server/bshift/CWarpBall.cpp
+index 3c94a09..29e46dc 100644
+--- a/sp/src/game/server/bshift/CWarpBall.cpp
++++ b/sp/src/game/server/bshift/CWarpBall.cpp
+@@ -1,206 +1,136 @@
+-//========= Copyright Valve Corporation, All rights reserved. ============//
+-//
+-// Purpose:		WarpBall
+-//
+-//=============================================================================//
+-
+ #include "cbase.h"
+-#include "beam_shared.h"
+-#include "Sprite.h"
+-#include "soundent.h"
+ #include "EnvBeam.h"
++#include "Sprite.h"
+ 
+-#define SF_REMOVE_ON_FIRE 1
+-#define SF_KILL_CENTER 2
++#define SF_REMOVE_ON_FIRE (1<<0)
++#define SF_KILL_CENTER (1<<1)
+ 
+-class CWarpBall : public CPointEntity
++class CWarpBall : public CBaseEntity
+ {
+-	DECLARE_CLASS(CWarpBall, CPointEntity);
++	DECLARE_CLASS( CWarpBall, CBaseEntity );
+ 	DECLARE_DATADESC();
+ public:
+-	CWarpBall(void);
+-	~CWarpBall(void);
+ 
+-	void Spawn(void);
+-	void Precache(void);
+-	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
+-	void BallThink(void);
+-	void InputActivate(inputdata_t &inputdata);
++	CWarpBall();
++	~CWarpBall();
+ 
+-	void RunBeams(void);
+-	void RunSprites(void);
+-	void RunSounds(void);
++	void Spawn( void );
++	void Precache( void );
++	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
++	void Think( void );
++	void InputActivate( inputdata_t &inputdata );
+ 
++	void RunBeams( void );
++	void RunSprites( void );
++	void RunSound( void );
+ private:
+-	COutputEvent OnActivate;
+ 
+-	float fRadius, fDamageDelay, fActiveTime, fBeamTime;
++	COutputEvent OnActivate;
+ 
+-	Vector vecOrigin;
++	float fRadius;
++	float fDamageDelay;
++	float fActiveTime;
+ 
+-	CSprite *pSpr[2];
++	CSprite *pSprite[2];
+ 	CEnvBeam *pBeam;
+ 
+ 	bool bActive;
+ };
++LINK_ENTITY_TO_CLASS( env_warpball, CWarpBall );
+ 
+-LINK_ENTITY_TO_CLASS(env_warpball, CWarpBall);
++BEGIN_DATADESC( CWarpBall )
++DEFINE_KEYFIELD( fRadius, FIELD_FLOAT, "radius" ),
++DEFINE_KEYFIELD( fDamageDelay, FIELD_TIME, "damage_delay" ),
+ 
+-BEGIN_DATADESC(CWarpBall)
+-	DEFINE_KEYFIELD(fRadius, FIELD_FLOAT, "radius"),
+-	DEFINE_KEYFIELD(fDamageDelay, FIELD_TIME, "damage_delay"),
++DEFINE_INPUTFUNC( FIELD_VOID, "Activate", InputActivate ),
++DEFINE_OUTPUT( OnActivate, "OnActivate" ),
+ 
+-	DEFINE_INPUTFUNC(FIELD_VOID, "Activate", InputActivate),
+-	DEFINE_OUTPUT(OnActivate, "OnActivate"),
++DEFINE_ARRAY( pSprite, FIELD_CLASSPTR, 2 ),
++DEFINE_FIELD( pBeam, FIELD_CLASSPTR ),
+ 
+-	DEFINE_ARRAY(pSpr, FIELD_CLASSPTR, 2),
+-	DEFINE_FIELD(pBeam, FIELD_CLASSPTR),
+-
+-	DEFINE_FIELD(bActive, FIELD_BOOLEAN),
+-	DEFINE_FIELD(fActiveTime, FIELD_TIME),
+-	DEFINE_FIELD(fBeamTime, FIELD_TIME),
+-
+-	DEFINE_ENTITYFUNC(BallThink),
++DEFINE_FIELD( bActive, FIELD_BOOLEAN ),
++DEFINE_FIELD( fActiveTime, FIELD_TIME ),
+ END_DATADESC();
+-//============================================================
+ 
+ CWarpBall::CWarpBall()
+ {
+-	/*fRadius = 0;
+-	fDamageDelay = 0;
+-	fActiveTime = 0;
+-	fBeamTime = 0;*/
+-
+-	pSpr[0] = false;
+-	pSpr[1] = false;
+-
+-	pBeam = false;
++	memset( pSprite, 0, sizeof pSprite );
++	pBeam = nullptr;
+ 
++	fActiveTime = 0;
+ 	bActive = false;
+ }
+-
+ CWarpBall::~CWarpBall()
+ {
+-	if (pBeam != nullptr)
+-	{
+-		UTIL_Remove(pBeam);
+-		pBeam = nullptr;
+-	}
+-	for (auto& var : pSpr)
+-	{
+-		UTIL_Remove(var);
+-		var = nullptr;
+-	}
++	memset( pSprite, 0, sizeof pSprite );
++	pBeam = nullptr;
++
++	fActiveTime = 0;
++	bActive = false;
+ }
+ 
+-void CWarpBall::Spawn(void)
++void CWarpBall::Spawn( void )
+ {
+ 	BaseClass::Spawn();
+-	Precache();
+-
+-	vecOrigin = GetAbsOrigin();
+ 
+-	DevMsg("%s spawned at %f %f %f!\n", GetDebugName(), vecOrigin.x, vecOrigin.y, vecOrigin.z);
++	Precache();
+ 
+ 	SetThink( NULL );
+-	SetNextThink(TICK_NEVER_THINK);
++	SetNextThink( TICK_NEVER_THINK );
+ }
+-void CWarpBall::Precache(void)
++
++void CWarpBall::Precache( void )
+ {
+ 	BaseClass::Precache();
+ 
+-	PrecacheMaterial("sprites/Fexplo1.vmt");
+-	PrecacheMaterial("sprites/XFlare1.vmt");
++	PrecacheMaterial( "sprites/Fexplo1.vmt" );
++	PrecacheMaterial( "sprites/XFlare1.vmt" );
+ 
+-	PrecacheScriptSound("Debris.AlienTeleport");
++	PrecacheScriptSound( "Debris.AlienTeleport" );
++
++	UTIL_PrecacheOther( "env_beam" );
++	UTIL_PrecacheDecal( "env_sprite" );
+ }
+-void CWarpBall::InputActivate(inputdata_t &inputdata)
++
++void CWarpBall::InputActivate( inputdata_t &inputdata )
+ {
+-	Use(inputdata.pActivator, inputdata.pCaller, USE_ON, 1);
++	Use( inputdata.pActivator, inputdata.pCaller, USE_ON, 0 );
+ }
+-void CWarpBall::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)
++
++void CWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE usetype, float value )
+ {
+-	if (bActive)
++	if ( bActive )
+ 		return;
+ 
+ 	bActive = true;
+-	fActiveTime = gpGlobals->curtime + 2.0;
+-	fBeamTime = gpGlobals->curtime + 1.0;
+-
+-	vecOrigin = GetAbsOrigin();
+ 
+-	DevMsg("%s at %f %f %f recieved use signal!\n", GetDebugName(), vecOrigin.x, vecOrigin.y, vecOrigin.z);
+-
+-	OnActivate.FireOutput(this, this);
+-
+-	UTIL_ScreenShake(vecOrigin, 4, 100, 2, 1000, SHAKE_START);
++	fActiveTime = gpGlobals->curtime + 2;
+ 
+ 	RunBeams();
+ 	RunSprites();
+-	RunSounds();
++	RunSound();
+ 
+-	SetThink( &CWarpBall::BallThink );
+-	SetNextThink(gpGlobals->curtime);
++	SetNextThink( gpGlobals->curtime );
+ }
+-void CWarpBall::RunBeams(void)
+-{
+-	//TODO: remove this sometime...
+-	//CPVSFilter filter(vecOrigin);
+-	//for (int i = 0; i < 30; i++)
+-	//{
+-	//	trace_t tr;
+-
+-	//	Vector vDest = Vector(RandomFloat(-1, 1), RandomFloat(-1, 1), RandomFloat(-1, 1)); // Was Normalized() before... works tho?
+-	//	VectorNormalize(vDest);
+-
+-	//	UTIL_TraceLine(vecOrigin, vecOrigin + vDest * fRadius, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr);
+-
+-	//	te->BeamPoints(filter, 0, &vecOrigin, &tr.endpos, PrecacheModel("sprites/lgtning.vmt"), 0, 0, 10, 0.5, 1.8, 1.8, 0, 64, 197, 243, 169, 150, 35);
+-	//}
+-
+-	//pBeam = (CEnvBeam*)CreateNoSpawn("env_beam", vecOrigin, vec3_angle);
+-
+-	//if (!pBeam)
+-	//	return;
+ 
+-	//pBeam->m_iszSpriteName = MAKE_STRING("sprites/lgtning.vmt");
+-	//pBeam->SetAbsOrigin(vecOrigin);
+-	//pBeam->m_restrike = -0.5;
+-	//pBeam->m_noiseAmplitude = 15.0; //65 :questionmark:
+-	//pBeam->m_boltWidth = 1.8;
+-	//pBeam->m_life = 0.5;
+-	//pBeam->SetColor(0, 255, 0);
+-	//pBeam->AddSpawnFlags(SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON); //SF_BEAM_SPARKEND | SF_BEAM_TOGGLE | SF_BEAM_DECALS | SF_BEAM_STARTON
+-	//pBeam->m_radius = fRadius;
+-	//pBeam->m_iszStartEntity = MAKE_STRING(GetDebugName()); //SetStartEntity will fuck itself TODO: work around this!
+-
+-	//DispatchSpawn(pBeam);
+-
+-	///*pBeam->SetThink(&CEnvBeam::StrikeThink);
+-	//pBeam->SetNextThink(gpGlobals->curtime);*/
+-
+-	//inputdata_t info;
+-	//info.pActivator = this;
+-	//info.pCaller = this;
+-
+-	//pBeam->InputToggle(info);
+-
+-	pBeam = ( CEnvBeam *)CreateNoSpawn( "env_beam", vecOrigin, vec3_angle );
++void CWarpBall::RunBeams( void )
++{
++	pBeam = (CEnvBeam *)CreateNoSpawn( "env_beam", GetAbsOrigin(), vec3_angle, this );
+ 	if ( !pBeam )
+ 		return;
+ 
+-	char szName[ 64 + 1 ];
+-	Q_snprintf( szName, sizeof szName, "%s_beams", GetDebugName() );
++	char szName[65];
++	Q_snprintf( szName, 65, "beams_%s", GetDebugName() );
+ 
+ 	pBeam->m_boltWidth = 1.8;
+ 	pBeam->m_iszSpriteName = MAKE_STRING( "sprites/lgtning.vmt" );
+ 	pBeam->SetName( MAKE_STRING( szName ) );
+ 	pBeam->m_life = .5;
+ 	pBeam->m_restrike = -.5;
+-	pBeam->m_iszStartEntity = MAKE_STRING( pBeam->GetDebugName() );
+-	pBeam->AddSpawnFlags( SF_BEAM_TOGGLE | SF_BEAM_RANDOM );
+-	pBeam->m_noiseAmplitude = 35;
+-	pBeam->m_radius = 100;
++	pBeam->m_iszStartEntity = MAKE_STRING( GetDebugName() );
++	pBeam->AddSpawnFlags( SF_BEAM_TOGGLE /*| SF_BEAM_RANDOM*/ | SF_BEAM_DECALS | SF_BEAM_SPARKEND );
++	pBeam->m_noiseAmplitude = 13;
++	pBeam->m_radius = fRadius;
+ 	pBeam->SetRenderColor( 0, 255, 0 );
+ 	pBeam->SetBrightness( 150 );
+ 
+@@ -210,95 +140,88 @@ void CWarpBall::RunBeams(void)
+ 	input.pActivator = input.pCaller = this;
+ 
+ 	pBeam->InputToggle( input );
+-
+-	Msg( "name %s\n", pBeam->GetDebugName() );
+ }
+-void CWarpBall::RunSprites(void)
++
++void CWarpBall::RunSprites( void )
+ {
+-	pSpr[0] = CSprite::SpriteCreate("sprites/Fexplo1.vmt", vecOrigin, true);
+-	pSpr[0]->SetScale(1.0f);
++	pSprite[0] = CSprite::SpriteCreate( "sprites/Fexplo1.vmt", GetAbsOrigin(), true );
++	pSprite[0]->SetScale( 1.0f );
+ 	/*pSpr[0]->SetTransparency(kRenderGlow, 77, 210, 130, 255, kRenderFxNoDissipation);*/
+ 
+-	pSpr[1] = CSprite::SpriteCreate("sprites/XFlare1.vmt", vecOrigin, true);
+-	pSpr[1]->SetScale(1.2f);
++	pSprite[1] = CSprite::SpriteCreate( "sprites/XFlare1.vmt", GetAbsOrigin(), true );
++	pSprite[1]->SetScale( 1.2f );
+ 	/*pSpr[1]->SetTransparency(kRenderGlow, 184, 250, 214, 255, kRenderFxNoDissipation);*/
+ 
+-	for (auto& CocaCola : pSpr)
++	for ( auto &sprites : pSprite )
+ 	{
+-		CocaCola->SetTransparency(kRenderGlow, 77, 210, 130, 255, kRenderFxNoDissipation);
+-		CocaCola->AddSpawnFlags(SF_SPRITE_ONCE);
+-		CocaCola->m_flSpriteFramerate = 10.0;
+-		CocaCola->TurnOn();
++		sprites->SetTransparency( kRenderGlow, 77, 210, 130, 255, kRenderFxNoDissipation );
++		sprites->AddSpawnFlags( SF_SPRITE_ONCE );
++		sprites->m_flSpriteFramerate = 10.0;
++		sprites->TurnOn();
+ 	}
+ }
+-void CWarpBall::RunSounds(void)
+-{
+-	CPASAttenuationFilter filter(this);
+-	EmitSound(filter, entindex(), "Debris.AlienTeleport");
+ 
+-	CSoundEnt::InsertSound(SOUND_DANGER, vecOrigin, 1024, 0.5);
+-}
+-void CWarpBall::BallThink(void)
++void CWarpBall::RunSound( void )
+ {
+-	if (!bActive)
+-		return;
++	CPASAttenuationFilter filter( this );
++	EmitSound( filter, entindex(), "Debris.AlienTeleport" );
++}
+ 
++void CWarpBall::Think( void )
++{
+ 	BaseClass::Think();
+ 
+-	if (GetSpawnFlags() & SF_KILL_CENTER)
++	if ( !bActive )
++		return;
++
++	if ( fActiveTime <= gpGlobals->curtime )
+ 	{
+-		if (fDamageDelay < gpGlobals->curtime)
+-		{
+-			CBaseEntity *pList[32];
+-			int iCount = UTIL_EntitiesInSphere(pList, 32, vecOrigin, 48.0f, 0);
+-
+-			for (int i = 0; i < iCount; i++)
+-			{
+-				if (!pList[i])
+-					continue;
+-
+-				if (pList[i]->IsWorld())
+-					continue;
+-
+-				if (pList[i] == this)
+-					continue;
+-
+-				//TODO: Simplify this.
+-				/*if (pList[i]->Classify() == CLASS_ALIEN_MILITARY || 
+-					pList[i]->Classify() == CLASS_ALIEN_MONSTER ||
+-					pList[i]->Classify() == CLASS_ALIEN_PREDATOR ||
+-					pList[i]->Classify() == CLASS_ALIEN_PREY ||
+-					pList[i]->Classify() == CLASS_ALIEN_BIOWEAPON )
+-					continue;*/
+-
+-				//TODO: Why was all that even there? What was I smoking?
+-				if (pList[i]->Classify() != CLASS_PLAYER)
+-					continue;
+-
+-				pList[i]->TakeDamage(CTakeDamageInfo(this, this, 300, DMG_SHOCK | DMG_ALWAYSGIB));
+-			}
+-		}
++		bActive = false;
++		fActiveTime = 0;
++
++		SetThink( NULL );
++		SetNextThink( TICK_NEVER_THINK );
++
++		if ( HasSpawnFlags( SF_REMOVE_ON_FIRE ) )
++			UTIL_Remove( this );
++
++		return;
+ 	}
+-	if (GetSpawnFlags() & SF_REMOVE_ON_FIRE)
+-		UTIL_Remove(this);
+ 
+-	if (fBeamTime < gpGlobals->curtime)
++	if ( ( fActiveTime - 0.7 ) <= gpGlobals->curtime )
+ 	{
+ 		pBeam->m_life = 0;
+ 		pBeam->TurnOff();
+-		pBeam->SetThink(&CEnvBeam::SUB_Remove);
+-		pBeam->SetNextThink( gpGlobals->curtime );
++		pBeam->SetThink( &BaseClass::SUB_Remove );
+ 	}
+ 
+-	if (fActiveTime < gpGlobals->curtime)
++	if ( HasSpawnFlags( SF_KILL_CENTER ) && ( fDamageDelay <= gpGlobals->curtime ) )
+ 	{
+-		bActive = false;
+-		fActiveTime = 0;
++		CBaseEntity *pEnts[64];
++		memset( pEnts, 0, sizeof pEnts );
+ 
+-		SetThink(NULL);
+-		SetNextThink(TICK_NEVER_THINK);
+-		return;
++		int iEntCnt = UTIL_EntitiesInSphere( pEnts, 64, GetAbsOrigin(), 48.0f, 0 );
++
++		for ( int i = 0; i < iEntCnt; i++ )
++		{
++			if ( !pEnts[i] )
++				continue;
++
++			if ( pEnts[i]->IsWorld() )
++				continue;
++
++			if ( pEnts[i] == this )
++				continue;
++
++			if ( ( pEnts[i]->Classify() > CLASS_HUMAN_MILITARY ) && pEnts[i]->Classify() < CLASS_PLAYER_ALLY )
++				continue;
++
++			if ( pEnts[i]->Classify() == CLASS_ALIEN_BIOWEAPON )
++				continue;
++
++			pEnts[i]->TakeDamage( CTakeDamageInfo( this, this, 300, DMG_SHOCK ) );
++		}
+ 	}
+ 
+-	SetNextThink(gpGlobals->curtime + 0.1f);
+-}
+\ No newline at end of file
++	SetNextThink( gpGlobals->curtime + 0.1 );
++}
+diff --git a/sp/src/game/server/buttons.cpp b/sp/src/game/server/buttons.cpp
+index af46d0c..c2d637b 100644
+--- a/sp/src/game/server/buttons.cpp
++++ b/sp/src/game/server/buttons.cpp
+@@ -31,6 +31,8 @@ string_t MakeButtonSound( int sound );				// get string of button sound number
+ #define	SF_BUTTON_SPARK_IF_OFF			4096	// button sparks in OFF state
+ #define	SF_BUTTON_JIGGLE_ON_USE_LOCKED	8192	// whether to jiggle if someone uses us when we're locked
+ 
++#define SF_BUTTON_CHANGETEX				(1<<14)
++
+ BEGIN_DATADESC( CBaseButton )
+ 
+ 	DEFINE_KEYFIELD( m_vecMoveDir, FIELD_VECTOR, "movedir" ),
+@@ -739,6 +741,9 @@ void CBaseButton::TriggerAndWait( void )
+ 	
+ 	m_nState = 1;			// use alternate textures
+ 
++	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
++		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
++
+ 	m_OnIn.FireOutput(m_hActivator, this);
+ }
+ 
+@@ -772,6 +777,9 @@ void CBaseButton::ButtonBackHome( void )
+ 
+ 	m_OnOut.FireOutput(m_hActivator, this);
+ 
++	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
++		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
++
+ 	//
+ 	// Re-instate touch method, movement cycle is complete.
+ 	//
+diff --git a/sp/src/game/server/env_texturetoggle.cpp b/sp/src/game/server/env_texturetoggle.cpp
+index 53ccbd5..9765961 100644
+--- a/sp/src/game/server/env_texturetoggle.cpp
++++ b/sp/src/game/server/env_texturetoggle.cpp
+@@ -37,6 +37,16 @@ END_DATADESC()
+ //-----------------------------------------------------------------------------
+ void CTextureToggle::InputIncrementBrushTexIndex( inputdata_t& inputdata )
+ {
++#ifdef BSHIFT_DLL
++	if ( FStrEq( STRING( m_target ), "!caller" ) && inputdata.pCaller != nullptr )
++	{
++		CBaseEntity *pEntity = inputdata.pCaller;
++
++		int iCurrentIndex = pEntity->GetTextureFrameIndex() + 1;
++		pEntity->SetTextureFrameIndex( iCurrentIndex );
++	}
++#endif
++
+ 	CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_target );
+ 		
+ 	while( pEntity ) 
+@@ -50,6 +60,16 @@ void CTextureToggle::InputIncrementBrushTexIndex( inputdata_t& inputdata )
+ 
+ void CTextureToggle::InputSetBrushTexIndex( inputdata_t& inputdata )
+ {
++#ifdef BSHIFT_DLL
++	if ( FStrEq( STRING( m_target ), "!caller" ) && inputdata.pCaller != nullptr )
++	{
++		CBaseEntity *pEntity = inputdata.pCaller;
++
++		int iCurrentIndex = pEntity->GetTextureFrameIndex() + 1;
++		pEntity->SetTextureFrameIndex( iCurrentIndex );
++	}
++#endif
++
+ 	CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_target );
+ 		
+ 	while( pEntity ) 
+diff --git a/sp/src/game/server/server_bshift.vpc b/sp/src/game/server/server_bshift.vpc
+index af97a59..f7d3fdc 100644
+--- a/sp/src/game/server/server_bshift.vpc
++++ b/sp/src/game/server/server_bshift.vpc
+@@ -15,7 +15,7 @@ $Configuration
+ 	$Compiler
+ 	{
+ 		$AdditionalIncludeDirectories	"$BASE;..\shared\bshift,..\shared\bshift\base,..\shared\hl2,$SRCDIR\public\,.\bshift,.\bshift\base,.\hl2,.\episodic"
+-		$PreprocessorDefinitions		"$BASE;HL1_DLL;BSHIFT;SDK2013CE"
++		$PreprocessorDefinitions		"$BASE;HL1_DLL;BSHIFT_DLL;SDK2013CE"
+ 	}
+ }
+ 
+diff --git a/sp/src/game/shared/beam_shared.h b/sp/src/game/shared/beam_shared.h
+index b9e2b90..bac7bbd 100644
+--- a/sp/src/game/shared/beam_shared.h
++++ b/sp/src/game/shared/beam_shared.h
+@@ -21,7 +21,11 @@
+ 
+ #define MAX_BEAM_WIDTH			102.3f
+ #define MAX_BEAM_SCROLLSPEED	100.0f
++#if !defined (BSHIFT_DLL) && !defined (BSHIFT_CLIENT_DLL)
+ #define MAX_BEAM_NOISEAMPLITUDE		64
++#else
++#define MAX_BEAM_NOISEAMPLITUDE		128
++#endif
+ 
+ #define SF_BEAM_STARTON			0x0001
+ #define SF_BEAM_TOGGLE			0x0002

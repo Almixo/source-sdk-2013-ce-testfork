@@ -166,12 +166,12 @@ void CHudHealth::Paint()
 	// If health is getting low, make it bright red
 	if ( m_iHealth <= 15 )
 		a = 255;
+
+	int r, g, b, nUnused;
+	(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
 		
 	if (m_iHealth > 25)
 	{
-		int r, g, b, nUnused;
-
-		(gHUD.m_clrYellowish).GetColor( r, g, b, nUnused );
 		clrHealth.SetColor( r, g, b, a );
 	}
 	else
@@ -197,7 +197,7 @@ void CHudHealth::Paint()
 	int iHeight	= nFontHeight;
 	int iWidth	= nFontWidth / 10;
 
-	clrHealth.SetColor( 255, 160, 0, a  );
+	clrHealth.SetColor( r, g, b, a );
 	vgui::surface()->DrawSetColor( clrHealth );
 	vgui::surface()->DrawFilledRect( x, y, x + iWidth, y + iHeight );
 }
