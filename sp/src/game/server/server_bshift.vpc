@@ -15,7 +15,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;..\shared\bshift,..\shared\bshift\base,..\shared\hl2,$SRCDIR\public\,.\bshift,.\bshift\base,.\hl2,.\episodic"
-		$PreprocessorDefinitions		"$BASE;HL1_DLL;BSHIFT;SDK2013CE"
+		$PreprocessorDefinitions		"$BASE;HL1_DLL;BSHIFT_DLL;SDK2013CE"
 	}
 }
 
