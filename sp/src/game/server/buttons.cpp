@@ -747,6 +747,9 @@ void CBaseButton::TriggerAndWait( void )
 	
 	m_nState = 1;			// use alternate textures
 
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
+
 	m_OnIn.FireOutput(m_hActivator, this);
 }
 
@@ -782,6 +785,9 @@ void CBaseButton::ButtonBackHome( void )
 	m_toggle_state = TS_AT_BOTTOM;
 
 	m_OnOut.FireOutput(m_hActivator, this);
+
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
 
 	//
 	// Re-instate touch method, movement cycle is complete.
