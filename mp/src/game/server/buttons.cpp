@@ -31,6 +31,8 @@ string_t MakeButtonSound( int sound );				// get string of button sound number
 #define	SF_BUTTON_SPARK_IF_OFF			4096	// button sparks in OFF state
 #define	SF_BUTTON_JIGGLE_ON_USE_LOCKED	8192	// whether to jiggle if someone uses us when we're locked
 
+#define SF_BUTTON_CHANGETEX				(1<<14)
+
 BEGIN_DATADESC( CBaseButton )
 
 	DEFINE_KEYFIELD( m_vecMoveDir, FIELD_VECTOR, "movedir" ),
@@ -739,6 +741,9 @@ void CBaseButton::TriggerAndWait( void )
 	
 	m_nState = 1;			// use alternate textures
 
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
+
 	m_OnIn.FireOutput(m_hActivator, this);
 }
 
@@ -771,6 +776,9 @@ void CBaseButton::ButtonBackHome( void )
 	m_toggle_state = TS_AT_BOTTOM;
 
 	m_OnOut.FireOutput(m_hActivator, this);
+
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
 
 	//
 	// Re-instate touch method, movement cycle is complete.
