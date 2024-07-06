@@ -128,7 +128,7 @@ void CWarpBall::RunBeams(void)
 	pBeam->m_iszStartEntity = MAKE_STRING(pBeam->GetDebugName());
 	pBeam->AddSpawnFlags(SF_BEAM_TOGGLE /*| SF_BEAM_RANDOM*/ | SF_BEAM_DECALS | SF_BEAM_SPARKEND);
 	pBeam->m_noiseAmplitude = 35;
-	pBeam->m_radius = 100;
+	pBeam->m_radius = fRadius;
 	pBeam->SetRenderColor(0, 255, 0);
 	pBeam->SetBrightness(150);
 

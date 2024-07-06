@@ -37,6 +37,15 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CTextureToggle::InputIncrementBrushTexIndex( inputdata_t& inputdata )
 {
+	if ( FStrEq( STRING( m_target ), "!caller" ) && inputdata.pCaller != nullptr )
+	{
+		CBaseEntity *pEntity = inputdata.pCaller;
+
+		int iCurrentIndex = pEntity->GetTextureFrameIndex() + 1;
+		pEntity->SetTextureFrameIndex( iCurrentIndex );
+		return;
+	}
+
 	CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_target );
 		
 	while( pEntity ) 
@@ -50,6 +59,15 @@ void CTextureToggle::InputIncrementBrushTexIndex( inputdata_t& inputdata )
 
 void CTextureToggle::InputSetBrushTexIndex( inputdata_t& inputdata )
 {
+	if ( FStrEq( STRING( m_target ), "!caller" ) && inputdata.pCaller != nullptr )
+	{
+		CBaseEntity *pEntity = inputdata.pCaller;
+
+		int iCurrentIndex = pEntity->GetTextureFrameIndex() + 1;
+		pEntity->SetTextureFrameIndex( iCurrentIndex );
+		return;
+	}
+
 	CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_target );
 		
 	while( pEntity ) 

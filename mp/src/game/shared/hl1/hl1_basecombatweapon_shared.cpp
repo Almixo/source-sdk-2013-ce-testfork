@@ -112,8 +112,9 @@ void CBaseHL1CombatWeapon::Equip( CBaseCombatCharacter *pOwner )
 
 void CBaseHL1CombatWeapon::Drop( const Vector &vecVelocity )
 {
-	m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
 	BaseClass::Drop( vecVelocity );
+
+	m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
 }
 
 bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo, bool noHolsterAnim )
@@ -121,6 +122,9 @@ bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo, bool noHols
 	bool bCanHolster = BaseClass::Holster( pSwitchingTo );
 	if ( bCanHolster && noHolsterAnim )
 		SetWeaponVisible( false );
+
+	if ( bCanHolster )
+		m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
 
 	return bCanHolster;
 }

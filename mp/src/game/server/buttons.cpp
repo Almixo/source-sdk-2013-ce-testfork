@@ -31,6 +31,8 @@ string_t MakeButtonSound( int sound );				// get string of button sound number
 #define	SF_BUTTON_SPARK_IF_OFF			4096	// button sparks in OFF state
 #define	SF_BUTTON_JIGGLE_ON_USE_LOCKED	8192	// whether to jiggle if someone uses us when we're locked
 
+#define SF_BUTTON_CHANGETEX				(1<<14)
+
 BEGIN_DATADESC( CBaseButton )
 
 	DEFINE_KEYFIELD( m_vecMoveDir, FIELD_VECTOR, "movedir" ),
@@ -678,6 +680,9 @@ void CBaseButton::ButtonActivate( void )
 
 	ASSERT(m_toggle_state == TS_AT_BOTTOM);
 	m_toggle_state = TS_GOING_UP;
+
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
 	
 	SetMoveDone( &CBaseButton::TriggerAndWait );
 	if (!m_fRotating)
@@ -739,6 +744,9 @@ void CBaseButton::TriggerAndWait( void )
 	
 	m_nState = 1;			// use alternate textures
 
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
+
 	m_OnIn.FireOutput(m_hActivator, this);
 }
 
@@ -758,6 +766,9 @@ void CBaseButton::ButtonReturn( void )
 		AngularMove( m_vecAngle1, m_flSpeed);
 
 	m_nState = 0;			// use normal textures
+
+	if ( HasSpawnFlags( SF_BUTTON_CHANGETEX ) )
+		SetTextureFrameIndex( GetTextureFrameIndex() + 1 );
 }
 
 
