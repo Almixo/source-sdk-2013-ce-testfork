@@ -5,6 +5,7 @@
 //=============================================================================
 #include "cbase.h"
 #include "fx_impact.h"
+#include "c_baseplayer.h"
 
 
 //-----------------------------------------------------------------------------
@@ -26,6 +27,11 @@ void ImpactCallback( const CEffectData &data )
 	{
 		// Check for custom effects based on the Decal index
 		PerformCustomEffects( vecOrigin, tr, vecShotDir, iMaterial, 1.0 );
+
+		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+		if ( !pPlayer->GetActiveWeapon() || FStrEq( pPlayer->GetActiveWeapon()->GetClassname(), "weapon_crowbar" ) )
+			return;
+
 		PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
 	}
 }

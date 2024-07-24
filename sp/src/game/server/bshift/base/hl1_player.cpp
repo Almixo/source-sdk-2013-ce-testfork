@@ -538,12 +538,25 @@ void CHL1_Player::UpdatePullingObject()
 void CHL1_Player::Spawn(void)
 {
 	SetModel( "models/player.mdl" );
-	SetMoveType( MOVETYPE_WALK );
-	RemoveSolidFlags( FSOLID_NOT_SOLID );
 
-	SetMaxSpeed( 320 );
-	
 	BaseClass::Spawn();
+
+	//
+	// Our player movement speed is set once here. This will override the cl_xxxx
+	// cvars unless they are set to be lower than this.
+	//
+	SetMaxSpeed( 320 );
+
+	SetDefaultFOV( 0 );
+
+	m_nFlashBattery = 99;
+	m_flFlashLightTime = 1;
+
+	m_flFieldOfView = 0.5;
+
+	StopPullingObject();
+
+	m_Local.m_iHideHUD = 0;
 }
 
 //-----------------------------------------------------------------------------

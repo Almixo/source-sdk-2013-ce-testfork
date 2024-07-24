@@ -10,6 +10,9 @@
 #include "in_buttons.h"
 #include "soundent.h"
 
+#include "decals.h"
+#include "IEffects.h"
+
 extern ConVar sk_plr_dmg_crowbar;
 
 #define	CROWBAR_RANGE		64.0f
@@ -73,6 +76,128 @@ END_DATADESC()
 static const Vector g_bludgeonMins(-BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM);
 static const Vector g_bludgeonMaxs(BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM);
 
+void HandleSound( trace_t *ptr )
+{
+	// hit the world, try to play sound based on texture material type
+
+	char chTextureType;
+	char *strTextureSound = "";
+	float fvol;
+	float fvolbar;
+
+	if ( !g_pGameRules->PlayTextureSounds() )
+	{
+		fvolbar = 0.6;
+
+		CSoundParameters params;
+		if ( CBaseEntity::GetParametersForSound( "Weapon_Crowbar.Melee_HitWorld", params, nullptr ) )
+		{
+			params.volume = fvolbar;
+
+			// play the crowbar sound
+			UTIL_EmitAmbientSound( 0, ptr->endpos, params.soundname, fvolbar, params.soundlevel, 0, params.pitch );
+		}
+
+		return;
+	}
+
+	CBaseEntity *pEntity = ptr->m_pEnt;
+
+	chTextureType = 0;
+
+	if ( pEntity && pEntity->Classify() != CLASS_NONE && pEntity->Classify() != CLASS_MACHINE )
+		// hit body
+		chTextureType = CHAR_TEX_FLESH;
+	else
+		chTextureType = TEXTURETYPE_Find( ptr );
+
+	switch ( chTextureType )
+	{
+	default:
+	case CHAR_TEX_CONCRETE:
+		fvol = 0.9;
+		fvolbar = 0.6;
+		strTextureSound = "HL1.Concrete";
+		break;
+	case CHAR_TEX_METAL:
+		fvol = 0.9;
+		fvolbar = 0.3;
+		strTextureSound = "HL1.Metal";
+		break;
+	case CHAR_TEX_DIRT:
+		fvol = 0.9;
+		fvolbar = 0.1;
+		strTextureSound = "HL1.Dirt";
+		break;
+	case CHAR_TEX_VENT:
+		fvol = 0.5;
+		fvolbar = 0.3;
+		strTextureSound = "HL1.Vent";
+		break;
+	case CHAR_TEX_GRATE:
+		fvol = 0.9;
+		fvolbar = 0.5;
+		strTextureSound = "HL1.Grate";
+		break;
+	case CHAR_TEX_TILE:
+		fvol = 0.8;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Tile";
+		break;
+	case CHAR_TEX_SLOSH:
+		fvol = 0.9;
+		fvolbar = 0.0;
+		strTextureSound = "HL1.Slosh";
+		break;
+	case CHAR_TEX_WOOD:
+		fvol = 0.9;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Wood";
+		break;
+	case CHAR_TEX_GLASS:
+	case CHAR_TEX_COMPUTER:
+		fvol = 0.8;
+		fvolbar = 0.2;
+		strTextureSound = "HL1.Glass_Computer";
+		break;
+	case CHAR_TEX_FLESH:
+		fvol = 1.0;
+		fvolbar = 0.0;
+		strTextureSound = "Weapon_Crowbar.Melee_Hit";
+		break;
+	}
+
+	// did we hit a breakable?
+
+	if ( pEntity && FClassnameIs( pEntity, "func_breakable" ) )
+	{
+		// drop volumes, the object will already play a damaged sound
+		fvol /= 1.5;
+		fvolbar /= 2.0;
+	}
+	else if ( chTextureType == CHAR_TEX_COMPUTER )
+	{
+		// play random spark if computer
+
+		if ( ptr->fraction != 1.0 && RandomInt( 0, 1 ) )
+		{
+			g_pEffects->Sparks( ptr->endpos );
+		}
+	}
+
+	// play the surface sound
+	UTIL_EmitAmbientSound( 0, ptr->endpos, strTextureSound, fvol, SNDLVL_80dB, 0, 96 + RandomInt( 0, 15 ) );
+
+	CSoundParameters params;
+	if ( CBaseEntity::GetParametersForSound( "Weapon_Crowbar.Melee_HitWorld", params, nullptr ) )
+	{
+		params.volume = fvolbar;
+
+		// play the crowbar sound
+		UTIL_EmitAmbientSound( 0, ptr->endpos, params.soundname, fvolbar, params.soundlevel, 0, params.pitch );
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
@@ -88,6 +213,17 @@ void CWeaponCrowbar::Precache(void)
 {
 	//Call base class first
 	BaseClass::Precache();
+
+	//crowbar
+	CBaseEntity::PrecacheScriptSound( "HL1.Concrete" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Metal" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Dirt" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Vent" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Grate" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Tile" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Slosh" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Wood" );
+	CBaseEntity::PrecacheScriptSound( "HL1.Glass_Computer" );
 }
 
 //------------------------------------------------------------------------------
@@ -128,40 +264,34 @@ void CWeaponCrowbar::PrimaryAttack()
 void CWeaponCrowbar::Hit(void)
 {
 	//Make sound for the AI
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer == NULL ) return;
+	CBasePlayer* pPlayer = ToBasePlayer( GetOwner() );
 
-	CSoundEnt::InsertSound(SOUND_BULLET_IMPACT, m_traceHit.endpos, 400, 0.2f, pPlayer);
+	CSoundEnt::InsertSound( SOUND_BULLET_IMPACT, m_traceHit.endpos, 400, 0.2f, pPlayer );
 
-	CBaseEntity *pHitEntity = m_traceHit.m_pEnt;
+	CBaseEntity* pHitEntity = m_traceHit.m_pEnt;
 
 	//Apply damage to a hit target
-	if (pHitEntity != NULL)
+	if ( pHitEntity != NULL )
 	{
 		Vector hitDirection;
-		pPlayer->EyeVectors(&hitDirection, NULL, NULL);
-		VectorNormalize(hitDirection);
+		pPlayer->EyeVectors( &hitDirection, NULL, NULL );
+		VectorNormalize( hitDirection );
 
 		ClearMultiDamage();
-		CTakeDamageInfo info(GetOwner(), GetOwner(), sk_plr_dmg_crowbar.GetFloat(), DMG_CLUB);
-		CalculateMeleeDamageForce(&info, hitDirection, m_traceHit.endpos);
-		pHitEntity->DispatchTraceAttack(info, hitDirection, &m_traceHit);
+		CTakeDamageInfo info( GetOwner(), GetOwner(), sk_plr_dmg_crowbar.GetFloat(), DMG_CLUB );
+		CalculateMeleeDamageForce( &info, hitDirection, m_traceHit.endpos );
+		pHitEntity->DispatchTraceAttack( info, hitDirection, &m_traceHit );
 		ApplyMultiDamage();
 
 		// Now hit all triggers along the ray that... 
-		TraceAttackToTriggers(CTakeDamageInfo(GetOwner(), GetOwner(), sk_plr_dmg_crowbar.GetFloat(), DMG_CLUB), m_traceHit.startpos, m_traceHit.endpos, hitDirection);
+		TraceAttackToTriggers( CTakeDamageInfo( GetOwner(), GetOwner(), sk_plr_dmg_crowbar.GetFloat(), DMG_CLUB ), m_traceHit.startpos, m_traceHit.endpos, hitDirection );
+		HandleSound( &m_traceHit );
 
-		//Play an impact sound	
-		if (pHitEntity->Classify() != CLASS_NONE && pHitEntity->Classify() != CLASS_MACHINE)
-		{
-			WeaponSound(MELEE_HIT);
-		}
-		/*else if (pHitEntity->IsWorld())
-			WeaponSound(MELEE_HIT_WORLD);*/
 	}
 
 	//Apply an impact effect
 	ImpactEffect();
+	//UTIL_DecalTrace( &m_traceHit, "Impact.Concrete");
 }
 
 Activity CWeaponCrowbar::ChooseIntersectionPointAndActivity(trace_t& hitTrace, const Vector& mins, const Vector& maxs, CBasePlayer* pOwner)
@@ -213,14 +343,71 @@ Activity CWeaponCrowbar::ChooseIntersectionPointAndActivity(trace_t& hitTrace, c
 	return ACT_VM_HITCENTER;
 }
 
+//static const char* dmgdecals[]
+//{
+//	"shot1",
+//	"shot2",
+//	"shot3",
+//	"shot4"
+//};
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CWeaponCrowbar::ImpactEffect(void)
 {
+#if 0
 	//FIXME: need new decals
-	UTIL_ImpactTrace(&m_traceHit, DMG_CLUB);
+	/*UTIL_ImpactTrace(&m_traceHit, DMG_CLUB);*/
+
+	const char *decalname;
+
+	switch ( TEXTURETYPE_Find( &m_traceHit ) )
+	{
+	case 'C':
+		decalname = "Impact.Concrete";
+		break;
+	case 'M':
+		decalname = "Impact.Metal";
+		break;
+	case 'W':
+		decalname = "Impact.Wood";
+		break;
+	case 'Y':
+		decalname = "Impact.Glass";
+		break;
+	case 'F':
+		decalname = "Impact.Flesh";
+		break;
+	case 'B':
+		decalname = "Impact.BloodyFlesh";
+		break;
+	case 'H':
+		decalname = "Impact.AlienFlesh";
+		break;
+	case 'A':
+		decalname = "Impact.Antlion";
+		break;
+	case 'E':
+		decalname = "Impact.Antlion";
+		break;
+	case 'N':
+		decalname = "Impact.Sand";
+		break;
+	case 'V':
+		decalname = "Impact.Metal";
+		break;
+
+	default:
+		decalname = "Impact.Concrete";
+		break;
+	}
+
+
+	DecalTrace( &m_traceHit, decalname );
+#endif
+
+	UTIL_ImpactTrace( &m_traceHit, DMG_CLUB );
 }
 
 //------------------------------------------------------------------------------

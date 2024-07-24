@@ -168,7 +168,7 @@ public:
 	}
 #endif
 
-	virtual const char *GetDecalName( void ) { return "BigShot"; }
+	virtual const char *GetDecalName( void ) { return "shot"; }
 
 #if defined( CLIENT_DLL )
 // IClientEntity overrides.
