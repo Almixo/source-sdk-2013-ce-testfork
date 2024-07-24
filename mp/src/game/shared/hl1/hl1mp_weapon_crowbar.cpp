@@ -402,7 +402,10 @@ Activity CWeaponCrowbar::ChooseIntersectionPointAndActivity(trace_t& hitTrace, c
 void CWeaponCrowbar::ImpactEffect(void)
 {
 	//FIXME: need new decals
-	UTIL_ImpactTrace(&m_traceHit, DMG_CLUB);
+	/*UTIL_ImpactTrace(&m_traceHit, DMG_CLUB);
+	DecalTrace( &m_traceHit, DMG_CLUB );*/
+
+	DecalTrace( &m_traceHit, "bigshot" );
 }
 
 //------------------------------------------------------------------------------

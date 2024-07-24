@@ -14,7 +14,7 @@
 STUB_WEAPON_CLASS( foo_weapon_basebludgeonweapon, BaseBludgeonWeapon, C_BaseCombatWeapon );
 
 STUB_WEAPON_CLASS( cycler_weapon, WeaponCycler, C_BaseCombatWeapon );
-STUB_WEAPON_CLASS( weapon_physcannon, PhysgunCannon, C_BaseCombatWeapon );
+//STUB_WEAPON_CLASS( weapon_physcannon, PhysgunCannon, C_BaseCombatWeapon );
 
 // HL1 stuff
 //STUB_WEAPON_CLASS( weapon_357,			Weapon357,			C_BaseHL1CombatWeapon );
@@ -29,9 +29,9 @@ STUB_WEAPON_CLASS( weapon_physcannon, PhysgunCannon, C_BaseCombatWeapon );
 //STUB_WEAPON_CLASS( weapon_rpg,			WeaponRPG,			C_BaseHL1CombatWeapon );
 //STUB_WEAPON_CLASS( weapon_satchel,		WeaponSatchel,		C_BaseHL1CombatWeapon );
 //STUB_WEAPON_CLASS( weapon_shotgun,		WeaponShotgun,		C_BaseHL1CombatWeapon );
-STUB_WEAPON_CLASS( weapon_snark,		WeaponSnark,		C_BaseHL1MPCombatWeapon );
+//STUB_WEAPON_CLASS( weapon_snark,		WeaponSnark,		C_BaseHL1MPCombatWeapon );
 STUB_WEAPON_CLASS( weapon_tripmine,		WeaponTripMine,		C_BaseHL1MPCombatWeapon );
-STUB_WEAPON_CLASS( weapon_cubemap,		WeaponCubemap,		C_BaseCombatWeapon );
+//STUB_WEAPON_CLASS( weapon_cubemap,		WeaponCubemap,		C_BaseCombatWeapon );
 STUB_WEAPON_CLASS( weapon_displacer_sv, Displacer_sv,		C_BaseHL1CombatWeapon );
 
 // DoD weps

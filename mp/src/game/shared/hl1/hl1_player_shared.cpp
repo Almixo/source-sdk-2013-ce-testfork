@@ -71,6 +71,9 @@ private:
 	bool m_bFiring;
 	float m_flFireStartTime;
 
+	bool m_bReloading;
+	float m_flReloadStartTime;
+
 	bool m_bDying;
 	Activity m_DeathActivity;
 };
@@ -94,6 +97,7 @@ CPlayerAnimState::CPlayerAnimState()
 	m_bJumping = false;
 	m_bFirstJumpFrame = false;
 	m_bFiring = false;
+	m_bReloading = false;
 }
 
 
@@ -133,6 +137,8 @@ int CPlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequence
 	const char *pAimOrShoot = "aim";
 	if ( m_bFiring )
 		pAimOrShoot = "shoot";
+	else if ( m_bReloading )
+		pAimOrShoot = "reload";
 
 	// Are we standing or crouching?
 	int iSequence = 0;
@@ -144,12 +150,15 @@ int CPlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequence
 	}
 	else
 	{
-		switch ( GetCurrentMainSequenceActivity() )
+		if ( !m_bReloading )
 		{
+			switch ( GetCurrentMainSequenceActivity() )
+			{
 			case ACT_CROUCHIDLE:
 			case ACT_RUN_CROUCH:
 				pPrefix = "crouch";
 				break;
+			}
 		}
 	}
 
@@ -165,7 +174,17 @@ int CPlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequence
 			*flCycle = 1;
 			m_bFiring = false;
 		}
-	}	
+	}
+	else if ( m_bReloading )
+	{
+		float dur = m_pOuter->SequenceDuration( iSequence );
+		*flCycle = ( gpGlobals->curtime - m_flReloadStartTime ) / dur;
+		if ( *flCycle >= 1 )
+		{
+			*flCycle = 1;
+			m_bReloading = false;
+		}
+	}
 
 	return iSequence;
 }
@@ -185,6 +204,11 @@ void CPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 		// The middle part of the aim layer sequence becomes "shoot" until that animation is complete.
 		m_bFiring = true;
 		m_flFireStartTime = gpGlobals->curtime;
+	}
+	else if ( event == PLAYERANIMEVENT_RELOAD )
+	{
+		m_bReloading = true;
+		m_flReloadStartTime = gpGlobals->curtime;
 	}
 }
 

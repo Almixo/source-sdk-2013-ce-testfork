@@ -397,6 +397,10 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	{
 		DoAnimationEvent( PLAYERANIMEVENT_FIRE_GUN );
 	}
+	if ( playerAnim == PLAYER_RELOAD )
+	{
+		DoAnimationEvent( PLAYERANIMEVENT_RELOAD );
+	}
 
 	int animDesired = 0;
 	char szAnim[64];
@@ -454,6 +458,10 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			idealActivity = ACT_RANGE_ATTACK1;
 		}
 	}
+	else if ( playerAnim == PLAYER_RELOAD )
+	{
+		idealActivity = ACT_GESTURE_RELOAD;
+	}
 	else if ( playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK )
 	{
 		if ( !(GetFlags() & FL_ONGROUND) && (GetActivity() == ACT_HOP || GetActivity() == ACT_LEAP) )	// Still jumping
@@ -502,6 +510,20 @@ void CHL1MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		{
 			IncrementInterpolationFrame();
 		}*/
+
+		SetActivity( idealActivity );
+		ResetSequence( animDesired );
+	}
+	else if ( idealActivity == ACT_HL2MP_GESTURE_RELOAD )
+	{
+		Q_strncpy( szAnim, "reload_", sizeof( szAnim ) );
+		Q_strncat( szAnim, m_szAnimExtension, sizeof( szAnim ), COPY_ALL_CHARACTERS );
+		animDesired = LookupSequence( szAnim );
+		if ( animDesired == -1 )
+			animDesired = 0;
+
+		if ( GetSequence() != animDesired || !SequenceLoops() )
+			SetCycle( 0 );
 
 		SetActivity( idealActivity );
 		ResetSequence( animDesired );
