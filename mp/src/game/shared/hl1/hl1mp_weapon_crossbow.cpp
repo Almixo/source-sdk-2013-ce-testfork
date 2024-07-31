@@ -530,7 +530,7 @@ bool CWeaponCrossbow::Reload( void )
 {
 	bool fRet;
 
-	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
+	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), GetPrimaryAmmoCount() > 0 ? ACT_VM_RELOAD : ACT_VM_RELOAD_EMPTY );
 	if ( fRet )
 	{
 		if ( m_fInZoom )
