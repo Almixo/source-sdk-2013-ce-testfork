@@ -33,8 +33,8 @@ jobs:
         run: cd mp/game/mod_custom/bin
 
       - name: Artifact windows dlls
-      - uses: actions/download-artifact@v4
-      - with:
+        uses: actions/download-artifact@v4
+        with:
           name: Server and Client dll
           path: "*.dll"
       
