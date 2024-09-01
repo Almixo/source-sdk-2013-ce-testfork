@@ -5,11 +5,11 @@ on:
     paths:
       - '.github/**'
       - 'mp/src/**'
-      - 'mp/game/**'
+      - 'mp/game/mod_custom/bin/**'
   pull_request:
    paths:
       - 'mp/src/**'
-      - 'mp/game/**'
+      - 'mp/game/mod_custom/bin/*'
 
 jobs:
   build:
