@@ -34,7 +34,7 @@ jobs:
        
     steps:
       - name: CD to dll directory
-        run: cd ../game/mod_custom
+        run: cd mp/game/mod_custom
         
       - name: Give compiled dlls
         uses: actions/upload-artifact@v4
