@@ -33,13 +33,11 @@ jobs:
        ubuntu-latest
        
     steps:
-      - name: Copy DLLs to game repo
-        uses: nkoppel/push-files-to-another-repository@v1.1.2
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      - name: CD to dll directory
+        run: cd ../game/mod_custom/bin
+        
+      - name: Give compiled dlls
+        uses: actions/upload-artifact@v4
         with:
-          source-files: 'mp\game\mod_custom\bin'
-          destination-username: 'Almixo'
-          destination-repository: 'Spectruminary-Game'
-          destination-directory: 'bin'
-          commit-email: '111447259+Almixo@users.noreply.github.com'
+          name: *.dll
+          path: output/test/code-coverage.html
