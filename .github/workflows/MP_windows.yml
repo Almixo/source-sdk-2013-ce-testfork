@@ -39,5 +39,5 @@ jobs:
       - name: Give compiled dlls
         uses: actions/upload-artifact@v4
         with:
-          name: bin
-          path: output/test/code-coverage.html
+          name: Windows DLLs
+          path: bin
