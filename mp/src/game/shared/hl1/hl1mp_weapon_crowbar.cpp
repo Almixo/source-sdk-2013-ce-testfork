@@ -405,7 +405,8 @@ void CWeaponCrowbar::ImpactEffect(void)
 	/*UTIL_ImpactTrace(&m_traceHit, DMG_CLUB);
 	DecalTrace( &m_traceHit, DMG_CLUB );*/
 
-	DecalTrace( &m_traceHit, "bigshot" );
+	//DecalTrace( &m_traceHit, "bigshot" );
+	UTIL_ImpactTrace( &m_traceHit, DMG_CLUB );
 }
 
 //------------------------------------------------------------------------------

@@ -120,14 +120,16 @@ void CWarpBall::RunBeams(void)
 	char szName[65];
 	Q_snprintf(szName, 65, "beams_%s", GetDebugName());
 
+	string_t tmp = AllocPooledString( szName );
+
 	pBeam->m_boltWidth = 1.8;
 	pBeam->m_iszSpriteName = MAKE_STRING("sprites/lgtning.vmt");
-	pBeam->SetName(MAKE_STRING(szName));
+	pBeam->SetName(tmp);
 	pBeam->m_life = .5;
 	pBeam->m_restrike = -.5;
-	pBeam->m_iszStartEntity = MAKE_STRING(pBeam->GetDebugName());
+	pBeam->m_iszStartEntity = tmp;
 	pBeam->AddSpawnFlags(SF_BEAM_TOGGLE /*| SF_BEAM_RANDOM*/ | SF_BEAM_DECALS | SF_BEAM_SPARKEND);
-	pBeam->m_noiseAmplitude = 35;
+	pBeam->m_noiseAmplitude = 10.4f;
 	pBeam->m_radius = fRadius;
 	pBeam->SetRenderColor(0, 255, 0);
 	pBeam->SetBrightness(150);
@@ -182,7 +184,7 @@ void CWarpBall::Think(void)
 		return;
 	}
 
-	if ((fActiveTime - 1) <= gpGlobals->curtime)
+	if ((fActiveTime - 0.7f) <= gpGlobals->curtime)
 	{
 		pBeam->m_life = 0;
 		pBeam->TurnOff();

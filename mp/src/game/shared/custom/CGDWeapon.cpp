@@ -199,8 +199,6 @@ void CGuidedWeapon::UpdateDotPos(void)
 	vEnd = tr.endpos - (vDir * 10);
 
 	pSprite->SetDotPosition(vEnd, tr.plane.normal);
-
-	UTIL_Tracer( vOrigin, vEnd, 0, TRACER_DONT_USE_ATTACHMENT, 10 );
 #endif
 }
 void CGuidedWeapon::SpawnDot(void)

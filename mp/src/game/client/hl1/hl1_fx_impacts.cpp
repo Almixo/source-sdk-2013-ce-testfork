@@ -1,10 +1,11 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2003, Valve Corporation, All rights reserved. ============
 //
 // Purpose: Game-specific impact effect hooks
 //
-//=============================================================================//
+//=============================================================================
 #include "cbase.h"
 #include "fx_impact.h"
+#include "c_baseplayer.h"
 
 
 //-----------------------------------------------------------------------------
@@ -26,9 +27,13 @@ void ImpactCallback( const CEffectData &data )
 	{
 		// Check for custom effects based on the Decal index
 		PerformCustomEffects( vecOrigin, tr, vecShotDir, iMaterial, 1.0 );
-	}
 
-	PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
+		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+		if ( !pPlayer->GetActiveWeapon() || FStrEq( pPlayer->GetActiveWeapon()->GetClassname(), "weapon_crowbar" ) )
+			return;
+
+		PlayImpactSound( pEntity, tr, vecOrigin, nSurfaceProp );
+	}
 }
 
 DECLARE_CLIENT_EFFECT( "Impact", ImpactCallback );
