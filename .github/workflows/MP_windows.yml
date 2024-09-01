@@ -29,17 +29,10 @@ jobs:
       - name: Build project
         run: cd mp/src;devenv custom.sln /Build Release
 
-  dllcopy:
-    needs: build
-    runs-on:
-       windows-latest
-       
-    steps:
-      - name: CD to dll directory
-        run: cd mp/game/mod_custom
-        
-      - name: Give compiled dlls
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows DLLs
-          path: bin
+      - name: Give windows DLLs
+        run: cd mp/game/mod_custom/bin
+      - uses: actions/download-artifact@v4
+      - with:
+          name: Server and Client dll
+          path: "*.dll"
+      
