@@ -5,9 +5,11 @@ on:
     paths:
       - '.github/**'
       - 'mp/src/**'
+      - 'mp/game/mod_custom/bin/**'
   pull_request:
    paths:
       - 'mp/src/**'
+      - 'mp/game/mod_custom/bin/*'
 
 jobs:
   build:
@@ -27,17 +29,11 @@ jobs:
       - name: Build project
         run: cd mp/src;devenv custom.sln /Build Release
 
-  dllcopy:
-    needs: build
-    runs-on:
-       ubuntu-latest
-       
-    steps:
-      - name: CD to dll directory
-        run: cd ../game/mod_custom/bin
-        
-      - name: Give compiled dlls
+      - name: Artifact windows dlls
         uses: actions/upload-artifact@v4
         with:
-          name: *.dll
-          path: output/test/code-coverage.html
+          name: WinDlls
+          path: mp/game/mod_custom/bin/*.dll
+          compression-level: 6
+          
+      
