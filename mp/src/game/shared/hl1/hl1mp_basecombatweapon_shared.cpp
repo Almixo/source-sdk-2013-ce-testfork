@@ -38,7 +38,7 @@ static ConVar cl_enable_hl1_bullet_eject("cl_enable_hl1_bullet_eject", 0, FCVAR_
 
 void CBaseHL1MPCombatWeapon::EjectShell( CBaseEntity *pPlayer, int iType )
 {
-	if ( cl_enable_hl1_bullet_eject.GetBool() == false )
+	if ( !cl_enable_hl1_bullet_eject.GetBool() )
 		return;
 
 	QAngle angShellAngles = pPlayer->GetAbsAngles();

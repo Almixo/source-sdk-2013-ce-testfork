@@ -37,6 +37,8 @@
 #define IDC_FILE_LOADBACKGROUNDTEX			1002
 #define IDC_FILE_LOADGROUNDTEX				1003
 #define IDC_FILE_UNLOADGROUNDTEX			1004
+#define IDC_FILE_OPENPAKFILE		        1005
+#define IDC_FILE_OPENPAKFILE2		        1006
 #define IDC_FILE_CLOSEPAKFILE				1007
 #define IDC_FILE_RECENTMODELS1				1008
 #define IDC_FILE_RECENTMODELS2				1009
@@ -53,6 +55,11 @@
 #define IDC_FILE_LOADMODEL_STEAM			1020
 #define IDC_FILE_LOADMERGEDMODEL_STEAM		1021
 #define IDC_FLUSH_SHADERS					1022
+
+#define IDC_FILE_RECENTPAKFILES1	        IDC_FLUSH_SHADERS+1
+#define IDC_FILE_RECENTPAKFILES2	        IDC_FLUSH_SHADERS+2
+#define IDC_FILE_RECENTPAKFILES3	        IDC_FLUSH_SHADERS+3
+#define IDC_FILE_RECENTPAKFILES4	        IDC_FLUSH_SHADERS+4
 
 #define IDC_OPTIONS_COLORBACKGROUND			1101
 #define IDC_OPTIONS_COLORGROUND				1102
@@ -104,6 +111,7 @@
 class mxMenuBar;
 class MatSysWindow;
 class ControlPanel;
+//class PAKViewer;
 class mxMenu;
 
 enum { Action, Size, Timer, Idle, Show, Hide,
@@ -116,6 +124,7 @@ class MDLViewer : public mxWindow
 	mxMenuBar *mb;
 	MatSysWindow *d_MatSysWindow;
 	ControlPanel *d_cpl;
+    //PAKViewer *d_PAKViewer;
 	mxMenu *menuOptions;
 	mxMenu *menuView;
 
@@ -146,6 +155,7 @@ public:
 	// ACCESSORS
 	mxMenuBar *getMenuBar () const { return mb; }
 	MatSysWindow *getMatSysWindow () const { return d_MatSysWindow; }
+    //PAKViewer *getPAKViewer() const { return d_PAKViewer; }
 
 	int GetCurrentHitboxSet( void );
 

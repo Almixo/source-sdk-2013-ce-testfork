@@ -30,7 +30,7 @@
 enum // render modes
 {
 	RM_WIREFRAME = 0,
-//	RM_FLATSHADED,
+	RM_FLATSHADED,
 	RM_SMOOTHSHADED,
 	RM_TEXTURED,
 	RM_BONEWEIGHTS,
@@ -61,6 +61,8 @@ struct ViewerSettings
 	bool enableSpecular;
 	bool showIllumPosition;
 	bool playSounds;
+
+    bool enableAA;
 
 	// Current attachment we're editing. -1 if none.
 	int m_iEditAttachment;

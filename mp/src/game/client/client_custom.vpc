@@ -28,6 +28,8 @@ $Project "Client (CUSTOM)"
 		-$File	"history_resource.cpp"
 		-$File	"train.cpp"
 		
+		-$File	"$SRCDIR\game\shared\weapon_parse_default.cpp" // wtf is vpc doing? gotta be like this on client, but different on server???
+		
 		$File	"c_team_objectiveresource.cpp"
 		$File	"c_team_objectiveresource.h"
 		$File	"hud_chat.cpp"
@@ -133,6 +135,14 @@ $Project "Client (CUSTOM)"
 				$File	"..\shared\custom\kar98.cpp"
 				$File	"..\shared\custom\colt.cpp"
 				$File	"..\shared\custom\luger.cpp"
+				$File	"..\shared\custom\m1carbine.cpp"
+				$File	"..\shared\custom\tommy.cpp"
+				$File	"..\shared\custom\mp40.cpp"
+				
+				$File	"..\shared\custom\CBaseDodWeapon_shared.cpp"
+				$File	"..\shared\custom\CBaseDodWeapon_shared.h"
+				$File	"..\shared\custom\CDoDWeaponParse.cpp"
+				$File	"..\shared\custom\CDoDWeaponParse.h"
 			}
 		}
 	}

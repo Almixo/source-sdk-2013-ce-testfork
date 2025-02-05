@@ -123,7 +123,7 @@ public:
 
 	IStudioRender				    *GetStudioRender();
 
-	static void UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWireframe, bool bNormals, bool bTangentFrame );
+	static void UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWireframe, bool bNormals, bool bTangentFrame, bool enableaa );
 	studiohdr_t						*getAnimHeader (int i) const;
 
 	virtual void					ModelInit( void ) { }

@@ -106,6 +106,8 @@ void InitViewerSettings ( const char *subkey )
 	g_viewerSettings.height = 700;
 
 	g_viewerSettings.originAxisLength = 10.0f;
+
+    g_viewerSettings.enableAA = false;
 }
 
 

@@ -22,7 +22,7 @@ $Configuration
 $Project "Server (CUSTOM)"
 {
 	$Folder	"Source Files"
-	{
+	{	
 		$File	"base_gameinterface.cpp"
 		$File	"basegrenade_concussion.cpp"
 		$File	"basegrenade_contact.cpp"
@@ -36,7 +36,6 @@ $Project "Server (CUSTOM)"
 		$File	"..\shared\hl2\survival_gamerules.cpp"
 		$File	"team_spawnpoint.cpp"
 		$File	"team_spawnpoint.h"
-		$File	"..\shared\weapon_parse_default.cpp"
 
 		$Folder	"HL2 DLL"
 		{
@@ -211,7 +210,17 @@ $Project "Server (CUSTOM)"
 				$File	"..\shared\custom\kar98.cpp"
 				$File	"..\shared\custom\colt.cpp"
 				$File	"..\shared\custom\luger.cpp"
+				$File	"..\shared\custom\m1carbine.cpp"
+				$File	"..\shared\custom\tommy.cpp"
+				$File	"..\shared\custom\mp40.cpp"
+				
+				$File	"..\shared\custom\CBaseDodWeapon_shared.cpp"
+				$File	"..\shared\custom\CBaseDodWeapon_shared.h"
+				$File	"..\shared\custom\CDoDWeaponParse.cpp"
+				$File	"..\shared\custom\CDoDWeaponParse.h"
 			}
 		}
+		
+		-$File	"..\shared\weapon_parse_default.cpp" // wtf is vpc doing? gotta be like this on server, but different on client???
 	}
 }

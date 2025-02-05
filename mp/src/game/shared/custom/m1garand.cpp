@@ -1,20 +1,18 @@
 #include "cbase.h"
-#include "hl1mp_basecombatweapon_shared.h"
-#include "in_buttons.h"
+#include "CBaseDoDWeapon_shared.h"
 
-#ifdef GAME_DLL
-#include "soundent.h"
+#ifndef CLIENT_DLL
 #include "hl1_items.h"
-#endif // GAME_DLL
+#endif // !CLIENT_DLL
+
 
 #ifdef CLIENT_DLL
 #define CM1Rifle C_M1Rifle
-#endif
+#endif // CLIENT_DLL
 
-class CM1Rifle : public CBaseHL1MPCombatWeapon
+class CM1Rifle : public CBaseDoDCombatWeapon
 {
-	DECLARE_CLASS( CM1Rifle, CBaseHL1CombatWeapon );
-	//DECLARE_SERVERCLASS();
+	DECLARE_CLASS( CM1Rifle, CBaseDoDCombatWeapon );
 
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
@@ -22,8 +20,8 @@ public:
 	CM1Rifle();
 
 	Activity GetDrawActivity( void );
-	void PrimaryAttack( void );
-	//void SecondaryAttack( void );
+	Activity GetLastRoundActivity( void ) { return ACT_GLOCK_SHOOTEMPTY; }
+
 	void WeaponIdle( void );
 	bool Reload( void );
 };
@@ -35,7 +33,7 @@ END_NETWORK_TABLE()
 
 #ifdef CLIENT_DLL
 BEGIN_PREDICTION_DATA( CM1Rifle )
-DEFINE_PRED_FIELD_TOL( m_flNextPrimaryAttack, FIELD_FLOAT, FTYPEDESC_INSENDTABLE, TD_MSECTOLERANCE ),
+//DEFINE_PRED_FIELD_TOL( m_flNextPrimaryAttack, FIELD_FLOAT, FTYPEDESC_INSENDTABLE, TD_MSECTOLERANCE ),
 END_PREDICTION_DATA()
 #endif
 
@@ -43,13 +41,13 @@ LINK_ENTITY_TO_CLASS( weapon_garand, CM1Rifle );
 
 PRECACHE_WEAPON_REGISTER( weapon_garand );
 
-/*IMPLEMENT_SERVERCLASS_ST(CM1Rifle, DT_M1Rifle)
-END_SEND_TABLE()*/
 
 CM1Rifle::CM1Rifle()
 {
 	m_bReloadsSingly = false;
 	m_bFiresUnderwater = false;
+
+	m_iWeaponType = M1RIFLE;
 }
 
 Activity CM1Rifle::GetDrawActivity( void )
@@ -63,90 +61,6 @@ bool CM1Rifle::Reload( void )
 		return false;
 	else
 		return BaseClass::Reload();
-}
-
-void CM1Rifle::PrimaryAttack( void )
-{
-	/*BaseClass::PrimaryAttack();
-
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.15f;
-
-	if ( m_iClip1 == 0 )
-	{
-		WeaponSound( SPECIAL1 );
-	}*/
-
-	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( !pPlayer )
-		return;
-
-	if ( pPlayer->m_afButtonLast & IN_ATTACK )
-		return;
-
-	if ( m_iClip1 <= 0 )
-	{
-		if ( !m_bFireOnEmpty )
-		{
-			Reload();
-		}
-		else
-		{
-			WeaponSound( EMPTY );
-			m_flNextEmptySoundTime = gpGlobals->curtime + 1.0;
-			m_flNextPrimaryAttack = gpGlobals->curtime + 0.15f;
-		}
-
-		return;
-	}
-
-	WeaponSound( SINGLE );
-	pPlayer->DoMuzzleFlash();
-
-#ifdef GAME_DLL
-	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
-#endif
-
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.37f;
-	m_flTimeWeaponIdle = gpGlobals->curtime + RandomInt(2, 5);
-
-	m_iClip1--;
-
-	if ( m_iClip1 > 0 )
-		SendWeaponAnim( ACT_VM_PRIMARYATTACK );
-	else
-		SendWeaponAnim( ACT_GLOCK_SHOOTEMPTY );
-
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-
-	Vector vecSrc = pPlayer->Weapon_ShootPosition();
-	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
-	Vector vecSpread;
-
-	//Disorient the player
-	QAngle angles = pPlayer->EyeAngles();
-
-	if ( pPlayer->m_Local.m_bDucked )
-	{
-		angles.x -= 5 + RandomFloat( -1, 1 );
-		vecSpread = vec3_origin;
-	}
-	else
-	{
-		angles.x -= 10 + RandomFloat( -5.0f, 2.5f );
-		vecSpread = Vector( 0.014f, 0.014f, 0.014f );
-	}
-
-	FireBulletsInfo_t info( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType ); // 3 tracer count rip
-	pPlayer->FireBullets( info );
-
-#ifdef GAME_DLL
-	pPlayer->SnapEyeAngles( angles );
-	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
-#endif
-
-	if ( m_iClip1 <= 0 )
-		WeaponSound( SPECIAL1 );
 }
 
 void CM1Rifle::WeaponIdle( void )
@@ -181,7 +95,9 @@ public:
 	}
 	bool MyTouch(CBasePlayer* pPlayer)
 	{
-		if (pPlayer->GiveAmmo(32, "GarandRound"))
+        ConVarRef h( "sk_max_9mm_bullet" );
+
+		if (pPlayer->GiveAmmo(h.GetInt() > 0 ? h.GetInt() : 128, "GarandRound") )
 		{
 			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
 			{

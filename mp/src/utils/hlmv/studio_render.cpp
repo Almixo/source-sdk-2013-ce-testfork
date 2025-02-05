@@ -1085,7 +1085,7 @@ void StudioModel::drawTransparentBox( Vector const &bbmin, Vector const &bbmax,
 
 
 
-void StudioModel::UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWireframe, bool bNormals, bool bTangentFrame )
+void StudioModel::UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWireframe, bool bNormals, bool bTangentFrame, bool enableaa )
 {
 	StudioRenderConfig_t config;
 	memset( &config, 0, sizeof( config ) );
@@ -1128,11 +1128,22 @@ void StudioModel::UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWirefr
 	{
 		matSysConfig.nFullbright = 2;
 	}
+    else if ( g_viewerSettings.renderMode == RM_FLATSHADED )
+    {
+        matSysConfig.bDrawFlat = true;
+    }
 
 	if ( g_dxlevel != 0 )
 	{
 		matSysConfig.dxSupportLevel = g_dxlevel;
 	}
+
+    if ( g_viewerSettings.enableAA != 0 )
+    {
+        matSysConfig.m_nAASamples = 4;
+        matSysConfig.m_nAAQuality = 1;
+    }
+
 	g_pMaterialSystem->OverrideConfig( matSysConfig, false );
 }
 
@@ -1919,7 +1930,7 @@ int StudioModel::DrawModel( bool mergeBones )
 	// JasonM & garymcthack - should really only do this once a frame and at init time.
 	UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
 							  g_viewerSettings.showNormals,
-							  g_viewerSettings.showTangentFrame );
+							  g_viewerSettings.showTangentFrame, g_viewerSettings.enableAA );
 
 	// NOTE: UpdateStudioRenderConfig can delete the studio hdr
 	pStudioHdr = GetStudioHdr();
@@ -2059,7 +2070,7 @@ int StudioModel::DrawModel( bool mergeBones )
 		if ( g_viewerSettings.overlayWireframe && !(g_viewerSettings.renderMode == RM_WIREFRAME) )
 		{
 			// Set the state to trigger wireframe rendering
-			UpdateStudioRenderConfig( true, true, false, false );
+			UpdateStudioRenderConfig( true, true, false, false, false );
 
 			// Draw the wireframe over top of the model
 			g_pStudioRender->DrawModel( NULL, g_DrawModelInfo, m_pBoneToWorld, 
@@ -2068,7 +2079,7 @@ int StudioModel::DrawModel( bool mergeBones )
 			// Restore the studio render config
 			UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
 										g_viewerSettings.showNormals,
-										g_viewerSettings.showTangentFrame );
+										g_viewerSettings.showTangentFrame, false );
 		}
 	}
 
@@ -2109,7 +2120,7 @@ int StudioModel::DrawModel( bool mergeBones )
 		g_pStudioRender->ForcedMaterialOverride( g_materialShadow );
 
 		// Turn off any wireframe, normals or tangent frame display for the drop shadow
-		UpdateStudioRenderConfig( false, false, false, false );
+		UpdateStudioRenderConfig( false, false, false, false, g_viewerSettings.enableAA );
 
 		g_pStudioRender->DrawModel( NULL, g_DrawModelInfo, m_pBoneToWorld, 
 			pFlexWeights, pFlexDelayedWeights, vecModelOrigin );
@@ -2117,7 +2128,7 @@ int StudioModel::DrawModel( bool mergeBones )
 		// Restore the studio render config
 		UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
 								  g_viewerSettings.showNormals,
-								  g_viewerSettings.showTangentFrame );
+								  g_viewerSettings.showTangentFrame, g_viewerSettings.enableAA );
 
 		g_pStudioRender->ForcedMaterialOverride( NULL );
 		float one[4] = { 1, 1, 1, 1 };

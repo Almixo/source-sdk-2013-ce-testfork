@@ -94,6 +94,6 @@ public:
 	bool getLoadEntirePAK () const { return d_loadEntirePAK; }
 };
 
-
+extern PAKViewer *d_PAKViewer;
 
 #endif // INCLUDED_PAKVIEWER

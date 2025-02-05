@@ -53,11 +53,13 @@
 #include "threadtools.h"
 #include "vstdlib/IKeyValuesSystem.h"
 
+#include "pakviewer.h"
+
 bool g_bOldFileDialogs = false;
 
 MDLViewer *g_MDLViewer = 0;
 char g_appTitle[] = "Spectruminary Model Viewer v2.1"; //Half-Life Model Viewer v1.22
-static char recentFiles[8][256] = { "", "", "", "", "", "", "", "" };
+static char recentFiles[8+4][256] = { "", "", "", "", "", "", "", "" };
 extern int g_dxlevel;
 bool g_bInError = false;
 
@@ -164,7 +166,7 @@ void
 MDLViewer::loadRecentFiles ()
 {
 	char path[256];
-	strcpy (path, mx::getApplicationPath ());
+	strcpy (path, mx::getApplicationPath ());   
 	strcat (path, "/hlmv.rf");
 	FILE *file = fopen (path, "rb");
 	if (file)
@@ -231,6 +233,7 @@ MDLViewer::MDLViewer ()
 {
 	d_MatSysWindow = 0;
 	d_cpl = 0;
+    d_PAKViewer = 0;
 
 	// create menu stuff
 	mb = new mxMenuBar (this);
@@ -253,6 +256,12 @@ MDLViewer::MDLViewer ()
 	menuRecentModels->add ("(empty)", IDC_FILE_RECENTMODELS6);
 	menuRecentModels->add ("(empty)", IDC_FILE_RECENTMODELS7);
 	menuRecentModels->add ("(empty)", IDC_FILE_RECENTMODELS8);
+
+    mxMenu *menuRecentPakFiles = new mxMenu();
+    menuRecentPakFiles->add( "(empty)", IDC_FILE_RECENTPAKFILES1 );
+    menuRecentPakFiles->add( "(empty)", IDC_FILE_RECENTPAKFILES2 );
+    menuRecentPakFiles->add( "(empty)", IDC_FILE_RECENTPAKFILES3 );
+    menuRecentPakFiles->add( "(empty)", IDC_FILE_RECENTPAKFILES4 );
 
 	if ( g_bOldFileDialogs )
 	{
@@ -304,7 +313,12 @@ MDLViewer::MDLViewer ()
 	menuFile->add ("Unload Ground Texture", IDC_FILE_UNLOADGROUNDTEX);
 	menuFile->addSeparator ();
 	menuFile->addMenu ("Recent Models", menuRecentModels);
-	menuFile->addSeparator ();
+    menuFile->addSeparator();
+    menuFile->add( "Open PAK file...", IDC_FILE_OPENPAKFILE );
+    menuFile->add( "Close PAK file", IDC_FILE_CLOSEPAKFILE );
+    menuFile->addSeparator();
+    menuFile->addMenu( "Recent Models", menuRecentModels );
+    menuFile->addMenu( "Recent PAK files", menuRecentPakFiles );
 	menuFile->add ("Exit", IDC_FILE_EXIT);
 
 	menuFile->setEnabled(IDC_FILE_LOADBACKGROUNDTEX, false);
@@ -321,7 +335,7 @@ MDLViewer::MDLViewer ()
 #ifdef WIN32
 	menuOptions->addSeparator ();
 	menuOptions->add ("Make Screenshot...", IDC_OPTIONS_MAKESCREENSHOT);
-	//menuOptions->add ("Dump Model Info", IDC_OPTIONS_DUMP);
+	menuOptions->add ("Dump Model Info", IDC_OPTIONS_DUMP);
 #endif
 
 	menuView->add ("File Associations...", IDC_VIEW_FILEASSOCIATIONS);
@@ -348,6 +362,7 @@ MDLViewer::MDLViewer ()
 	d_cpl->setMatSysWindow (d_MatSysWindow);
 	g_MatSysWindow = d_MatSysWindow;
 
+    d_PAKViewer = new PAKViewer( this );
 	g_FileAssociation = new FileAssociation ();
 
 	loadRecentFiles ();
@@ -361,9 +376,9 @@ MDLViewer::MDLViewer ()
 		g_viewerSettings.xpos = 20;
 	if (g_viewerSettings.ypos < -16384)
 		g_viewerSettings.ypos = 20;
-	g_viewerSettings.ypos  = max( 0, g_viewerSettings.ypos );
-	g_viewerSettings.width = max( 640, g_viewerSettings.width );
-	g_viewerSettings.height = max( 700, g_viewerSettings.height );
+	g_viewerSettings.ypos  = Max( 0, g_viewerSettings.ypos );
+	g_viewerSettings.width = Max( 640, g_viewerSettings.width );
+	g_viewerSettings.height = Max( 700, g_viewerSettings.height );
 
 	setBounds( g_viewerSettings.xpos, g_viewerSettings.ypos, g_viewerSettings.width, g_viewerSettings.height );
 	setVisible (true);
@@ -761,6 +776,53 @@ MDLViewer::handleEvent (mxEvent *event)
 		}
 		break;
 
+        case IDC_FILE_OPENPAKFILE:
+        {
+            const char *ptr = mxGetOpenFileName( this, "\\sierra\\half-life\\valve", "*.pak" );
+            if ( ptr )
+            {
+                int i;
+
+                d_PAKViewer->openPAKFile( ptr );
+
+                for ( i = 4; i < 8; i++ )
+                {
+                    if ( !mx_strcasecmp( recentFiles[i], ptr ) )
+                        break;
+                }
+
+                // swap existing recent file
+                if ( i < 8 )
+                {
+                    char tmp[256];
+                    strcpy( tmp, recentFiles[4] );
+                    strcpy( recentFiles[4], recentFiles[i] );
+                    strcpy( recentFiles[i], tmp );
+                }
+
+                // insert recent file
+                else
+                {
+                    for ( i = 7; i > 4; i-- )
+                        strcpy( recentFiles[i], recentFiles[i - 1] );
+
+                    strcpy( recentFiles[4], ptr );
+                }
+
+                initRecentFiles();
+
+                redraw();
+            }
+        }
+        break;
+
+        case IDC_FILE_CLOSEPAKFILE:
+        {
+            d_PAKViewer->closePAKFile();
+            redraw();
+        }
+        break;
+
 		case IDC_FILE_RECENTMODELS1:
 		case IDC_FILE_RECENTMODELS2:
 		case IDC_FILE_RECENTMODELS3:
@@ -775,8 +837,28 @@ MDLViewer::handleEvent (mxEvent *event)
 		}
 		break;
 
+        case IDC_FILE_RECENTPAKFILES1:
+        case IDC_FILE_RECENTPAKFILES2:
+        case IDC_FILE_RECENTPAKFILES3:
+        case IDC_FILE_RECENTPAKFILES4:
+        {
+            int i = event->action - IDC_FILE_RECENTPAKFILES1 + 4;
+            d_PAKViewer->openPAKFile( recentFiles[i] );
+
+            char tmp[256];
+            strcpy( tmp, recentFiles[4] );
+            strcpy( recentFiles[4], recentFiles[i] );
+            strcpy( recentFiles[i], tmp );
+
+            initRecentFiles();
+
+            redraw();
+        }
+        break;
+
 		case IDC_FILE_EXIT:
 		{
+            d_PAKViewer->closePAKFile();
 			redraw ();
 			mx::quit ();
 		}
@@ -1012,6 +1094,12 @@ MDLViewer::handleEvent (mxEvent *event)
 #define HEIGHT 140
 		h -= 40;
 #endif
+
+        if ( d_PAKViewer->isVisible() )
+        {
+            w -= 170;
+            d_PAKViewer->setBounds( w, y, 170, h );
+        }
 
 		d_MatSysWindow->setBounds (0, y, w, h - HEIGHT); // !!
 		d_cpl->setBounds (0, y + h - HEIGHT, w, HEIGHT);

@@ -48,6 +48,8 @@
 #include "valve_ipc_win32.h"
 #include "mdlviewer.h"
 
+#include "pakviewer.h"
+
 extern char g_appTitle[];
 extern IPhysicsSurfaceProps *physprop;
 extern bool LoadPhysicsProperties( void );
@@ -1240,9 +1242,10 @@ ControlPanel::ControlPanel( mxWindow *parent )
 
 	// create tabcontrol with subdialog windows
 	tab = new mxTab( this, 0, 20, 0, 0, IDC_TAB );
-#ifdef WIN32
-	SetWindowLong( ( HWND )tab->getHandle(), GWL_EXSTYLE, WS_EX_CLIENTEDGE );
-#endif
+
+//#ifdef WIN32
+//	SetWindowLong( ( HWND )tab->getHandle(), GWL_EXSTYLE, WS_EX_CLIENTEDGE );
+//#endif
 
 	SetupRenderWindow( tab );
 	SetupSequenceWindow( tab );
@@ -1271,7 +1274,7 @@ void ControlPanel::SetupRenderWindow( mxTab* pTab )
 	tab->add (wRender, "Render");
 	cRenderMode = new mxChoice (wRender, 5, 2, 100, 22, IDC_RENDERMODE);
 	cRenderMode->add ("Wireframe");
-//	cRenderMode->add ("Flatshaded");
+	cRenderMode->add ("Flatshaded");
 	cRenderMode->add ("Smoothshaded");
 	cRenderMode->add ("Textured");
 	cRenderMode->add ("BoneWeights");
@@ -1312,10 +1315,6 @@ void ControlPanel::SetupRenderWindow( mxTab* pTab )
 	cbOverlayWireframe->setEnabled( true );
 	cbOverlayWireframe->setChecked( false );
 
-//	cbParallaxMap = new mxCheckBox (wRender, 5, 125, 100, 20, "Parallax Mapping", IDC_PARALLAXMAP);
-//	cbParallaxMap->setEnabled( true );
-//	cbParallaxMap->setChecked( true );
-
 	cbSpecular = new mxCheckBox (wRender, 5, 145, 120, 20, "Specular", IDC_SPECULAR);
 	cbSpecular->setEnabled( true );
 	cbSpecular->setChecked( true );
@@ -1323,6 +1322,15 @@ void ControlPanel::SetupRenderWindow( mxTab* pTab )
 	cbNormalMap = new mxCheckBox (wRender, 5, 25, 100, 20, "Normal Mapping", IDC_NORMALMAP);
 	cbNormalMap->setEnabled( true );
 	cbNormalMap->setChecked( true );
+
+// Almix 2025
+    cbParallaxMap = new mxCheckBox( wRender, 430, 5, 100, 20, "Paralax", IDC_PARALLAXMAP );
+    cbParallaxMap->setEnabled( true );
+    cbParallaxMap->setChecked( true );
+
+    cbAntiAliasing = new mxCheckBox( wRender, 430, 25, 150, 22, "Anti Aliasing", IDC_AASAMPLES);
+    cbAntiAliasing->setEnabled( true );
+    cbAntiAliasing->setChecked( false );
 
 	cbRunIK = new mxCheckBox (wRender, 275, 65, 150, 20, "Enable IK", IDC_RUNIK);
 	cbEnableHead = new mxCheckBox (wRender, 275, 85, 150, 20, "Head Turn", IDC_HEADTURN);
@@ -1873,6 +1881,9 @@ ControlPanel::handleEvent (mxEvent *event)
 			case '2':
 			case '3':
 			case '4':
+            case '5':
+            case '6':
+            case '7':
 				g_viewerSettings.renderMode = event->key - '1';
 				break;
 
@@ -2043,9 +2054,13 @@ ControlPanel::handleEvent (mxEvent *event)
 			g_viewerSettings.enableNormalMapping = ((mxCheckBox *) event->widget)->isChecked();
 			break;
 
-//		case IDC_PARALLAXMAP:
-//			g_viewerSettings.enableParallaxMapping = ((mxCheckBox *) event->widget)->isChecked();
-//			break;
+		case IDC_PARALLAXMAP:
+			g_viewerSettings.enableParallaxMapping = ((mxCheckBox *) event->widget)->isChecked();
+			break;
+
+        case IDC_AASAMPLES:
+            g_viewerSettings.enableAA = ( (mxCheckBox *)event->widget )->isChecked();
+            break;
 
 		case IDC_SPECULAR:
 			g_viewerSettings.enableSpecular = ((mxCheckBox *) event->widget)->isChecked();
@@ -2895,6 +2910,13 @@ ControlPanel::setShowTangentFrame (bool b)
 {
 	g_viewerSettings.showTangentFrame = b;
 	cbTangentFrame->setChecked (b);
+}
+
+void
+ControlPanel::SetAntiAliasing( bool b )
+{
+    g_viewerSettings.enableAA = b;
+    cbAntiAliasing->setChecked( b );
 }
 
 void

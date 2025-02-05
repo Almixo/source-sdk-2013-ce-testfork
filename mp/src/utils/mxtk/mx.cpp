@@ -27,7 +27,7 @@
 
 //#include <ostream.h"
 
-
+auto a = sizeof( int );
 
 void mxTab_resizeChild (HWND hwnd);
 

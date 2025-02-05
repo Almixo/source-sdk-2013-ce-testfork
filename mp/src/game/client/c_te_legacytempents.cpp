@@ -1643,8 +1643,27 @@ void CTempEnts::EjectBrass( const Vector &pos1, const QAngle &angles, const QAng
 {
 	if ( cl_ejectbrass.GetBool() == false )
 		return;
-
+#ifndef HL1_CLIENT_DLL
 	const model_t *pModel = m_pShells[type];
+#else
+	const model_t *pModel;
+	
+	switch ( type )
+	{
+	case 0:
+	default:
+		pModel = m_pShells[0];
+		break;
+	case 1:
+		pModel = m_pShells[1];
+		break;
+	case 2:
+	case 3:
+	case 4:
+		pModel = m_pShells[2];
+		break;
+	}
+#endif
 	
 	if ( pModel == NULL )
 		return;
@@ -1654,6 +1673,7 @@ void CTempEnts::EjectBrass( const Vector &pos1, const QAngle &angles, const QAng
 	if ( pTemp == NULL )
 		return;
 
+#ifndef HL1_CLIENT_DLL
 	//Keep track of shell type
 	if ( type == 2 )
 	{
@@ -1664,7 +1684,11 @@ void CTempEnts::EjectBrass( const Vector &pos1, const QAngle &angles, const QAng
 		pTemp->hitSound = BOUNCE_SHELL;
 	}
 
-	pTemp->m_nBody	= 0;
+	pTemp->m_nBody = 0;
+#else
+	pTemp->hitSound = type != 1 ? BOUNCE_SHELL : BOUNCE_SHOTSHELL;
+	pTemp->m_nBody = type < 2 ? 0 : (type-2);
+#endif
 
 	pTemp->flags |= ( FTENT_COLLIDEWORLD | FTENT_FADEOUT | FTENT_GRAVITY | FTENT_ROTATE );
 
@@ -2409,11 +2433,14 @@ void CTempEnts::LevelInit()
 #endif
 
 #if defined( HL1_CLIENT_DLL )
-	m_pHL1Shell			= (model_t *)engine->LoadModel( "models/shell.mdl" );
-	m_pHL1ShotgunShell	= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
+	//m_pHL1Shell			= (model_t *)engine->LoadModel( "models/shell.mdl" );
+	//m_pHL1ShotgunShell	= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
 
 	m_pShells[0]		= (model_t *)engine->LoadModel( "models/shell.mdl" );
 	m_pShells[1]		= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
+	m_pShells[2]		= (model_t *)engine->LoadModel( "models/shells.mdl" );
+	//m_pShells[3]		= (model_t *)engine->LoadModel( "models/shell_medium.mdl" );
+	//m_pShells[4]		= (model_t *)engine->LoadModel( "models/shell_large.mdl" );
 #endif
 
 #if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )
@@ -2451,8 +2478,10 @@ void CTempEnts::Init (void)
 #endif
 
 #if defined( HL1_CLIENT_DLL )
-	m_pHL1Shell			= NULL;
-	m_pHL1ShotgunShell	= NULL;
+	//m_pHL1Shell			= NULL;
+	//m_pHL1ShotgunShell	= NULL;
+
+	memset(m_pShells, 0, sizeof(m_pShells));
 #endif
 
 #if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )
@@ -3277,40 +3306,38 @@ void CTempEnts::RocketFlare( const Vector& pos )
 
 void CTempEnts::HL1EjectBrass( const Vector &vecPosition, const QAngle &angAngles, const Vector &vecVelocity, int nType )
 {
+#ifdef CLIENT_DLL
 	const model_t *pModel = NULL;
-
-#if defined( HL1_CLIENT_DLL )
+	
 	switch ( nType )
 	{
 	case 0:
 	default:
-		pModel = m_pHL1Shell;
+		pModel = m_pShells[0];
 		break;
 	case 1:
-		pModel = m_pHL1ShotgunShell;
+		pModel = m_pShells[1];
 		break;
-	}
-#endif
-	if ( pModel == NULL )
-		return;
-
-	C_LocalTempEntity	*pTemp = TempEntAlloc( vecPosition, pModel );
-
-	if ( pTemp == NULL )
-		return;
-
-	switch ( nType )
-	{
-	case 0:
-	default:
-		pTemp->hitSound = BOUNCE_SHELL;
-		break;
-	case 1:
-		pTemp->hitSound = BOUNCE_SHOTSHELL;
+	case 2:
+	case 3:
+	case 4:
+		pModel = m_pShells[2];
 		break;
 	}
 
-	pTemp->m_nBody	= 0;
+	if ( !pModel )
+		return;
+
+	C_LocalTempEntity *pTemp = TempEntAlloc( vecPosition, pModel );
+
+	//if ( nType != 1 )
+	//	pTemp->hitSound = BOUNCE_SHELL;
+	//else
+	//	pTemp->hitSound = BOUNCE_SHOTSHELL;
+
+	pTemp->hitSound = nType != 1 ? BOUNCE_SHELL : BOUNCE_SHOTSHELL;
+	pTemp->m_nBody = nType < 2 ? 0 : (nType-2);
+
 	pTemp->flags |= ( FTENT_COLLIDEWORLD | FTENT_FADEOUT | FTENT_GRAVITY | FTENT_ROTATE );
 
 	pTemp->m_vecTempEntAngVelocity[0] = random->RandomFloat( -512,511 );
@@ -3326,6 +3353,7 @@ void CTempEnts::HL1EjectBrass( const Vector &vecPosition, const QAngle &angAngle
 	pTemp->SetVelocity( vecVelocity );
 
 	pTemp->die = gpGlobals->curtime + 2.5;
+#endif
 }
 
 #define SHELLTYPE_PISTOL	0

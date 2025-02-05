@@ -54,7 +54,7 @@ void StudioModel::Init()
 	// JasonM & garymcthack - should really only do this once a frame and at init time.
 	UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
 							  g_viewerSettings.showNormals,
-							  g_viewerSettings.showTangentFrame );
+							  g_viewerSettings.showTangentFrame, g_viewerSettings.enableAA );
 }
 
 void StudioModel::Shutdown( void )

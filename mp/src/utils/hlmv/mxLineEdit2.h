@@ -25,6 +25,8 @@ public:
 
 	void getText( char *pOut, int len );
 	void setText( const char *pText );
+
+    const char *getLabel();
 };
 
 

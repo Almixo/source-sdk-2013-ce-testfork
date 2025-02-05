@@ -60,9 +60,12 @@
 #define IDC_PLAYSOUNDS				2027
 #define IDC_MESSAGES				2028
 #define IDC_SHADERS					2029
-//#define IDC_PARALLAXMAP			2030
+//#define IDC_PARALLAXMAP			    2030+1
 #define IDC_SHOWORIGINAXIS			2029
 #define IDC_ORIGINAXISLENGTH		2030
+
+#define IDC_PARALLAXMAP IDC_ORIGINAXISLENGTH+1
+#define IDC_AASAMPLES IDC_PARALLAXMAP+1
 
 #define MAX_SEQUENCES				5
 #define IDC_SEQUENCE0				3000
@@ -212,7 +215,6 @@ class CBoneControlWindow;
 class CAttachmentsWindow;
 class CStudioHdr;
 
-
 // Return codes from loadModel.
 enum LoadModelResult_t
 {
@@ -242,7 +244,8 @@ class ControlPanel : public mxWindow
 	mxCheckBox *cbBones;
 	mxCheckBox *cbNormals;
 	mxCheckBox *cbNormalMap;
-//	mxCheckBox *cbParallaxMap;
+	mxCheckBox *cbParallaxMap;
+    mxCheckBox *cbAntiAliasing;
 	mxCheckBox *cbTangentFrame;
 	mxCheckBox *cbOverlayWireframe;
 	mxCheckBox *cbSpecular;
@@ -345,6 +348,7 @@ class ControlPanel : public mxWindow
 
 	CBoneControlWindow* m_pBoneWindow;
 	CAttachmentsWindow* m_pAttachmentsWindow;
+
 	mxListBox *cMessageList;
 	mxListBox *cShaderUsed;
 
@@ -400,6 +404,8 @@ public:
 	void setPlaySounds( bool b );
 	void setShowOriginAxis( bool b );
 	void setOriginAxisLength( float originAxisLength );
+
+    void SetAntiAliasing( bool b );
 
 	void initSequenceChoices();
 	void setSequence( int index );
@@ -469,6 +475,7 @@ public:
 	void SetupAttachmentsWindow( mxTab *pTab );
 	void SetupIKRuleWindow( mxTab *pTab );
 	void SetupEventWindow( mxTab *pTab );
+
 	bool m_bVMTInfoLoaded;
 };
 

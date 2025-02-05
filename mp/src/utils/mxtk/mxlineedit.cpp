@@ -25,20 +25,15 @@ public:
 
 #include "tier0/dbg.h"
 
+#ifdef OLD_WNDPROC
 
-typedef LRESULT (CALLBACK * WndProc_t)(HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lParam);
-
-static WndProc_t s_OldWndProc = 0;
+static WNDPROC s_OldWndProc = NULL;
 
 static LRESULT CALLBACK EditWndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
-	int iret = 0;
-
 	// This lovely bit of hackery ensures we get return key events
 	if ( uMessage == WM_CHAR)
 	{
-		iret = s_OldWndProc( hwnd, uMessage, wParam, lParam );
-
 		// Post the message directly to all windows in the hierarchy until
 		// someone responds
 		mxLineEdit *lineEdit = (mxLineEdit *) GetWindowLong (hwnd, GWL_USERDATA);
@@ -62,10 +57,12 @@ static LRESULT CALLBACK EditWndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LP
 		{
 			SetFocus( hwnd );
 		}
-		iret = s_OldWndProc( hwnd, uMessage, wParam, lParam );
 	}
-	return iret;
+
+    return s_OldWndProc( hwnd, uMessage, wParam, lParam );
 }
+
+#endif
 
 mxLineEdit::mxLineEdit (mxWindow *parent, int x, int y, int w, int h, const char *label, int id, int style)
 : mxWidget (parent, x, y, w, h, label)
@@ -81,22 +78,28 @@ mxLineEdit::mxLineEdit (mxWindow *parent, int x, int y, int w, int h, const char
 	else if (style == Password)
 		dwStyle |= ES_PASSWORD;
 
+#ifdef OLD_WNDPROC
 	if (!s_OldWndProc)
 	{
-		WNDCLASSEX editClass;
-		GetClassInfoEx( (HINSTANCE) GetModuleHandle (NULL), "EDIT", &editClass );
-		s_OldWndProc = editClass.lpfnWndProc;
+        WNDCLASSEX editClass;
+        GetClassInfoEx((HINSTANCE)GetModuleHandle(NULL), "EDIT", &editClass );
+        s_OldWndProc = editClass.lpfnWndProc;
 
-		editClass.cbSize = sizeof(WNDCLASSEX);
-		editClass.cbClsExtra = 0;
-		editClass.lpfnWndProc = EditWndProc;
-		editClass.lpszClassName = "mx_edit";
-		RegisterClassEx( &editClass ); 
+        editClass.cbSize = sizeof(WNDCLASSEX);
+        editClass.cbClsExtra = 0;
+        editClass.lpfnWndProc = EditWndProc;
+        editClass.lpszClassName = "mx_edit";
+        RegisterClassEx( &editClass ); 
 	}
 
 	void *handle = (void *) CreateWindowEx (WS_EX_CLIENTEDGE, "mx_edit", label, dwStyle, //WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL,
 				x, y, w, h, hwndParent,
 				(HMENU) id, (HINSTANCE) GetModuleHandle (NULL), NULL);
+#endif
+
+    HANDLE handle = CreateWindowEx( WS_EX_CLIENTEDGE, "EDIT", label, dwStyle,
+        x, y, w, h, hwndParent, 
+        (HMENU)id, (HINSTANCE)GetModuleHandle(nullptr), nullptr);
 	
 	SendMessage ((HWND) handle, WM_SETFONT, (WPARAM) (HFONT) GetStockObject (ANSI_VAR_FONT), MAKELPARAM (TRUE, 0));
 	SendMessage ((HWND) getHandle (), EM_LIMITTEXT, (WPARAM) 256, 0L);

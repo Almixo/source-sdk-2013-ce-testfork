@@ -33,7 +33,7 @@
 #include "ControlPanel.h"
 #include "FileAssociation.h"
 
-
+PAKViewer *d_PAKViewer = 0;
 
 int
 pak_ExtractFile (const char *pakFile, const char *lumpName, char *outFile)

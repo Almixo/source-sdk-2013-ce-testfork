@@ -28,4 +28,9 @@ void mxLineEdit2::setText( const char *pText )
 	setLabel( "%s", pText );
 }
 
-
+const char* mxLineEdit2::getLabel()
+{
+    static char label[256];
+    GetWindowText( (HWND)getHandle(), label, 256 );
+    return label;
+}

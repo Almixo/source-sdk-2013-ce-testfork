@@ -107,7 +107,7 @@ void CColt::PrimaryAttack( void )
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
-	Vector vecSpread = Vector( 0.055f, 0.055f, 0.055f );
+	static const Vector vecSpread = Vector( 0.055f, 0.055f, 0.055f );
 
 	FireBulletsInfo_t info( 1, vecSrc, vecAiming, vecSpread, MAX_TRACE_LENGTH, m_iPrimaryAmmoType ); // 3 tracer count rip
 	pPlayer->FireBullets( info );

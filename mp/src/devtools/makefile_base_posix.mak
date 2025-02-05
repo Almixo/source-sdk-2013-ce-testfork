@@ -67,7 +67,7 @@ else
 	CXXFLAGS += -fdiagnostics-color=always
 	CXXFLAGS += -flto
 endif
-DEFINES += -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE
+DEFINES += -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE -DSDK2013CE
 
 ## TODO: This cases build errors in cstrike/bin right now. Need to debug.
 # This causes all filesystem interfaces to default to their 64bit versions on
