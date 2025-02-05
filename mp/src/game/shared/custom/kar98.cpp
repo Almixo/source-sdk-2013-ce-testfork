@@ -23,7 +23,7 @@ public:
 	//void PrimaryAttack( void );
 	bool Reload(void);
 	//Activity GetDrawActivity( void ) { return ACT_VM_DRAW; }
-	Activity GetIdleEmptyActivity( void ) { return ACT_GLOCK_SHOOTEMPTY; }
+    Activity GetLastRoundActivity( void ) { return ACT_GLOCK_SHOOTEMPTY; }
 };
 
 IMPLEMENT_NETWORKCLASS_ALIASED( Kar98, DT_Kar98 );
