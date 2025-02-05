@@ -22,17 +22,17 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         
       - name: Create project
-        run: cd mp/src;devtools/bin/vpc.exe /sdk2013ce /2013 +game /mksln sdk2013ce.sln
+        run: cd mp/src;devtools/bin/vpc.exe /custom /2013 +gamedlls /mksln tehcooler.sln
 
       - name: Build project
-        run: cd mp/src;devenv sdk2013ce.sln /Build Release
+        run: cd mp/src;devenv tehcooler.sln /Build Release
 
       - name: Pack
         shell: bash
-        run: tar cJfv Windows.tar.xz mp/game/mod_sdk2013ce/bin
+        run: tar cJfv Windows.tar.xz mp/game/mod_custom/bin
 
       - name: Upload product
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: mp_sdk2013ce
+          name: tehcooler_dlls
           path: Windows.tar.xz
