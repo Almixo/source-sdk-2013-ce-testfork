@@ -8,6 +8,9 @@
 #include "cbase.h"
 #include "EnvBeam.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 // Keeps us from doing strcmps in the tracefilter.
 string_t g_iszPhysicsPropClassname;
 

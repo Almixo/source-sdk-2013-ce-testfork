@@ -23,11 +23,14 @@ class CBaseHL1CombatWeapon : public CBaseCombatWeapon
 	DECLARE_PREDICTABLE();
 public:
 
-	void Spawn( void );
-	void Equip( CBaseCombatCharacter *pOwner );
-	void Drop( const Vector &vecVelocity );
-	bool Holster( CBaseCombatWeapon *pSwitchingTo = nullptr, bool noHolsterAnim = true );
+    void Spawn( void );
 	const char *GetPModel( void ) const;
+
+    void OnPickedUp( CBaseCombatCharacter *pNewOwner );
+    void Detach( void ) override;
+
+    int GetPlayerModelIndex( void ) const { return modelinfo->GetModelIndex( GetPModel() ); }
+    int GetWorldModelIndex( void ) const { return modelinfo->GetModelIndex( GetWorldModel() ); }
 
 // Server Only Methods
 #if !defined( CLIENT_DLL )
@@ -43,8 +46,11 @@ public:
 
 	virtual void	AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles );
 	virtual	float	CalcViewmodelBob( void );
-
+        
 #endif
+
+private:
+    CNetworkVar( int, m_iPlayerModelIndex );
 };
 
 #endif // BASEHLCOMBATWEAPON_SHARED_H

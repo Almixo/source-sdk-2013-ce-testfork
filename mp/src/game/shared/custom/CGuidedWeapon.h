@@ -74,7 +74,7 @@ IMPLEMENT_NETWORKCLASS_ALIASED(GuidedWeapon, DT_GuidedWeapon);
 BEGIN_NETWORK_TABLE(CGuidedWeapon, DT_GuidedWeapon)
 #ifdef CLIENT_DLL
 //RecvPropVector(RECVINFO(DotEndPos)),
-RecvPropVector(RECVINFO_ARRAY(DotEndPos)),
+RecvPropVector(RECVINFO(DotEndPos)),
 RecvPropEHandle(RECVINFO(pSprite)),
 RecvPropBool(RECVINFO(bReloadDot)),
 RecvPropBool(RECVINFO(bHelperDot)),

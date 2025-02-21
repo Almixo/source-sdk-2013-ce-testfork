@@ -10,12 +10,16 @@
 
 LINK_ENTITY_TO_CLASS( basehl1combatweapon, CBaseHL1CombatWeapon );
 
-IMPLEMENT_NETWORKCLASS_ALIASED( BaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
+IMPLEMENT_NETWORKCLASS_ALIASED( BaseHL1CombatWeapon, DT_BaseHL1CombatWeapon )
 
-BEGIN_NETWORK_TABLE( CBaseHL1CombatWeapon , DT_BaseHL1CombatWeapon )
-#if 0
-	SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
+BEGIN_NETWORK_TABLE( CBaseHL1CombatWeapon, DT_BaseHL1CombatWeapon )
+#ifndef CLIENT_DLL
+    //SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
+    //SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
+
+    SendPropInt( SENDINFO( m_iPlayerModelIndex ) ),
+#else
+    RecvPropInt( RECVINFO( m_iPlayerModelIndex ) ), 
 #endif
 END_NETWORK_TABLE()
 
@@ -103,30 +107,19 @@ const char *CBaseHL1CombatWeapon::GetPModel(void) const
 	/*}*/
 }
 
-void CBaseHL1CombatWeapon::Equip( CBaseCombatCharacter *pOwner )
+void CBaseHL1CombatWeapon::OnPickedUp( CBaseCombatCharacter *pNewOwner )
 {
-	BaseClass::Equip( pOwner );
+    BaseClass::OnPickedUp( pNewOwner );
 
-	m_iWorldModelIndex = modelinfo->GetModelIndex( GetPModel() );
+    m_iWorldModelIndex = GetPlayerModelIndex();
 }
 
-void CBaseHL1CombatWeapon::Drop( const Vector &vecVelocity )
+void CBaseHL1CombatWeapon::Detach( void )
 {
-	BaseClass::Drop( vecVelocity );
+    BaseClass::Detach();
 
-	m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
-}
-
-bool CBaseHL1CombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo, bool noHolsterAnim )
-{
-	bool bCanHolster = BaseClass::Holster( pSwitchingTo );
-	if ( bCanHolster && noHolsterAnim )
-		SetWeaponVisible( false );
-
-	if ( bCanHolster )
-		m_iWorldModelIndex = modelinfo->GetModelIndex( GetWorldModel() );
-
-	return bCanHolster;
+    if ( !GameRules()->IsMultiplayer() )
+        m_iWorldModelIndex = GetWorldModelIndex();
 }
 
 #if defined( CLIENT_DLL )

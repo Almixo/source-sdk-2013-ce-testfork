@@ -723,6 +723,7 @@ ConVar sk_plr_dmg_kar98_bullet( "sk_plr_dmg_kar98_bullet", "100", FCVAR_REPLICAT
 
 ConVar sk_plr_dmg_45acp_bullet( "sk_plr_dmg_45acp_bullet", "20", FCVAR_REPLICATED );
 ConVar sk_plr_dmg_30car_bullet( "sk_plr_dmg_30car_bullet", "34", FCVAR_REPLICATED );
+ConVar sk_plr_dmg_k43_bullet( "sk_plr_dmg_k43_bullet", "40", FCVAR_REPLICATED );
 
 CAmmoDef *GetAmmoDef()
 {
@@ -749,12 +750,16 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType( "12mmRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, NULL,						"sk_npc_dmg_12mm_bullet",NULL,					BULLET_IMPULSE(300, 1200), 0 );
 
 		// custom
-		def.AddAmmoType( "GarandRound",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 ); //80 + 8
-		def.AddAmmoType( "Kar98Round",		DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_kar98_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 ); //65 + 5
+		def.AddAmmoType( "GarandRound",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_garand_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 ); //80 + 8
+		def.AddAmmoType( "Kar98Round",		DMG_BULLET | DMG_NEVERGIB,	TRACER_LINE, "sk_plr_dmg_kar98_bullet", NULL,					"sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 ); //65 + 5
 
-        def.AddAmmoType( ".30Carbine",      DMG_BULLET,                 TRACER_LINE, "sk_plr_dmg_30car_bullet", NULL,                   "sk_max_9mm_bullet",    1000, 0 );
+		def.AddAmmoType( "K43Round",		DMG_BULLET | DMG_NEVERGIB,  TRACER_LINE, "sk_plr_dmg_k43_bullet", NULL,					    "sk_max_9mm_bullet",	1000 /*BULLET_IMPULSE(2910, 2820)*/, 0 ); //65 + 5
 
-		def.AddAmmoType( ".45ACP",			DMG_BULLET,					TRACER_LINE, "sk_plr_dmg_45acp_bullet", NULL,					"sk_max_9mm_bullet",	500, 0 );
+        def.AddAmmoType( ".30Carbine",      DMG_BULLET | DMG_NEVERGIB,  TRACER_LINE, "sk_plr_dmg_30car_bullet", NULL,                   "sk_max_9mm_bullet",    1000, 0 );
+
+		def.AddAmmoType( ".45ACP",			DMG_BULLET | DMG_NEVERGIB,  TRACER_LINE, "sk_plr_dmg_45acp_bullet", NULL,					"sk_max_9mm_bullet",	500, 0 );
+
+        def.AddAmmoType( "M6A1Rocket",      DMG_GENERIC,                TRACER_NONE, NULL,                      NULL,                   "sk_max_9mm_bullet",    0, 0 );
 
 		def.AddAmmoType( "Gravity",			DMG_CRUSH,					TRACER_NONE, 0,							0,						8,					0, 0 );
 	}

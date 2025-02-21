@@ -29,7 +29,9 @@ enum weapon_type
 	M1RIFLE,
 	M1CARBINE,
 	THOMPSON,
-    MP_40
+    MP_40,
+    K_43,
+    M1A1BAZOOKA
 };
 
 #ifdef CLIENT_DLL
@@ -48,6 +50,8 @@ public:
 	void Spawn( void );
 	void DoDSpawn( void );
 
+    void ItemPostFrame( void );
+
 	void PrimaryAttack( void ) { return GetFire(); }
 
 	virtual void WeaponIdle( void );
@@ -60,13 +64,23 @@ public:
 	float GetFireDelay( void ) const;
 	float GetSecondaryFireDelay( void ) const;
 
+    bool Reload( void ) { return BaseClass::DefaultReload( GetMaxClip1(), GetMaxClip2(), GetReloadActivity() ); }
+
 	void ApplyRecoil( CBasePlayer *pPlayer );
 	void ApplySpread( CBasePlayer *pPlayer, Vector *vec );
+
+    virtual Activity GetReloadActivity( void ) { return m_iClip1 <= 0 ? ACT_VM_RELOAD_EMPTY : ACT_VM_RELOAD; }
 
 	virtual Activity GetLastRoundActivity( void ) { return ACT_VM_PRIMARYATTACK; }
 	virtual Activity GetIdleEmptyActivity( void ) { return ACT_VM_IDLE_EMPTY; }
 
 	virtual void GetFire( void ) { return FireSingle(); }
+
+    void FinishReload( void );
+
+#ifdef CLIENT_DLL
+    bool ShouldPredict( void );
+#endif
 
 public:
 	int m_iWeaponType;
@@ -77,4 +91,4 @@ public:
 	CDoDWeaponParse *m_pWpnInfo;
 };
 
-#endif BASEDODCOMBATWEAPON_SHARED_H
+#endif // BASEDODCOMBATWEAPON_SHARED_H

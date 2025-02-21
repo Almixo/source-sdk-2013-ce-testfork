@@ -138,11 +138,16 @@ $Project "Client (CUSTOM)"
 				$File	"..\shared\custom\m1carbine.cpp"
 				$File	"..\shared\custom\tommy.cpp"
 				$File	"..\shared\custom\mp40.cpp"
+				$File	"..\shared\custom\k43.cpp"
 				
 				$File	"..\shared\custom\CBaseDodWeapon_shared.cpp"
 				$File	"..\shared\custom\CBaseDodWeapon_shared.h"
 				$File	"..\shared\custom\CDoDWeaponParse.cpp"
 				$File	"..\shared\custom\CDoDWeaponParse.h"
+				
+				$File	"..\shared\custom\bazooka.cpp"
+
+				$File	"custom\c_bazooka_rocket.cpp"
 			}
 		}
 	}

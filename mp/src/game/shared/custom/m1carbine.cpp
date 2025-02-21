@@ -19,6 +19,9 @@ class CM1Carbine : public CBaseDoDCombatWeapon
 	DECLARE_PREDICTABLE();
 public:
 	CM1Carbine();
+
+    Activity GetIdleEmptyActivity( void ) { return ACT_VM_IDLE; }
+    Activity GetReloadActivity( void ) { return ACT_VM_RELOAD; }
 };
 
 IMPLEMENT_NETWORKCLASS_ALIASED( M1Carbine, DT_M1Carbine );

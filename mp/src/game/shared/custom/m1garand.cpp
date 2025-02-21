@@ -19,8 +19,10 @@ class CM1Rifle : public CBaseDoDCombatWeapon
 public:
 	CM1Rifle();
 
-	Activity GetDrawActivity( void );
+    Activity GetDrawActivity( void ) { return m_iClip1 <= 0 ? ACT_VM_DRAW_EMPTY : ACT_VM_DRAW; }
 	Activity GetLastRoundActivity( void ) { return ACT_GLOCK_SHOOTEMPTY; }
+
+    Activity GetReloadActivity( void ) { return ACT_VM_RELOAD; }
 
 	void WeaponIdle( void );
 	bool Reload( void );
@@ -48,11 +50,6 @@ CM1Rifle::CM1Rifle()
 	m_bFiresUnderwater = false;
 
 	m_iWeaponType = M1RIFLE;
-}
-
-Activity CM1Rifle::GetDrawActivity( void )
-{
-	return m_iClip1 <= 0 ? ACT_VM_DRAW_EMPTY : ACT_VM_DRAW;
 }
 
 bool CM1Rifle::Reload( void )

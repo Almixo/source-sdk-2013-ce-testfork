@@ -20,6 +20,9 @@ public:
 	CTommy();
 
 	void GetFire() { return FireAuto(); }
+
+    Activity GetLastRoundActivity( void ) { return ACT_GLOCK_SHOOTEMPTY; }
+    Activity GetReloadActivity( void ) { return ACT_VM_RELOAD; }
 };
 
 IMPLEMENT_NETWORKCLASS_ALIASED( Tommy, DT_Tommy );

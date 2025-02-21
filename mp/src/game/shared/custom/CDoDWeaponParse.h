@@ -15,8 +15,7 @@ public:
 public:
 	float m_flFireDelay;
 	float m_flSecondaryFireDelay;
-	
-	float m_flRecoil;
 
+	float m_flRecoil;
 	float m_flSpread;
 };
