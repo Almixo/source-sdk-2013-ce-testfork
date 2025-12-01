@@ -74,8 +74,9 @@ public:
 
 	void			SetAbsOrigin( const Vector &vec );
 	const Vector	&GetAbsOrigin() const;
-
+#ifndef SDK2013CE
 private:
+#endif
 	Vector			m_vecAbsOrigin;		// edict::origin
 };
 

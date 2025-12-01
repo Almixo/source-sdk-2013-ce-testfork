@@ -1733,7 +1733,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 #endif
 
 
-		if( IsPlayer() && info.m_iShots > 1 && iShot % 2 )
+		if( /*IsPlayer() && info.m_iShots > 1 && iShot % 2*/ false )
 		{
 			// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
 #ifdef PORTAL

@@ -550,6 +550,11 @@ public:
 	virtual	const char			*Key_LookupBindingExact( const char *pBinding ) = 0;
 	
 	virtual void				AddPhonemeFile( const char *pszPhonemeFile ) = 0;
+	virtual float			    GetPausedExpireTime( void ) = 0;
+
+	virtual bool			    StartDemoRecording( const char *pszFilename, const char *pszFolder = NULL ) = 0;
+	virtual void			    StopDemoRecording( void ) = 0;
+	virtual void			    TakeScreenshot( const char *pszFilename, const char *pszFolder = NULL ) = 0;
 
 };
 
@@ -571,6 +576,8 @@ public:
 	virtual void DisconnectInternal() = 0;
 
 	virtual int GetInstancesRunningCount( ) = 0;
+
+    virtual void SetRichPresenceConnect( const char *pszOverride ) = 0;
 };
 
 
@@ -641,7 +648,7 @@ public:
 								int sequence_number,			// sequence_number of this cmd
 								float input_sample_frametime,	// Frametime for mouse input sampling
 								bool active ) = 0;				// True if the player is active (not paused)
-								 		
+										
 	// If the game is running faster than the tick_interval framerate, then we do extra mouse sampling to avoid jittery input
 	//  This code path is much like the normal move creation code, except no move is created
 	virtual void			ExtraMouseSample( float frametime, bool active ) = 0;

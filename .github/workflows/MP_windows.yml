@@ -23,19 +23,19 @@ jobs:
 
       - name: Create project
         working-directory: mp/src
-        run: devtools/bin/vpc.exe /sdk2013ce /2013 +game /mksln sdk2013ce.sln
+        run: devtools/bin/vpc.exe /custom +gamedlls /mksln tehcooler.sln
 
       - name: Build project
         working-directory: mp/src
-        run: devenv sdk2013ce.sln /Build Release
+        run: devenv tehcooler.sln /Build Release
 
       - name: Pack
         shell: bash
-        run: tar cJfv Windows.tar.xz mp/game/mod_sdk2013ce/bin
+        run: tar cJfv Windows.tar.xz mp/game/mod_custom/bin
 
       - name: Upload product
         uses: actions/upload-artifact@v4
         with:
-          name: mp_sdk2013ce
+          name: tehcooler_dlls
           path: Windows.tar.xz
           if-no-files-found: error

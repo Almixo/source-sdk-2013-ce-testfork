@@ -107,8 +107,13 @@ protected:
 
 	T** m_pMemory;
 	int m_nBlocks;
+#ifndef __clang__
 	int m_nIndexMask : 27;
 	int m_nIndexShift : 5;
+#else
+	int m_nIndexMask;
+	int m_nIndexShift;
+#endif
 };
 
 //-----------------------------------------------------------------------------

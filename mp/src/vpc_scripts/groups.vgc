@@ -65,3 +65,11 @@ $Group "dedicated"
 	"tier1"
 }
 
+$Group "hlmv"
+{
+//	"tier1"
+//	"mathlib"
+	"hlmv"
+	"mxtoolkitwin32"
+}
+

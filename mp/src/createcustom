@@ -1,0 +1,6 @@
+#!/bin/bash
+
+pushd `dirname $0`
+#pushd `basename "$PWD"`
+devtools/bin/vpc_linux /CUSTOM +gamedlls /mksln cstm-make
+popd

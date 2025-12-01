@@ -146,12 +146,19 @@ private:
 	// Muzzle flash sprites
 	struct model_t			*m_pSpriteMuzzleFlash[10];
 	struct model_t			*m_pSpriteAR2Flash[4];
+#ifndef HL1_CLIENT_DLL
 	struct model_t			*m_pShells[3];
+#endif
 	struct model_t			*m_pSpriteCombineFlash[2];
 
 #if defined( HL1_CLIENT_DLL )
-	struct model_t			*m_pHL1Shell;
-	struct model_t			*m_pHL1ShotgunShell;
+	//struct model_t			*m_pHL1Shell;
+	//struct model_t			*m_pHL1ShotgunShell;
+	//struct model_t			*m_pDoDSmallShell;
+	//struct model_t			*m_pDoDMediumShell;
+	//struct model_t			*m_pDoDLargeShell;
+
+	struct model_t			*m_pShells[3]; //wtf?
 #endif
 
 #if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )

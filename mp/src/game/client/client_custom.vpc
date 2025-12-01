@@ -1,0 +1,154 @@
+//-----------------------------------------------------------------------------
+//	CLIENT_HL1.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro GAMENAME 	"custom" [!$SOURCESDK]
+$Macro GAMENAME 	"mod_custom" [$SOURCESDK]
+
+$Include "$SRCDIR\game\client\client_base.vpc"
+$Include "$SRCDIR\game\protobuf_include.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories		"$BASE;.\hl1,.\custom,.\hl2,.\hl2\elements,..\shared\hl1,..\shared\hl2,..\shared\custom"
+		$PreprocessorDefinitions			"$BASE;HL1_CLIENT_DLL;SDK2013CE;CUSTOM_CLIENT_DLL"
+	}
+}
+
+$Project "Client (CUSTOM)"
+{
+	$Folder	"Source Files"
+	{
+		-$File	"geiger.cpp"
+		-$File	"history_resource.cpp"
+		-$File	"train.cpp"
+		
+		-$File	"$SRCDIR\game\shared\weapon_parse_default.cpp" // wtf is vpc doing? gotta be like this on client, but different on server???
+		
+		$File	"c_team_objectiveresource.cpp"
+		$File	"c_team_objectiveresource.h"
+		$File	"hud_chat.cpp"
+		$File	"..\shared\predicted_viewmodel.cpp"
+		$File	"..\shared\predicted_viewmodel.h"
+
+		$Folder	"HL2 DLL"
+		{
+			$File	"hl2\c_antlion_dust.cpp"
+			$File	"hl2\c_basehelicopter.cpp"
+			$File	"hl2\c_basehelicopter.h"
+			$File	"hl2\c_basehlcombatweapon.h"
+			$File	"hl2\c_corpse.cpp"
+			$File	"hl2\c_corpse.h"
+			$File	"hl2\c_hl2_playerlocaldata.h"
+			$File	"hl2\c_rotorwash.cpp"
+			$File	"$SRCDIR\game\shared\hl2\citadel_effects_shared.h"
+			$File	"$SRCDIR\game\shared\hl2\env_headcrabcanister_shared.h"
+			$File	"hl2\fx_bugbait.cpp"
+			$File	"$SRCDIR\game\shared\hl2\hl2_shareddefs.h"
+			$File	"hl2\hl_in_main.cpp"
+			$File	"hl2\hl_prediction.cpp"
+			$File	"hl2\vgui_rootpanel_hl2.cpp"
+		}
+				
+		$Folder	"HL1 DLL"
+		{
+			$File	"hl1\c_hl1mp_player.cpp"
+			$File	"hl1\c_hl1mp_player.h"
+			$File	"hl1\hl1_clientmode.cpp"
+			$File	"hl1\hl1_clientmode.h"
+			$File	"hl1\hl1_clientscoreboard.cpp"
+			$File	"hl1\hl1_clientscoreboard.h"
+			$File	"hl1\hl1_c_legacytempents.cpp"
+			$File	"hl1\hl1_c_player.cpp"
+			$File	"hl1\hl1_c_player.h"
+			$File	"hl1\hl1_c_rpg_rocket.cpp"
+			$File	"hl1\hl1_c_weapon__stubs.cpp"
+			$File	"hl1\hl1_fx_gauss.cpp"
+			$File	"hl1\hl1_fx_gibs.cpp"
+			$File	"hl1\hl1_fx_impacts.cpp"
+			$File	"hl1\hl1_fx_shelleject.cpp"
+			$File	"hl1\hl1_hud_ammo.cpp"
+			$File	"hl1\hl1_hud_battery.cpp"
+			$File	"hl1\hl1_hud_damageindicator.cpp"
+			$File	"hl1\hl1_hud_damagetiles.cpp"
+			$File	"hl1\hl1_hud_deathnotice.cpp"
+			$File	"hl1\hl1_hud_flashlight.cpp"
+			$File	"hl1\hl1_hud_geiger.cpp"
+			$File	"hl1\hl1_hud_health.cpp"
+			$File	"hl1\hl1_hud_history_resource.cpp"
+			$File	"hl1\hl1_hud_numbers.cpp"
+			$File	"hl1\hl1_hud_numbers.h"
+			$File	"hl1\hl1_hud_train.cpp"
+			$File	"hl1\hl1_hud_weaponselection.cpp"
+			//SHARED BELOW!
+			$File	"..\shared\hl1\hl1mp_basecombatweapon_shared.cpp"
+			$File	"..\shared\hl1\hl1mp_basecombatweapon_shared.h"
+			$File	"..\shared\hl1\hl1mp_gamerules.cpp"
+			$File	"..\shared\hl1\hl1mp_gamerules.h"
+			$File	"..\shared\hl1\hl1mp_weapon_357.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_crossbow.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_crowbar.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_egon.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_gauss.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_glock.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_handgrenade.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_hornetgun.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_mp5.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_mp5.h"
+			$File	"..\shared\hl1\hl1mp_weapon_rpg.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_rpg.h"
+			$File	"..\shared\hl1\hl1mp_weapon_sachel.cpp"
+			$File	"..\shared\hl1\hl1mp_weapon_satchel.h"
+			$File	"..\shared\hl1\hl1mp_weapon_shotgun.cpp"
+			$File	"..\shared\hl1\hl1_basecombatweapon_shared.cpp"
+			$File	"..\shared\hl1\hl1_basecombatweapon_shared.h"
+			$File	"..\shared\hl1\hl1_gamemovement.cpp"
+			$File	"..\shared\hl1\hl1_gamemovement.h"
+			$File	"..\shared\hl1\hl1_gamerules.cpp"
+			$File	"..\shared\hl1\hl1_gamerules.h"
+			$File	"..\shared\hl1\hl1_player_shared.cpp"
+			$File	"..\shared\hl1\hl1_player_shared.h"
+			$File	"..\shared\hl1\hl1_shareddefs.h"
+			$File	"..\shared\hl1\hl1_usermessages.cpp"
+		}
+		
+		$Folder "CUSTOM"
+		{
+			$File	"..\shared\custom\CDisplacer.cpp"
+			$File	"..\shared\custom\CGDWeapon.cpp"
+			$File	"..\shared\custom\CGDWeapon.h"
+			$File	"..\shared\custom\CGuidedDot.cpp"
+			$File	"..\shared\custom\CGuidedDot.h"
+			$File	"..\shared\custom\CGuidedWeapon.cpp"
+			$File	"..\shared\custom\CGuidedWeapon.h"
+			
+			$File	"..\shared\custom\teh_weapon_chumtoad.cpp"
+
+			$Folder "WEAPONS"
+			{
+				$File	"..\shared\custom\m1garand.cpp"
+				$File	"..\shared\custom\kar98.cpp"
+				$File	"..\shared\custom\colt.cpp"
+				$File	"..\shared\custom\luger.cpp"
+				$File	"..\shared\custom\m1carbine.cpp"
+				$File	"..\shared\custom\tommy.cpp"
+				$File	"..\shared\custom\mp40.cpp"
+				$File	"..\shared\custom\k43.cpp"
+				
+				$File	"..\shared\custom\CBaseDoDWeapon_shared.cpp"
+				$File	"..\shared\custom\CBaseDoDWeapon_shared.h"
+				$File	"..\shared\custom\CDoDWeaponParse.cpp"
+				$File	"..\shared\custom\CDoDWeaponParse.h"
+				
+				$File	"..\shared\custom\bazooka.cpp"
+
+				$File	"custom\c_bazooka_rocket.cpp"
+			}
+		}
+	}
+}

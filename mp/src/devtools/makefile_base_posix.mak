@@ -62,11 +62,12 @@ ifeq ($(CLANG_BUILD),1)
 	CXXFLAGS = $(BASE_CFLAGS) -std=gnu++0x -Wno-c++11-narrowing -Wno-dangling-else $(ENV_CXXFLAGS)
 else
         # !!! ABI COMPAT: -fabi-compat-version=2 is needed to generate the proper symbols for linking
-	CXXFLAGS = $(BASE_CFLAGS) -std=gnu++0x -fpermissive -fabi-compat-version=2 $(ENV_CXXFLAGS)
+	CXXFLAGS = $(BASE_CFLAGS) -std=gnu++17 -fpermissive -fabi-compat-version=2 -fno-builtin $(ENV_CXXFLAGS)
         # Diagnostics coloring
 	CXXFLAGS += -fdiagnostics-color=always
+	CXXFLAGS += -flto
 endif
-DEFINES += -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE
+DEFINES += -DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE -DSDK2013CE
 
 ## TODO: This cases build errors in cstrike/bin right now. Need to debug.
 # This causes all filesystem interfaces to default to their 64bit versions on
