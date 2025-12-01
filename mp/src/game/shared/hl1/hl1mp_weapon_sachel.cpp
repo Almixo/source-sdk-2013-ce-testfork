@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "hl1_basecombatweapon_shared.h"
 //#include "basecombatweapon.h"
 //#include "basecombatcharacter.h"
@@ -15,7 +15,7 @@
 #else
 #include "player.h"
 #endif
-//#include "AI_BaseNPC.h"
+//#include "ai_basenpc.h"
 //#include "player.h"
 #include "gamerules.h"
 #include "in_buttons.h"

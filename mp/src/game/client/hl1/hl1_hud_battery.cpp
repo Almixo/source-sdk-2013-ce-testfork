@@ -23,7 +23,7 @@ using namespace vgui;
 #include "hudelement.h"
 #include "hl1_hud_numbers.h"
 
-#include "ConVar.h"
+#include "convar.h"
 
 #define FADE_TIME	100
 #define MIN_ALPHA	100	

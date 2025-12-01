@@ -20,7 +20,7 @@
 #include "hl1mp_gamerules.h"
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
-#include "EntityList.h"
+#include "entitylist.h"
 #include "physics.h"
 #include "game.h"
 #include "team.h"

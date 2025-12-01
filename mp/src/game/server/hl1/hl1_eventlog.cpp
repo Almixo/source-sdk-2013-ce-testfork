@@ -6,7 +6,7 @@
 //
 //=============================================================================//
 #include "cbase.h"
-#include "../eventlog.h"
+#include "EventLog.h"
 
 class CHL1EventLog : public CEventLog
 {

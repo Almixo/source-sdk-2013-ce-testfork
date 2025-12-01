@@ -16,7 +16,7 @@
 #include "ai_hull.h"
 #include "hl2_shareddefs.h"
 #include "info_camera_link.h"
-#include "Point_Camera.h"
+#include "point_camera.h"
 #include "ndebugoverlay.h"
 #include "globals.h"
 #include "ai_interactions.h"

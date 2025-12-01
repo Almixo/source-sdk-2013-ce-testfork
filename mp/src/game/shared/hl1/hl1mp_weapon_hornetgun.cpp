@@ -6,10 +6,10 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "hl1mp_basecombatweapon_shared.h"
 //#include "basecombatcharacter.h"
-//#include "AI_BaseNPC.h"
+//#include "ai_basenpc.h"
 #include "gamerules.h"
 #include "in_buttons.h"
 #ifdef CLIENT_DLL

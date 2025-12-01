@@ -20,7 +20,7 @@
 
 
 #include "ai_basenpc.h"
-#include "AI_Motor.h"
+#include "ai_motor.h"
 #include "ai_senses.h"
 //=============================================================================
 // >> CHL1NPCTalker

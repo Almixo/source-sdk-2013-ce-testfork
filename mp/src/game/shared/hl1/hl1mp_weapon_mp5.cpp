@@ -8,9 +8,9 @@
 #include "cbase.h"
 //#include "basecombatweapon.h"
 #include "hl1mp_basecombatweapon_shared.h"
-#include "NPCevent.h"
+#include "npcevent.h"
 //#include "basecombatcharacter.h"
-//#include "AI_BaseNPC.h"
+//#include "ai_basenpc.h"
 #ifdef CLIENT_DLL
 #include "hl1/hl1_c_player.h"
 #else

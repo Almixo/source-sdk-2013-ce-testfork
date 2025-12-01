@@ -28,7 +28,7 @@ using namespace vgui;
 
 #include "hudelement.h"
 
-#include "ConVar.h"
+#include "convar.h"
 
 #define INIT_HEALTH -1
 
